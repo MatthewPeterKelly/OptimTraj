@@ -22,14 +22,14 @@ function soln = trajOpt(problem)
 %       dObj = pathObj(t,x,u)
 %               dObj = [1, nTime] = integrand from the cost function
 %
-%       obj = endObj(t0,x0,tF,xF)
+%       obj = bndObj(t0,x0,tF,xF)
 %               obj = scalar = objective function for boundry points
 %
 %       [c, ceq] = pathCst(t,x,u)
 %               c = column vector of inequality constraints  ( c <= 0 )
 %               ceq = column vector of equality constraints ( c == 0 )
 %
-%       [c, ceq] = endCst(t0,x0,tF,xF)
+%       [c, ceq] = bndCst(t0,x0,tF,xF)
 %               c = column vector of inequality constraints  ( c <= 0 )
 %               ceq = column vector of equality constraints ( c == 0 )
 %
@@ -42,6 +42,12 @@ function soln = trajOpt(problem)
 %
 %   bounds - struct with bounds for the problem:
 %       
+%       initialTime.low = [1, 1]
+%       initialTime.upp = [1, 1]
+%
+%       finalTime.low = [1, 1]
+%       finalTime.upp = [1, 1]
+%
 %       .state.low = [nState,1] = lower bound on the state
 %       .state.upp = [nState,1] = lower bound on the state
 %
@@ -54,11 +60,6 @@ function soln = trajOpt(problem)
 %       .control.low = [nControl, 1]
 %       .control.upp = [nControl, 1]
 %
-%       initialTime.low = [1, 1]
-%       initialTime.upp = [1, 1]
-%
-%       finalTime.low = [1, 1]
-%       finalTime.upp = [1, 1]
 %
 %   guess - struct with an initial guess at the trajectory
 %
@@ -72,7 +73,7 @@ function soln = trajOpt(problem)
 %   options = options for the transcription algorithm (this function)
 %
 %       .method = string to pick which method is used for transcription
-%           'trapazoid' = Implicit 2nd-order method
+%           'trapazoid' 
 %
 %
 %       --TODO-- 
@@ -92,6 +93,7 @@ P = problem;
 
 switch P.options.method
     case 'trapazoid'
+        soln = trapazoid(problem);
     otherwise
         error('Invalid method. Type: ''help trajOpt'' for a valid list.');
 end
