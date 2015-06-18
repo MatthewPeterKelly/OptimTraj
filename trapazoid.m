@@ -15,7 +15,7 @@ function soln = trapazoid(problem)
 G = problem.guess;
 B = problem.bounds;
 F = problem.func;
-nGrid = P.options.nGrid;  %Number of grid points for transcription
+nGrid = problem.options.nGrid;  %Number of grid points for transcription
 
 % Interpolate the guess at the grid-points for transcription:
 guess.tSpan = G.time([1,end]);
@@ -53,8 +53,20 @@ P.Aeq = []; P.beq = [];
 P.options = problem.nlpOpt;
 P.solver = 'fmincon';
 
-% --TODO--
-% call fmincon, and then create the soln struct
+%%%% Call fmincon to solve the non-linear program (NLP)
+tic;
+[zSoln, objVal,exitFlag,output] = fmincon(P);
+[tSoln,xSoln,uSoln] = unPackDecVar(zSoln,pack);
+nlpTime = toc;
+
+soln.grid.time = tSoln;
+soln.grid.state = xSoln;
+soln.grid.control = uSoln;
+
+soln.info = output;
+soln.info.nlpTime = nlpTime;
+soln.info.exitFlag = exitFlag;
+soln.info.objVal = objVal;
 
 end
 

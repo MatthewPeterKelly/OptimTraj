@@ -61,6 +61,7 @@ function soln = trajOpt(problem)
 %       .control.upp = [nControl, 1]
 %
 %
+%
 %   guess - struct with an initial guess at the trajectory
 %
 %       .time = [1, nGridGuess]
@@ -69,6 +70,7 @@ function soln = trajOpt(problem)
 %   
 %
 %   nlpOpt = option struct to be passed to fmincon, created via optimset().
+%            If nlpOpt = [], then fmincon will use default settings.
 %
 %   options = options for the transcription algorithm (this function)
 %
