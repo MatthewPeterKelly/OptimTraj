@@ -30,37 +30,34 @@ guess.control = interp1(G.time', G.control', guess.time')';
 nState = size(G.state,1);
 nControl = size(G.control,1);
 
-% Default bounds for state:
-if isempty(B.state.low)
-    B.state.low = -inf(nState,1);
-end
-if isempty(B.state.upp)
-    B.state.upp = inf(nState,1);
-end
+% Check if fields exist:
+if ~isfield(B,'state'), B.state.low; B.state.upp = []; end
+if ~isfield(B, 'initialState'), B.initialState.low = []; B.initialState.upp = []; end
+if ~isfield(B, 'finalState'), B.finalState.low = []; B.finalState.upp = []; end
 
-% Default bounds for control:
-if isempty(B.control.low)
-    B.control.low = -inf(nControl,1);
-end
-if isempty(B.control.upp)
-    B.control.upp = inf(nControl,1);
-end
+if ~isfield(B,'control'), B.control.low = [];  B.control.upp = []; end
+
+if ~isfield(F,'dynamics'), error('Must include a dynamics function handle!'); end
+if ~isfield(F,'pathObj'), F.pathObj = []; end
+if ~isfield(F,'bndObj'), F.bndObj = []; end
+if ~isfield(F,'pathCst'), F.pathCst = []; end
+if ~isfield(F,'bndCst'), F.bndCst = []; end
+
+% Default bounds for state:
+if isempty(B.state.low), B.state.low = -inf(nState,1); end
+if isempty(B.state.upp), B.state.upp = inf(nState,1); end
 
 % Default bounds for initial state:
-if isempty(B.initialState.low)
-    B.initialState.low = B.state.low;
-end
-if isempty(B.initialState.upp)
-    B.initialState.upp = B.state.upp;
-end
+if isempty(B.initialState.low),B.initialState.low = B.state.low; end
+if isempty(B.initialState.upp), B.initialState.upp = B.state.upp; end
 
 % Default bounds for final state:
-if isempty(B.finalState.low)
-    B.finalState.low = B.state.low;
-end
-if isempty(B.finalState.upp)
-    B.finalState.upp = B.state.upp;
-end
+if isempty(B.finalState.low), B.finalState.low = B.state.low; end
+if isempty(B.finalState.upp), B.finalState.upp = B.state.upp; end
+
+% Default bounds for control:
+if isempty(B.control.low), B.control.low = -inf(nControl,1); end
+if isempty(B.control.upp), B.control.upp = inf(nControl,1); end
 
 % Unpack all bounds:
 tLow = linspace(B.initialTime.low, B.finalTime.low, nGrid);

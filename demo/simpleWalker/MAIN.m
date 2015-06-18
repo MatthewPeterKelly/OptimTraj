@@ -26,8 +26,7 @@ problem.func.dynamics = @(t,x,u)( dynamics(x,u,param.dyn) );
 
 problem.func.pathObj = @(t,x,u)( costFun(u) );
 
-problem.func.bndObj = [];
-
+problem.func.bndObj = [];  
 problem.func.pathCst = [];
 
 problem.func.bndCst = @(t0,x0,tF,xF)( periodicGait(xF,x0,param.dyn) );
@@ -52,10 +51,6 @@ problem.bounds.initialState.low = [stepAngle; -stepAngle; -inf(2,1)];
 problem.bounds.initialState.upp = [stepAngle; -stepAngle;  inf(2,1)];
 problem.bounds.finalState.low = [];  %sets to be same as bounds.state.low
 problem.bounds.finalState.upp = [];  %sets to be same as bounds.state.upp
-
-problem.bounds.control.low = -inf;
-problem.bounds.control.upp =  inf;
-
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%

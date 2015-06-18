@@ -79,6 +79,11 @@ function soln = trajOpt(problem)
 %
 %
 %       --TODO-- 
+%       .verbose = integer
+%           0 = no display, overrides fmincon display setting
+%           1 = default
+%           2 = display warnings, overrides fmincon display setting
+%           3 = debug, overrides fmincon display setting
 %  
 %
 %
