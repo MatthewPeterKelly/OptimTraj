@@ -30,6 +30,7 @@ guess.control = interp1(G.time', G.control', guess.time')';
 nState = size(G.state,1);
 nControl = size(G.control,1);
 
+% Default bounds for state:
 if isempty(B.state.low)
     B.state.low = -inf(nState,1);
 end
@@ -37,25 +38,31 @@ if isempty(B.state.upp)
     B.state.upp = inf(nState,1);
 end
 
+% Default bounds for control:
 if isempty(B.control.low)
-    B.state.low = -inf(nState,1);
+    B.control.low = -inf(ncontrol,1);
 end
 if isempty(B.control.upp)
     B.control.upp = inf(nControl,1);
 end
 
+% Default bounds for initial state:
 if isempty(B.initialState.low)
     B.initialState.low = B.state.low;
 end
 if isempty(B.initialState.upp)
     B.initialState.upp = B.state.upp;
 end
+
+% Default bounds for final state:
 if isempty(B.finalState.low)
     B.finalState.low = B.state.low;
 end
 if isempty(B.finalState.upp)
     B.finalState.upp = B.state.upp;
 end
+
+% Unpack all bounds:
 tLow = linspace(B.initialTime.low, B.finalTime.low, nGrid);
 xLow = [B.initialState.low, B.state.low*ones(1,nGrid-2), B.finalState.low];
 uLow = B.control.low*ones(1,nGrid);
