@@ -27,7 +27,7 @@ problem.func.bndObj = [];
 
 problem.func.pathCst = [];
 
-problem.func.bndCst = [];
+problem.func.bndCst = @(t0,x0,tF,xF)( periodicGait(xF,x0,param.dyn) );
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -41,14 +41,14 @@ problem.bounds.finalTime.upp = tF;
 
 % State: [q1;q2;dq1;dq2];
 
-problem.bounds.state.low = [-pi/2; -pi/2; -4; -4];
-problem.bounds.state.upp = [ pi/2;  pi/2;  4;  4];
+problem.bounds.state.low = [-pi/2; -pi/2; -inf(2,1)];
+problem.bounds.state.upp = [ pi/2;  pi/2;  inf(2,1)];
 
 stepAngle = 0.3;
-problem.bounds.initialState.low = [ stepAngle; -stepAngle; -4; -4];
-problem.bounds.initialState.upp = [ stepAngle; -stepAngle;  4;  4];
-problem.bounds.finalState.low = [-stepAngle;  stepAngle; -4; -4];
-problem.bounds.finalState.upp = [-stepAngle;  stepAngle;  4;  4];
+problem.bounds.initialState.low = [stepAngle; -stepAngle; -inf(2,1)];
+problem.bounds.initialState.upp = [stepAngle; -stepAngle;  inf(2,1)];
+problem.bounds.finalState.low = [];  %sets to be same as bounds.state.low
+problem.bounds.finalState.upp = [];  %sets to be same as bounds.state.upp
 
 problem.bounds.control.low = -inf;
 problem.bounds.control.upp =  inf;
@@ -63,8 +63,9 @@ problem.bounds.control.upp =  inf;
 
 problem.guess.time = [t0, tF];
 
-x0 = 0.5*(problem.bounds.initialState.low + problem.bounds.initialState.upp);
-xF = 0.5*(problem.bounds.finalState.low + problem.bounds.finalState.upp);
+stepRate = (tF-t0)/(2*stepAngle);
+x0 = [stepAngle; -stepAngle; -stepRate; stepRate];
+xF = [-stepAngle; stepAngle; -stepRate; stepRate];
 problem.guess.state = [x0, xF];
 
 problem.guess.control = [0, 0];
@@ -74,10 +75,12 @@ problem.guess.control = [0, 0];
 %                           Options:                                      %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
-problem.nlpOpt = [];   %Use default options for fmincon
+problem.nlpOpt = optimset(...
+    'Display','iter',...   %{'iter','final','off'}
+    'MaxFunEvals',5e4);
 
 problem.options.method = 'trapazoid';
-problem.options.nGrid = 25;   
+problem.options.nGrid = 15;   
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -100,23 +103,23 @@ u = soln.grid.control;
 figure(100); clf;
 
 subplot(3,1,1); hold on;
-plot(t,q1,'r')
-plot(t,q2,'b')
+plot(t,q1,'ro-')
+plot(t,q2,'bo-')
 legend('leg one','leg two')
 xlabel('time (sec)')
 ylabel('angle (rad)')
 title('Leg Angles')
 
 subplot(3,1,2); hold on;
-plot(t,dq1,'r')
-plot(t,dq2,'b')
+plot(t,dq1,'ro-')
+plot(t,dq2,'bo-')
 legend('leg one','leg two')
 xlabel('time (sec)')
 ylabel('rate (rad/sec)')
 title('Leg Angle Rates')
 
 subplot(3,1,3); hold on;
-plot(t,u,'m')
+plot(t,u,'mo-')
 xlabel('time (sec)')
 ylabel('torque (Nm)')
 title('Hip Torque')

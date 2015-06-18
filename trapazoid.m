@@ -27,6 +27,35 @@ guess.control = interp1(G.time', G.control', guess.time')';
 
 %%%% Compute bounds on decision variables:
 
+nState = size(G.state,1);
+nControl = size(G.control,1);
+
+if isempty(B.state.low)
+    B.state.low = -inf(nState,1);
+end
+if isempty(B.state.upp)
+    B.state.upp = inf(nState,1);
+end
+
+if isempty(B.control.low)
+    B.state.low = -inf(nState,1);
+end
+if isempty(B.control.upp)
+    B.control.upp = inf(nControl,1);
+end
+
+if isempty(B.initialState.low)
+    B.initialState.low = B.state.low;
+end
+if isempty(B.initialState.upp)
+    B.initialState.upp = B.state.upp;
+end
+if isempty(B.finalState.low)
+    B.finalState.low = B.state.low;
+end
+if isempty(B.finalState.upp)
+    B.finalState.upp = B.state.upp;
+end
 tLow = linspace(B.initialTime.low, B.finalTime.low, nGrid);
 xLow = [B.initialState.low, B.state.low*ones(1,nGrid-2), B.finalState.low];
 uLow = B.control.low*ones(1,nGrid);
@@ -234,7 +263,11 @@ if isempty(bndCst)
     c_bnd = [];
     ceq_bnd = [];
 else
-    [c_bnd, ceq_bnd] = bndCst(t,x,u);
+    t0 = t(1);
+    tF = t(end);
+    x0 = x(:,1);
+    xF = x(:,end);
+    [c_bnd, ceq_bnd] = bndCst(t0,x0,tF,xF);
 end
 
 %%%% Pack everything up:
