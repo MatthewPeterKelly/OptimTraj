@@ -1,7 +1,10 @@
 %MAIN.m  --  simple walker trajectory optimization
 %
-% This script sets up a trajectory optimization problem, and then solves it
-% using trajOpt.
+% This script sets up a trajectory optimization problem for a simple model
+% of walking, and solves it using TrajOpt. The walking model is a double
+% pendulum, with point feet, no ankle torques, impulsive heel-strike (but
+% not push-off), and continuous hip torque. Both legs have inertia. Cost
+% function is minimize integral of torque-squared.
 %
 %
 clc; clear;
@@ -9,11 +12,11 @@ clc; clear;
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                  Parameters for the dynamics function                   %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
-param.dyn.m1 = 10;  %hip mass
-param.dyn.m2 = 1;  %foot mass
+param.dyn.m = 10;  %leg mass
+param.dyn.I = 1;  %leg inertia about CoM
 param.dyn.g = 9.81;  %gravity
 param.dyn.l = 1;  %leg length
-
+param.dyn.d = 0.2;  %Leg CoM distance from hip
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                       Set up function handles                           %
@@ -80,7 +83,7 @@ problem.nlpOpt = optimset(...
     'MaxFunEvals',5e4);
 
 problem.options.method = 'trapazoid';
-problem.options.nGrid = 15;   
+problem.options.nGrid = 25;   
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%

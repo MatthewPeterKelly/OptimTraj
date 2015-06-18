@@ -8,8 +8,9 @@ function dz = dynamics(z,u,p)
 %   z = [4,n] = state vector
 %   u = [1,n] = hip torque
 %   p = parameter struct:
-%       .m1 = hip mass
-%       .m2 = foot mass
+%       .m = leg mass
+%       .I = leg moment of inertia about center of mass
+%       .d = distance (along leg) from leg CoM to hip
 %       .g = gravitational acceleration
 %       .l = leg length
 %
@@ -32,7 +33,7 @@ q2 = z(2,:);
 dq1 = z(3,:);
 dq2 = z(4,:);
 
-[ddq1,ddq2] = autoGen_dynamics(q1,q2,dq1,dq2,u,p.m1,p.m2,p.g,p.l);
+[ddq1,ddq2] = autoGen_dynamics(q1,q2,dq1,dq2,u,p.d,p.m,p.I,p.g,p.l);
 
 dz = [dq1;dq2;ddq1;ddq2];
 

@@ -6,8 +6,9 @@ function [p1,p2,dp1,dp2] = kinematics(z,p)
 % INPUTS:
 %   z = [4,n] = state vector
 %   p = parameter struct:
-%       .m1 = hip mass
-%       .m2 = foot mass
+%       .m = leg mass
+%       .I = leg moment of inertia about center of mass
+%       .d = distance (along leg) from leg CoM to hip
 %       .g = gravitational acceleration
 %       .l = leg length
 %
@@ -33,6 +34,6 @@ q2 = z(2,:);
 dq1 = z(3,:);
 dq2 = z(4,:);
 
-[p1,p2,dp1,dp2] = autoGen_kinematics(q1,q2,dq1,dq2,p.l1,p.l2);
+[p1,p2,dp1,dp2] = autoGen_kinematics(q1,q2,dq1,dq2,p.d,p.l);
 
 end

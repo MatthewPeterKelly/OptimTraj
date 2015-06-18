@@ -17,7 +17,13 @@ clc; clear;
 
 syms q1 q2 dq1 dq2 ddq1 ddq2 'real'   % states 
 syms u 'real' % hip torque
-syms m1 m2 g l 'real' % physical parameters
+syms d m I g l 'real' % physical parameters
+
+% d = distance along leg from hip to the center of mass of the leg
+% m = mass of each leg
+% I = moment of inertia of each leg about its center of mass
+% g = gravity
+% l = leg length
 
 %%%% Unit vectors:
 i = sym([1;0]);
@@ -31,8 +37,9 @@ z = [q1;q2;dq1;dq2];
 dz = [dq1;dq2;ddq1;ddq2];
 
 %%%% Kinematics:
-p1 = l*e1;
-p2 = p1 + l*e2;
+pHip = l*e1;
+p1 = pHip -d*e1;   %Center of mass of leg one
+p2 = pHip +d*e2;   %Center of mass of leg two
 
 dp1 = jacobian(p1,z)*dz;  %Chain rule to get velocity of hip joint
 dp2 = jacobian(p2,z)*dz; 
@@ -43,14 +50,14 @@ ddp2 = jacobian(dp2,z)*dz;
 %%%% Define a function for doing '2d' cross product: dot(a x b, k)
 cross2d = @(a,b)(a(1)*b(2) - a(2)*b(1));
 
-%%%% Angular momentum balance of system about stance foot:
-sumTorques1 = cross2d(p1,-m1*g*j) + cross2d(p2,-m2*g*j);
-sumInertial1 = cross2d(p1,m1*ddp1) + cross2d(p2,m2*ddp2);
+%%%% Angular momentum balance of system about stance foot (origin)
+sumTorques1 = cross2d(p1,-m*g*j) + cross2d(p2,-m*g*j);
+sumInertial1 = cross2d(p1,m*ddp1) + I*ddq1 + cross2d(p2,m*ddp2) + I*ddq2;
 eqn1 = sumTorques1-sumInertial1;
 
 %%%% Angular momentum balance of swing leg about hip joint:
-sumTorques2 = cross2d(p2-p1,-m2*g*j) + u;
-sumInertial2 = cross2d(p2-p1,m2*ddp2);
+sumTorques2 = cross2d(p2-pHip,-m*g*j) + u;
+sumInertial2 = cross2d(p2-pHip,m*ddp2) + I*ddq2;
 eqn2 = sumTorques2-sumInertial2;
 
 %%%% Solve dynamics:
@@ -64,23 +71,23 @@ soln.ddq2 = simplify(soln.ddq(2));
 %%%% Generate an optimized matlab function for dynamics:
 matlabFunction(soln.ddq1,soln.ddq2,...
     'file','autoGen_dynamics.m',...
-    'vars',{q1,q2,dq1,dq2,u,m1,m2,g,l},...
+    'vars',{q1,q2,dq1,dq2,u,d, m, I, g, l},...
     'outputs',{'ddq1','ddq2'});
 
 %%%% Compute the energy of the system:
-U = m1*g*dot(p1,j) + m2*g*dot(p2,j);   %Potential Energy
-T = 0.5*m1*dot(dp1,dp1) + 0.5*m2*dot(dp2,dp2);   %Kinetic Energy
+U = m*g*dot(p1,j) + m*g*dot(p2,j);   %Potential Energy
+T = 0.5*m*dot(dp1,dp1) + 0.5*m*dot(dp2,dp2) + 0.5*I*dq1^2 + 0.5*I*dq2^2;   %Kinetic Energy
 
 %%%% Generate an optimized matlab function for energy:
 matlabFunction(U,T,...
     'file','autoGen_energy.m',...
-    'vars',{q1,q2,dq1,dq2,m1,m2,g,l},...
+    'vars',{q1,q2,dq1,dq2,d, m, I, g, l},...
     'outputs',{'U','T'});
 
 %%%% Generate a function for computing the kinematics:
 matlabFunction(p1,p2,dp1,dp2,...
     'file','autoGen_kinematics.m',...
-    'vars',{q1,q2,dq1,dq2,l},...
+    'vars',{q1,q2,dq1,dq2,d,l},...
     'outputs',{'p1','p2','dp1','dp2'});
 
 
@@ -89,14 +96,15 @@ matlabFunction(p1,p2,dp1,dp2,...
 %         Derive heel-strike map and collision mechanics                  %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
+pFoot = pHip + l*e2;  %Swing foot position
+
 % Angular momentum of the system about the new stance foot (old swing foot)
-hSysBefore = cross2d(p1-p2,m1*dp1);
-% Note: the old swing foot has zero angular momentum because its relative 
-% distance is zero, and the old stance foot has no angular momentum because
-% its speed is zero.
+hSysBefore = ...
+    cross2d(p1-pFoot,m*dp1) + I*dq1 + ...   % old stance leg
+    cross2d(p2-pFoot,m*dp2) + I*dq2;    % old swing leg
 
 % Angular momentum of the old stance leg about the hip
-hLegBefore = sym(0);  %Since old stance foot has no speed
+hLegBefore = cross2d(p1-pHip,m*dp1) + I*dq1;  % old stance leg
 
 % Introduce new variables for the state after the collision:
 q1New = q2;
@@ -108,17 +116,19 @@ e1New = cos(q1New)*(-j) + sin(q1New)*(i);    % stance foot -> hip
 e2New = cos(q2New)*(-j) + sin(q2New)*(i);    % hip -> swing foot
 
 % Kinematics:
-p1New = l*e1New;
-p2New = p1New + l*e2New;
+pHipNew = l*e1New;
+p1New = pHipNew - d*e1New;
+p2New = l*e1New + d*e2New;
 
 dp1New = jacobian(p1New,[q1New;q2New])*[dq1New;dq2New];  
 dp2New = jacobian(p2New,[q1New;q2New])*[dq1New;dq2New];  
 
-% Angular momentum of the system after collision:
-hSysAfter = cross2d(p2New,m2*dp2New) + cross2d(p1New,m1*dp1New);
+% Angular momentum of the system after collision about new stance foot:
+hSysAfter = cross2d(p2New,m*dp2New) + I*dq2New + ...
+    cross2d(p1New,m*dp1New) + I*dq1New;
 
 % Angular momentum of the new stance leg about the hip
-hLegAfter = cross2d(p2New-p1New,m2*dp2New);
+hLegAfter = cross2d(p2New-pHipNew,m*dp2New);
 
 % solve the dynamics:
 eqnsHs = [hSysBefore-hSysAfter; hLegBefore-hLegAfter];
@@ -131,6 +141,6 @@ soln.dq2New = simplify(soln.hs(2));
 % Write the heel-strike map to a file:
 matlabFunction(q1New,q2New,soln.dq1New,soln.dq2New,...
     'file','autoGen_heelStrike.m',...
-    'vars',{q1,q2,dq1,m1,m2},...
+    'vars',{q1,q2,dq1,dq2, m, I, d,l},...
     'outputs',{'q1New','q2New','dq1New','dq2New'});
 

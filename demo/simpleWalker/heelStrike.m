@@ -7,8 +7,9 @@ function zAfter = heelStrike(zBefore,p)
 % INPUTS:
 %   zBefore = [4,1] = state vector before heel-strike
 %   p = parameter struct:
-%       .m1 = hip mass
-%       .m2 = foot mass
+%       .m = leg mass
+%       .I = leg moment of inertia about center of mass
+%       .d = distance (along leg) from leg CoM to hip
 %       .g = gravitational acceleration
 %       .l = leg length
 %
@@ -29,9 +30,9 @@ function zAfter = heelStrike(zBefore,p)
 q1 = zBefore(1,:);
 q2 = zBefore(2,:);
 dq1 = zBefore(3,:);
-% dq2 = zBefore(4,:);
+dq2 = zBefore(4,:);
 
-[q1New,q2New,dq1New,dq2New] = autoGen_heelStrike(q1,q2,dq1,p.m1,p.m2);
+[q1New,q2New,dq1New,dq2New] = autoGen_heelStrike(q1,q2,dq1,dq2,p.m,p.I,p.d,p.l);
 
 zAfter = [q1New;q2New;dq1New;dq2New];
 

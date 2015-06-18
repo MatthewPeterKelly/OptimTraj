@@ -40,7 +40,7 @@ end
 
 % Default bounds for control:
 if isempty(B.control.low)
-    B.control.low = -inf(ncontrol,1);
+    B.control.low = -inf(nControl,1);
 end
 if isempty(B.control.upp)
     B.control.upp = inf(nControl,1);
