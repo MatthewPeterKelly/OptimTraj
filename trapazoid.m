@@ -15,7 +15,12 @@ function soln = trapazoid(problem)
 G = problem.guess;
 B = problem.bounds;
 F = problem.func;
-nGrid = problem.options.nGrid;  %Number of grid points for transcription
+
+% Check method-specific parameters and use default if doesn't exist
+if ~isfield(problem,'trapazoid')
+    problem.trapazoid.nGrid = 25;
+end
+nGrid = problem.trapazoid.nGrid;  %Number of grid points for transcription
 
 % Interpolate the guess at the grid-points for transcription:
 guess.tSpan = G.time([1,end]);
@@ -24,40 +29,6 @@ guess.state = interp1(G.time', G.state', guess.time')';
 guess.control = interp1(G.time', G.control', guess.time')';
 
 [zGuess, pack] = packDecVar(guess.time, guess.state, guess.control);
-
-%%%% Compute bounds on decision variables:
-
-nState = size(G.state,1);
-nControl = size(G.control,1);
-
-% Check if fields exist:
-if ~isfield(B,'state'), B.state.low; B.state.upp = []; end
-if ~isfield(B, 'initialState'), B.initialState.low = []; B.initialState.upp = []; end
-if ~isfield(B, 'finalState'), B.finalState.low = []; B.finalState.upp = []; end
-
-if ~isfield(B,'control'), B.control.low = [];  B.control.upp = []; end
-
-if ~isfield(F,'dynamics'), error('Must include a dynamics function handle!'); end
-if ~isfield(F,'pathObj'), F.pathObj = []; end
-if ~isfield(F,'bndObj'), F.bndObj = []; end
-if ~isfield(F,'pathCst'), F.pathCst = []; end
-if ~isfield(F,'bndCst'), F.bndCst = []; end
-
-% Default bounds for state:
-if isempty(B.state.low), B.state.low = -inf(nState,1); end
-if isempty(B.state.upp), B.state.upp = inf(nState,1); end
-
-% Default bounds for initial state:
-if isempty(B.initialState.low),B.initialState.low = B.state.low; end
-if isempty(B.initialState.upp), B.initialState.upp = B.state.upp; end
-
-% Default bounds for final state:
-if isempty(B.finalState.low), B.finalState.low = B.state.low; end
-if isempty(B.finalState.upp), B.finalState.upp = B.state.upp; end
-
-% Default bounds for control:
-if isempty(B.control.low), B.control.low = -inf(nControl,1); end
-if isempty(B.control.upp), B.control.upp = inf(nControl,1); end
 
 % Unpack all bounds:
 tLow = linspace(B.initialTime.low, B.finalTime.low, nGrid);
@@ -100,6 +71,8 @@ soln.info = output;
 soln.info.nlpTime = nlpTime;
 soln.info.exitFlag = exitFlag;
 soln.info.objVal = objVal;
+
+soln.problem = problem;  % Return the fully detailed problem struct
 
 end
 

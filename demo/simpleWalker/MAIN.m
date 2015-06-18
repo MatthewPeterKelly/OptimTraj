@@ -26,9 +26,6 @@ problem.func.dynamics = @(t,x,u)( dynamics(x,u,param.dyn) );
 
 problem.func.pathObj = @(t,x,u)( costFun(u) );
 
-problem.func.bndObj = [];  
-problem.func.pathCst = [];
-
 problem.func.bndCst = @(t0,x0,tF,xF)( periodicGait(xF,x0,param.dyn) );
 
 
@@ -49,9 +46,6 @@ problem.bounds.state.upp = [ pi/2;  pi/2;  inf(2,1)];
 stepAngle = 0.3;
 problem.bounds.initialState.low = [stepAngle; -stepAngle; -inf(2,1)];
 problem.bounds.initialState.upp = [stepAngle; -stepAngle;  inf(2,1)];
-problem.bounds.finalState.low = [];  %sets to be same as bounds.state.low
-problem.bounds.finalState.upp = [];  %sets to be same as bounds.state.upp
-
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %              Create an initial guess for the trajectory                 %
@@ -73,12 +67,16 @@ problem.guess.control = [0, 0];
 %                           Options:                                      %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
+% Optimization parameters to pass through to fmincon
 problem.nlpOpt = optimset(...
     'Display','iter',...   %{'iter','final','off'}
     'MaxFunEvals',5e4);
 
+% Select the transcription method:
 problem.options.method = 'trapazoid';
-problem.options.nGrid = 25;   
+
+% Parameters that are specific to the trapazoid method:
+problem.options.trapazoid.nGrid = 25;   
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
