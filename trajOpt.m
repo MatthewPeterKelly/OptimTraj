@@ -108,11 +108,11 @@ function soln = trajOpt(problem)
 %       transcription grid-points will lead to large errors. If the
 %       requested time is not on the trajectory, the interpolation will
 %       return NaN.
-%       
+%
 %       .state = @(t) = given time, return state
 %           In: t = [1,n] vector of time
 %           Out: x = [nState,n] state vector at each point in time
-%           
+%
 %       .control = @(t) = given time, return control
 %           In: t = [1,n] vector of time
 %           Out: u = [nControl,n] state vector at each point in time
@@ -138,7 +138,7 @@ P = problem; P.options = [];
 % Loop over the options struct to solve the problem
 nIter = length(problem.options);
 soln(nIter) = struct('grid',[],'interp',[],'info',[],'problem',[]);  %Initialize struct array
-for iter=1:nIter    
+for iter=1:nIter
     P.options = problem.options(iter);
     
     if P.options.verbose > 0    %then print out iteration count:
@@ -147,12 +147,15 @@ for iter=1:nIter
     end
     
     if iter > 1  %Use previous soln as new guess
-        P.guess = soln(iter-1).grid;   
+        P.guess = soln(iter-1).grid;
     end
     
+    %%%% This is the key part: call the underlying transcription method:
     switch P.options.method
         case 'trapazoid'
             soln(iter) = trapazoid(P);
+        case 'chebyshev'
+            soln(iter) = chebyshev(P);
         otherwise
             error('Invalid method. Type: ''help trajOpt'' for a valid list.');
     end

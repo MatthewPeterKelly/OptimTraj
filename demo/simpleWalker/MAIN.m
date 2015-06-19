@@ -71,7 +71,6 @@ problem.guess.control = [0, 0];
 %%%% Run the optimization twice: once on a rough grid with a low tolerance,
 %%%% and then again on a fine grid with a tight tolerance.
 
-
 % First iteration: get a more reasonable guess
 problem.options(1).nlpOpt = optimset(...
     'Display','iter',...   %{'iter','final','off'}
@@ -90,7 +89,6 @@ problem.options(2).nlpOpt = optimset(...
 problem.options(2).verbose = 3; % How much to print out?
 problem.options(2).method = 'trapazoid'; % Select the transcription method
 problem.options(2).trapazoid.nGrid = 25;  %method-specific options  
-
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%

@@ -10,6 +10,12 @@ function soln = trapazoid(problem)
 %
 % For details on the input and output, see the help file for trajOpt.m
 %
+% Method specific parameters:
+%
+%   problem.options.method = 'trapazoid'
+%   problem.options.trapazoid = struct with method parameters:
+%       .nGrid = number of grid points to use for transcription
+% 
 
 %To make code more readable
 G = problem.guess;
@@ -69,6 +75,8 @@ tic;
 [zSoln, objVal,exitFlag,output] = fmincon(P);
 [tSoln,xSoln,uSoln] = unPackDecVar(zSoln,pack);
 nlpTime = toc;
+
+%%%% Store the results:
 
 soln.grid.time = tSoln;
 soln.grid.state = xSoln;
@@ -224,6 +232,7 @@ function [c, ceq] = myConstraint(z,pack,dynFun, pathCst, bndCst)
 
 [t,x,u] = unPackDecVar(z,pack);
 
+
 %%%% Compute defects along the trajectory:
 
 dt = (t(end)-t(1))/(pack.nTime-1);
@@ -237,28 +246,9 @@ dxUpp = dx(:,2:end);
 
 % This is the key line:  (Trapazoid Rule)
 defects = xUpp-xLow - 0.5*dt*(dxLow+dxUpp);
-ceq_dyn = reshape(defects,numel(defects),1);
 
-%%%% Compute the user-defined constraints:
-if isempty(pathCst)
-    c_path = [];
-    ceq_path = [];
-else
-    [c_path, ceq_path] = pathCst(t,x,u);
-end
-if isempty(bndCst)
-    c_bnd = [];
-    ceq_bnd = [];
-else
-    t0 = t(1);
-    tF = t(end);
-    x0 = x(:,1);
-    xF = x(:,end);
-    [c_bnd, ceq_bnd] = bndCst(t0,x0,tF,xF);
-end
 
-%%%% Pack everything up:
-c = [c_path;c_bnd];
-ceq = [ceq_dyn; ceq_path; ceq_bnd];
+%%%% Call user-defined constraints and pack up:
+[c, ceq] = collectConstraints(t,x,u,defects, pathCst, bndCst);
 
 end
