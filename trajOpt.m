@@ -229,39 +229,35 @@ if ~checkField(problem,'bounds')
     error('Field ''bounds'' cannot be ommitted from ''problem''');
 else
     
-    % Check initial and final times:
     if ~checkField(problem.bounds,'initialTime')
-        error('Field ''initialTime'' cannot be ommitted from ''problem.bounds''');
-    end
-    if ~checkField(problem.bounds,'finalTime'),
-        error('Field ''finalTime'' cannot be ommitted from ''problem.bounds'''); end
+        problem.bounds.initialTime = []; end
+    problem.bounds.initialTime = ...
+        checkLowUpp(problem.bounds.initialTime,1,1,'initialTime');
     
+    if ~checkField(problem.bounds,'finalTime')
+        problem.bounds.finalTime = []; end
+    problem.bounds.finalTime = ...
+        checkLowUpp(problem.bounds.finalTime,1,1,'finalTime');
     
-    % Check to see if bounds exist, and fill in defaults if not
     if ~checkField(problem.bounds,'state')
-        problem.bounds.state.low = -inf(nState,1);
-        problem.bounds.state.upp = inf(nState,1);
-    end
-    if ~checkField(problem.bounds,'initialState')
-        problem.bounds.initialState.low = problem.bounds.state.low;
-        problem.bounds.initialState.upp = problem.bounds.state.upp;
-    end
-    if ~checkField(problem.bounds,'finalState')
-        problem.bounds.finalState.low = problem.bounds.state.low;
-        problem.bounds.finalState.upp = problem.bounds.state.upp;
-    end
-    if ~checkField(problem.bounds,'control')
-        problem.bounds.control.low = -inf(nControl,1);
-        problem.bounds.control.upp = inf(nControl,1);
-    end
+        problem.bounds.state = []; end
+    problem.bounds.state = ...
+        checkLowUpp(problem.bounds.state,nState,1,'state');
     
-    % Check the size (and existance) of .low and .upp
-    checkLowUpp(problem.bounds.initialTime,1,1,'initialTime');
-    checkLowUpp(problem.bounds.finalTime,1,1,'finalTime');
-    checkLowUpp(problem.bounds.state,nState,1,'state');
-    checkLowUpp(problem.bounds.initialState,nState,1,'initialState');
-    checkLowUpp(problem.bounds.finalState,nState,1,'finalState');
-    checkLowUpp(problem.bounds.control,nControl,1,'control');
+    if ~checkField(problem.bounds,'initialState')
+        problem.bounds.initialState = []; end
+    problem.bounds.initialState = ...
+        checkLowUpp(problem.bounds.initialState,nState,1,'initialState');
+    
+    if ~checkField(problem.bounds,'finalState')
+        problem.bounds.finalState = []; end
+    problem.bounds.finalState = ...
+        checkLowUpp(problem.bounds.finalState,nState,1,'finalState');
+    
+    if ~checkField(problem.bounds,'control')
+        problem.bounds.control = []; end
+    problem.bounds.control = ...
+        checkLowUpp(problem.bounds.control,nControl,1,'control');
     
 end
 
@@ -315,18 +311,18 @@ end
 end
 
 
-function checkLowUpp(input,nRow,nCol,name)
+function input = checkLowUpp(input,nRow,nCol,name)
 %
 % This function checks that input has the following is true:
 %   size(input.low) == [nRow, nCol]
 %   size(input.upp) == [nRow, nCol]
 
 if ~checkField(input,'low')
-    error(['Field ''low'' cannot be ommitted from problem.bounds.' name '']);
+    input.low = -inf(nRow,nCol);
 end
 
 if ~checkField(input,'upp')
-    error(['Field ''lupp'' cannot be ommitted from problem.bounds.' name '']);
+    input.upp = inf(nRow,nCol);
 end
 
 [lowRow, lowCol] = size(input.low);
@@ -339,6 +335,11 @@ end
 if uppRow ~= nRow || uppCol ~= nCol
     error(['problem.bounds.' name ...
         '.upp must have size = [' num2str(nRow) ', ' num2str(nCol) ']']);
+end
+
+if sum(sum(input.upp-input.low < 0))
+    error(...
+        ['problem.bounds.' name '.upp must be >= problem.bounds.' name '.low!']);
 end
 
 end

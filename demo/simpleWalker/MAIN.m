@@ -71,7 +71,8 @@ problem.guess.control = [0, 0];
 %%%% Run the optimization twice: once on a rough grid with a low tolerance,
 %%%% and then again on a fine grid with a tight tolerance.
 
-method = 'trapazoid';  %{'chebyshev','trapazoid'}
+% method = 'trapazoid';
+method = 'chebyshev';
 
 switch method
     case 'trapazoid'
@@ -150,17 +151,17 @@ uInt = soln(end).interp.control(tInt);
 figure(100); clf;
 
 subplot(3,1,1); hold on;
+plot(tInt,q1Int,'r-'); plot(tInt,q2Int,'b-');
 plot([t(1),t(end)],[0,0],'k--','LineWidth',1);
-plot(t,q1,'ro'); plot(tInt,q1Int,'r-');
-plot(t,q2,'bo'); plot(tInt,q2Int,'b-');
+plot(t,q1,'ro'); plot(t,q2,'bo'); 
 legend('leg one','leg two')
 xlabel('time (sec)')
 ylabel('angle (rad)')
 title('Leg Angles')
 
 subplot(3,1,2); hold on;
-plot(t,dq1,'ro'); plot(tInt,dq1Int,'r-');
-plot(t,dq2,'bo'); plot(tInt,dq2Int,'b-');
+plot(tInt,dq1Int,'r-'); plot(tInt,dq2Int,'b-');
+plot(t,dq1,'ro'); plot(t,dq2,'bo'); 
 legend('leg one','leg two')
 xlabel('time (sec)')
 ylabel('rate (rad/sec)')
