@@ -71,25 +71,54 @@ problem.guess.control = [0, 0];
 %%%% Run the optimization twice: once on a rough grid with a low tolerance,
 %%%% and then again on a fine grid with a tight tolerance.
 
-% First iteration: get a more reasonable guess
-problem.options(1).nlpOpt = optimset(...
-    'Display','iter',...   %{'iter','final','off'}
-    'TolFun',1e-3,...
-    'MaxFunEvals',1e3);   %options for fmincon
-problem.options(1).verbose = 3; % How much to print out?
-problem.options(1).method = 'trapazoid'; % Select the transcription method
-problem.options(1).trapazoid.nGrid = 10;  %method-specific options  
+method = 'trapazoid';  %{'chebyshev','trapazoid'}
 
-
-% Second iteration: refine guess to get precise soln
-problem.options(2).nlpOpt = optimset(...
-    'Display','iter',...   %{'iter','final','off'}
-        'TolFun',1e-8,...
-    'MaxFunEvals',5e4);   %options for fmincon
-problem.options(2).verbose = 3; % How much to print out?
-problem.options(2).method = 'trapazoid'; % Select the transcription method
-problem.options(2).trapazoid.nGrid = 25;  %method-specific options  
-
+switch method
+    case 'trapazoid'
+        
+        % First iteration: get a more reasonable guess
+        problem.options(1).nlpOpt = optimset(...
+            'Display','iter',...   %{'iter','final','off'}
+            'TolFun',1e-3,...
+            'MaxFunEvals',1e4);   %options for fmincon
+        problem.options(1).verbose = 3; % How much to print out?
+        problem.options(1).method = 'trapazoid'; % Select the transcription method
+        problem.options(1).trapazoid.nGrid = 10;  %method-specific options
+        
+        
+        % Second iteration: refine guess to get precise soln
+        problem.options(2).nlpOpt = optimset(...
+            'Display','iter',...   %{'iter','final','off'}
+            'TolFun',1e-6,...
+            'MaxFunEvals',5e4);   %options for fmincon
+        problem.options(2).verbose = 3; % How much to print out?
+        problem.options(2).method = 'trapazoid'; % Select the transcription method
+        problem.options(2).trapazoid.nGrid = 25;  %method-specific options
+                
+    case 'chebyshev'
+        
+        % First iteration: get a more reasonable guess
+        problem.options(1).nlpOpt = optimset(...
+            'Display','iter',...   %{'iter','final','off'}
+            'TolFun',1e-3,...
+            'MaxFunEvals',1e4);   %options for fmincon
+        problem.options(1).verbose = 3; % How much to print out?
+        problem.options(1).method = 'chebyshev'; % Select the transcription method
+        problem.options(1).chebyshev.nColPts = 9;  %method-specific options
+        
+        
+        % Second iteration: refine guess to get precise soln
+        problem.options(2).nlpOpt = optimset(...
+            'Display','iter',...   %{'iter','final','off'}
+            'TolFun',1e-8,...
+            'MaxFunEvals',5e4);   %options for fmincon
+        problem.options(2).verbose = 3; % How much to print out?
+        problem.options(2).method = 'chebyshev'; % Select the transcription method
+        problem.options(2).chebyshev.nColPts = 15;  %method-specific options
+        
+    otherwise
+        error('Invalid method!');
+end
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                           Solve!                                        %
@@ -97,12 +126,22 @@ problem.options(2).trapazoid.nGrid = 25;  %method-specific options
 
 soln = trajOpt(problem);
 
+% Transcription Grid points:
 t = soln(end).grid.time;
 q1 = soln(end).grid.state(1,:);
 q2 = soln(end).grid.state(2,:);
 dq1 = soln(end).grid.state(3,:);
 dq2 = soln(end).grid.state(4,:);
 u = soln(end).grid.control;
+
+% Interpolated solution:
+tInt = linspace(t(1),t(end),10*length(t)+1);
+xInt = soln(end).interp.state(tInt);
+q1Int = xInt(1,:);
+q2Int = xInt(2,:);
+dq1Int = xInt(3,:);
+dq2Int = xInt(4,:);
+uInt = soln(end).interp.control(tInt);
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                     Plot the solution                                   %
@@ -111,23 +150,24 @@ u = soln(end).grid.control;
 figure(100); clf;
 
 subplot(3,1,1); hold on;
-plot(t,q1,'ro-')
-plot(t,q2,'bo-')
+plot([t(1),t(end)],[0,0],'k--','LineWidth',1);
+plot(t,q1,'ro'); plot(tInt,q1Int,'r-');
+plot(t,q2,'bo'); plot(tInt,q2Int,'b-');
 legend('leg one','leg two')
 xlabel('time (sec)')
 ylabel('angle (rad)')
 title('Leg Angles')
 
 subplot(3,1,2); hold on;
-plot(t,dq1,'ro-')
-plot(t,dq2,'bo-')
+plot(t,dq1,'ro'); plot(tInt,dq1Int,'r-');
+plot(t,dq2,'bo'); plot(tInt,dq2Int,'b-');
 legend('leg one','leg two')
 xlabel('time (sec)')
 ylabel('rate (rad/sec)')
 title('Leg Angle Rates')
 
 subplot(3,1,3); hold on;
-plot(t,u,'mo-')
+plot(t,u,'mo'); plot(tInt,uInt,'m-');
 xlabel('time (sec)')
 ylabel('torque (Nm)')
 title('Hip Torque')

@@ -29,7 +29,7 @@ syms d m I g l 'real' % physical parameters
 i = sym([1;0]);
 j = sym([0;1]);
 
-e1 = cos(q1)*(-j) + sin(q1)*(i);    % stance foot -> hip
+e1 = cos(q1)*(-j) + sin(q1)*(i);    % hip -> stance foot
 e2 = cos(q2)*(-j) + sin(q2)*(i);    % hip -> swing foot
 
 %%%% State vectors:
@@ -37,8 +37,8 @@ z = [q1;q2;dq1;dq2];
 dz = [dq1;dq2;ddq1;ddq2];
 
 %%%% Kinematics:
-pHip = l*e1;
-p1 = pHip -d*e1;   %Center of mass of leg one
+pHip = -l*e1;
+p1 = pHip +d*e1;   %Center of mass of leg one
 p2 = pHip +d*e2;   %Center of mass of leg two
 
 dp1 = jacobian(p1,z)*dz;  %Chain rule to get velocity of hip joint
@@ -111,14 +111,14 @@ q1New = q2;
 q2New = q1;
 syms dq1New dq2New  'real'   % angular rates after collision
 
-% Unit vectors after the collision:
-e1New = cos(q1New)*(-j) + sin(q1New)*(i);    % stance foot -> hip
+% Unit vectors after the collision:   (new naming convention)
+e1New = cos(q1New)*(-j) + sin(q1New)*(i);    % hip -> stance foot
 e2New = cos(q2New)*(-j) + sin(q2New)*(i);    % hip -> swing foot
 
 % Kinematics:
-pHipNew = l*e1New;
-p1New = pHipNew - d*e1New;
-p2New = l*e1New + d*e2New;
+pHipNew = -l*e1New;
+p1New = pHipNew + d*e1New;
+p2New = pHipNew + d*e2New;
 
 dp1New = jacobian(p1New,[q1New;q2New])*[dq1New;dq2New];  
 dp2New = jacobian(p2New,[q1New;q2New])*[dq1New;dq2New];  
@@ -127,8 +127,8 @@ dp2New = jacobian(p2New,[q1New;q2New])*[dq1New;dq2New];
 hSysAfter = cross2d(p2New,m*dp2New) + I*dq2New + ...
     cross2d(p1New,m*dp1New) + I*dq1New;
 
-% Angular momentum of the new stance leg about the hip
-hLegAfter = cross2d(p2New-pHipNew,m*dp2New);
+% Angular momentum of the new swing leg about the hip
+hLegAfter = cross2d(p2New-pHipNew,m*dp2New) + I*dq2New;
 
 % solve the dynamics:
 eqnsHs = [hSysBefore-hSysAfter; hLegBefore-hLegAfter];
