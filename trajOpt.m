@@ -68,10 +68,9 @@ function soln = trajOpt(problem)
 %       .state = [nState, nGridGuess]
 %       .control = [nControl, nGridGuess]
 %
-%
-%   nlpOpt = option struct to be passed to fmincon, created via optimset().
-%
 %   options = options for the transcription algorithm (this function)
+%
+%       .nlpOpt = options to pass through to fmincon
 %
 %       .method = string to pick which method is used for transcription
 %           'trapazoid'
@@ -80,31 +79,69 @@ function soln = trajOpt(problem)
 %       example, to pass the number of grid-points to the trapazoid method,
 %       create a field .trapazoid.nGrid = [number of grid-points].
 %
-%
-%       --TODO--
 %       .verbose = integer
 %           0 = no display
 %           1 = default
 %           2 = display warnings, overrides fmincon display setting
 %           3 = debug
 %
+%       * if options is a struct array, the trajOpt will run the optimization
+%       by running options(1) and then using the result to initialize a new
+%       solve with options(2) and so on, until it runs options (end). This
+%       allows for successive grid and tolerance opdates.
+%
+%
 %
 %
 %
 % OUTPUT: "soln"  --  struct with fields:
 %
+%   grid = trajectory at the grid-points used by the transcription method
+%       .time = [1, nTime]
+%       .state = [nState, nTime]
+%       .control = [nControl, nTime];
+%
+%   info = information about the optimization run
+%       .nlpTime = time (seconds) spent in fmincon
+%       .exitFlag = fmincon exit flag
+%       .objVal = value of the objective function
+%       .[all fields in the fmincon "output" struct]
+%
+%   problem = the problem as it was passed to the low-level transcription,
+%       including the all default values that were used
+%
+%
+%   * If problem.options was a struct array, then soln will also be a
+%   struct array, with soln(1) being the solution on the first iteration,
+%   and soln(end) being the final solution.
 %
 
-P = defaultTrajOpt(problem);
+problem = defaultTrajOpt(problem);
+P = problem; P.options = [];
 
-switch P.options.method
-    case 'trapazoid'
-        
-        soln = trapazoid(P);
-    otherwise
-        error('Invalid method. Type: ''help trajOpt'' for a valid list.');
+% Loop over the options struct to solve the problem
+nIter = length(problem.options);
+soln(nIter) = struct('grid',[],'info',[],'problem',[]);  %Initialize struct array
+for iter=1:nIter    
+    P.options = problem.options(iter);
+    
+    if P.options.verbose > 0    %then print out iteration count:
+        disp('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
+        disp(['Running TrajOpt, iteration ' num2str(iter)]);
+    end
+    
+    if iter > 1  %Use previous soln as new guess
+        P.guess = soln(iter-1).grid;   
+    end
+    
+    switch P.options.method
+        case 'trapazoid'
+            soln(iter) = trapazoid(P);
+        otherwise
+            error('Invalid method. Type: ''help trajOpt'' for a valid list.');
+    end
+    
 end
-
 end
 
 
@@ -180,23 +217,23 @@ else
     if ~checkField(problem.bounds,'finalTime'),
         error('Field ''finalTime'' cannot be ommitted from ''problem.bounds'''); end
     
-
+    
     % Check to see if bounds exist, and fill in defaults if not
     if ~checkField(problem.bounds,'state')
         problem.bounds.state.low = -inf(nState,1);
         problem.bounds.state.upp = inf(nState,1);
-    end 
+    end
     if ~checkField(problem.bounds,'initialState')
         problem.bounds.initialState.low = problem.bounds.state.low;
         problem.bounds.initialState.upp = problem.bounds.state.upp;
-    end 
+    end
     if ~checkField(problem.bounds,'finalState')
         problem.bounds.finalState.low = problem.bounds.state.low;
         problem.bounds.finalState.upp = problem.bounds.state.upp;
-    end 
+    end
     if ~checkField(problem.bounds,'control')
-       problem.bounds.control.low = -inf(nControl,1);
-       problem.bounds.control.upp = inf(nControl,1);
+        problem.bounds.control.low = -inf(nControl,1);
+        problem.bounds.control.upp = inf(nControl,1);
     end
     
     % Check the size (and existance) of .low and .upp
@@ -212,28 +249,35 @@ end
 
 %%%% Check options for trajOpt
 
-if ~checkField(problem,'options'), problem.options = []; end
-
-if ~checkField(problem.options, 'method')
-    problem.options.method = 'trapazoid';   end
-
-if ~checkField(problem.options, 'verbose')
-    problem.options.verbose = 1;            end
-
-
-%%%% Default options for fmincon
-if ~checkField(problem,'nlpOpt')
-   problem.nlpOpt = optimset('fmincon'); 
-   problem.nlpOpt.Display = 'iter';
+if ~checkField(problem,'options')
+    problem.options = struct('method',[],'verbose',[],'nlpOpt',[]);
 end
 
-% override fmincon display for extreme verbose options
-if problem.options.verbose == 0
-    problem.nlpOpt.Display = 'off';
-elseif problem.options.verbose == 4
-    problem.nlpOpt.Display = 'iter-detailed';
+% Loop over each iteration:
+for iter = 1:length(problem.options)
+    
+    if ~checkField(problem.options(iter), 'method')
+        problem.options(iter).method = 'trapazoid';   end
+    
+    if ~checkField(problem.options(iter), 'verbose')
+        problem.options(iter).verbose = 1;            end
+    
+    
+    %%%% Default options for fmincon
+    if ~checkField(problem.options(iter),'nlpOpt')
+        problem.options(iter).nlpOpt = optimset('fmincon');
+        problem.options(iter).nlpOpt.Display = 'iter';
+    end
+    
+    % override fmincon display for extreme verbose options
+    if problem.options(iter).verbose == 0
+        problem.options(iter).nlpOpt.Display = 'off';
+    elseif problem.options(iter).verbose == 4
+        problem.options(iter).nlpOpt.Display = 'iter-detailed';
+    end
+    
 end
-   
+
 end
 
 

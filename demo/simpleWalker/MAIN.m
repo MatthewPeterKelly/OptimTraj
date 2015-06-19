@@ -67,16 +67,30 @@ problem.guess.control = [0, 0];
 %                           Options:                                      %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
-% Optimization parameters to pass through to fmincon
-problem.nlpOpt = optimset(...
+
+%%%% Run the optimization twice: once on a rough grid with a low tolerance,
+%%%% and then again on a fine grid with a tight tolerance.
+
+
+% First iteration: get a more reasonable guess
+problem.options(1).nlpOpt = optimset(...
     'Display','iter',...   %{'iter','final','off'}
-    'MaxFunEvals',5e4);
+    'TolFun',1e-3,...
+    'MaxFunEvals',1e3);   %options for fmincon
+problem.options(1).verbose = 3; % How much to print out?
+problem.options(1).method = 'trapazoid'; % Select the transcription method
+problem.options(1).trapazoid.nGrid = 10;  %method-specific options  
 
-% Select the transcription method:
-problem.options.method = 'trapazoid';
 
-% Parameters that are specific to the trapazoid method:
-problem.options.trapazoid.nGrid = 25;   
+% Second iteration: refine guess to get precise soln
+problem.options(2).nlpOpt = optimset(...
+    'Display','iter',...   %{'iter','final','off'}
+        'TolFun',1e-8,...
+    'MaxFunEvals',5e4);   %options for fmincon
+problem.options(2).verbose = 3; % How much to print out?
+problem.options(2).method = 'trapazoid'; % Select the transcription method
+problem.options(2).trapazoid.nGrid = 25;  %method-specific options  
+
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -85,12 +99,12 @@ problem.options.trapazoid.nGrid = 25;
 
 soln = trajOpt(problem);
 
-t = soln.grid.time;
-q1 = soln.grid.state(1,:);
-q2 = soln.grid.state(2,:);
-dq1 = soln.grid.state(3,:);
-dq2 = soln.grid.state(4,:);
-u = soln.grid.control;
+t = soln(end).grid.time;
+q1 = soln(end).grid.state(1,:);
+q2 = soln(end).grid.state(2,:);
+dq1 = soln(end).grid.state(3,:);
+dq2 = soln(end).grid.state(4,:);
+u = soln(end).grid.control;
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                     Plot the solution                                   %

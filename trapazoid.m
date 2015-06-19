@@ -15,12 +15,19 @@ function soln = trapazoid(problem)
 G = problem.guess;
 B = problem.bounds;
 F = problem.func;
+Opt = problem.options;
 
 % Check method-specific parameters and use default if doesn't exist
-if ~isfield(problem,'trapazoid')
-    problem.trapazoid.nGrid = 25;
+if ~isfield(Opt,'trapazoid')
+    Opt.trapazoid.nGrid = 25;
 end
-nGrid = problem.trapazoid.nGrid;  %Number of grid points for transcription
+nGrid = Opt.trapazoid.nGrid;  %Number of grid points for transcription
+
+% Print out some solver info if desired:
+if Opt.verbose > 0
+   disp(['  -> Transcription via trapazoid method, nGrid = ' ...
+       num2str(Opt.trapazoid.nGrid)]); disp('    ');
+end
 
 % Interpolate the guess at the grid-points for transcription:
 guess.tSpan = G.time([1,end]);
@@ -54,7 +61,7 @@ P.lb = zLow;
 P.ub = zUpp;
 P.Aineq = []; P.bineq = [];
 P.Aeq = []; P.beq = [];
-P.options = problem.nlpOpt;
+P.options = problem.options.nlpOpt;
 P.solver = 'fmincon';
 
 %%%% Call fmincon to solve the non-linear program (NLP)
