@@ -26,6 +26,10 @@ Opt = problem.options;
 % Check method-specific parameters and use default if doesn't exist
 if ~isfield(Opt,'trapazoid')
     Opt.trapazoid.nGrid = 25;
+else
+    if ~isfield(Opt.trapazoid,'nGrid')
+       Opt.trapazoid.nGrid = 25;
+    end
 end
 nGrid = Opt.trapazoid.nGrid;  %Number of grid points for transcription
 
