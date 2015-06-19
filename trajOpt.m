@@ -96,18 +96,34 @@ function soln = trajOpt(problem)
 %
 % OUTPUT: "soln"  --  struct with fields:
 %
-%   grid = trajectory at the grid-points used by the transcription method
+%   .grid = trajectory at the grid-points used by the transcription method
 %       .time = [1, nTime]
 %       .state = [nState, nTime]
 %       .control = [nControl, nTime];
 %
-%   info = information about the optimization run
+%   .interp = functions for interpolating state and control for arbitrary
+%       times long the trajectory. The interpolation method will match the
+%       underlying transcription method. This is particularily important
+%       for high-order methods, where linear interpolation between the
+%       transcription grid-points will lead to large errors. If the
+%       requested time is not on the trajectory, the interpolation will
+%       return NaN.
+%       
+%       .state = @(t) = given time, return state
+%           In: t = [1,n] vector of time
+%           Out: x = [nState,n] state vector at each point in time
+%           
+%       .control = @(t) = given time, return control
+%           In: t = [1,n] vector of time
+%           Out: u = [nControl,n] state vector at each point in time
+%
+%   .info = information about the optimization run
 %       .nlpTime = time (seconds) spent in fmincon
 %       .exitFlag = fmincon exit flag
 %       .objVal = value of the objective function
 %       .[all fields in the fmincon "output" struct]
 %
-%   problem = the problem as it was passed to the low-level transcription,
+%   .problem = the problem as it was passed to the low-level transcription,
 %       including the all default values that were used
 %
 %
@@ -121,7 +137,7 @@ P = problem; P.options = [];
 
 % Loop over the options struct to solve the problem
 nIter = length(problem.options);
-soln(nIter) = struct('grid',[],'info',[],'problem',[]);  %Initialize struct array
+soln(nIter) = struct('grid',[],'interp',[],'info',[],'problem',[]);  %Initialize struct array
 for iter=1:nIter    
     P.options = problem.options(iter);
     
