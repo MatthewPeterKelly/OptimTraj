@@ -8,17 +8,16 @@
 % drag coefficient, height dependent air density.
 %
 
+clc; clear;
 
 %%%% Assumptions:
 % SpaceX Falcon 9 rocket: 
-% http://www.spacelaunchreport.com/falcon9v1-1.html
+% http://www.spacex.com/falcon9
 %
-mFuel = 290000;  %(kg)  %mass of the fuel
-mEmpty = 24000;  %(kg)  %mass of the rocket (without fuel)
-Tmax = 390000;    %(N)   %Maximum thrust
-
-error('Something is wrong with the dynamics model - it cannot accelerate off the launch pad')
-%My guess is an error in the max thrust, with a divide by gravity error 
+mTotal = 505846;   %(kg)  %Total lift-off mass
+mFuel = 0.8*mTotal;  %(kg)  %mass of the fuel
+mEmpty = mTotal-mFuel;  %(kg)  %mass of the rocket (without fuel)
+Tmax = 5885000;    %(N)   %Maximum thrust
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                        Problem Bounds                                   %
@@ -26,7 +25,7 @@ error('Something is wrong with the dynamics model - it cannot accelerate off the
 
 h0 = 0;  %Rocket starts on the ground
 v0 = 0;  %Rocket starts stationary
-m0 = mFuel+mEmpty;  %Rocket starts full of fuel
+m0 = mTotal;  %Rocket starts full of fuel
 
 vF = 0;  %Trying to reach maximum height
 mF = mEmpty;  %Assume that we use all of the fuel
@@ -38,7 +37,7 @@ vLow = 0; %Just look at the trajectory as it goes up
 vUpp = inf;  % Go as fast as you can
 
 mLow = mEmpty;
-mUpp = mFuel+mEmpty;
+mUpp = mTotal;
 
 uLow = 0;
 uUpp = Tmax; %Maximum thrust output
@@ -47,7 +46,7 @@ P.bounds.initialTime.low = 0;
 P.bounds.initialTime.upp = 0;
 
 P.bounds.finalTime.low = 0;
-P.bounds.finalTime.upp = inf;
+P.bounds.finalTime.upp = 60*60;
 
 P.bounds.state.low = [hLow;vLow;mLow];
 P.bounds.state.upp = [hUpp;vUpp;mUpp];
@@ -77,7 +76,7 @@ P.guess.control = [uUpp, uLow];
 P.func.dynamics = @(t,x,u)( rocketDynamics(x,u) );
 
 % Objective function:
-P.func.bndObj = @(t0,x0,tF,xF)( xF(1) );  %Maximize final height
+P.func.bndObj = @(t0,x0,tF,xF)( -xF(1)/10000 );  %Maximize final height
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -85,7 +84,7 @@ P.func.bndObj = @(t0,x0,tF,xF)( xF(1) );  %Maximize final height
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
 P.options(1).method = 'trapazoid';
-P.options(1).trapazoid.nGrid = 15;
+P.options(1).trapazoid.nGrid = 10;
 P.options(1).nlpOpt = optimset(...
     'TolFun',1e-3,...
     'Display','iter',...
@@ -94,13 +93,50 @@ P.options(1).nlpOpt = optimset(...
 P.options(2).method = 'trapazoid';
 P.options(2).trapazoid.nGrid = 25;
 P.options(2).nlpOpt = optimset(...
+    'TolFun',1e-4,...
+    'Display','iter',...
+    'MaxFunEvals',1e4);
+
+P.options(3).method = 'trapazoid';
+P.options(3).trapazoid.nGrid = 35;
+P.options(3).nlpOpt = optimset(...
     'TolFun',1e-6,...
     'Display','iter',...
     'MaxFunEvals',1e4);
+
+
+%%%% NOTES:
+% 
+% 1) Chebyshev is not a good method for this problem, beause their is a
+% discontinuity in solution of the thrust curve. This will cause ringing in
+% the trajectory: an artifact, rather than a property of the solution. For
+% this reason, a non-global method, such as trapazoid is desirable.
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                              Solve!                                     %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 soln = trajOpt(P);
 
+t = linspace(soln(end).grid.time(1),soln(end).grid.time(end),250);
+x = soln(end).interp.state(t);
+u = soln(end).interp.control(t);
 
+figure(120);
+subplot(2,2,1);
+plot(t,x(1,:)/1000)
+xlabel('time (s)')
+ylabel('height (km)')
+title('Maximal Height Trajectory')
+subplot(2,2,2);
+plot(t,x(3,:))
+xlabel('time (s)')
+ylabel('mass (kg)')
+title('Goddard Rocket')
+subplot(2,2,3);
+plot(t,x(2,:))
+xlabel('time (s)')
+ylabel('velocity (m/s)')
+subplot(2,2,4);
+plot(t,u/1000)
+xlabel('time (s)')
+ylabel('thrust (kN)')

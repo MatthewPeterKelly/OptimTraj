@@ -1,8 +1,7 @@
 function dz = rocketDynamics(z,u)
 % dz = dynamics(z,u)
 %
-% This function computes the dynamics of the Goddard Rocket, as described
-% in the paper:
+% The basic dynamics and drag coefficient data are from the paper:
 %
 %   "Drag-law Effects in the Goddard Problem"
 %   P. Tsiotras, H. Kelley, H.Kelley    1991
@@ -16,10 +15,6 @@ h = z(1,:);   %Height
 v = z(2,:);   %Velocity
 m = z(3,:);   %Mass
 T = u;        %Thrust
-
-%%%% Assumptions:
-% SpaceX Falcon 9 rocket: 
-% http://www.spacelaunchreport.com/falcon9v1-1.html
 
 %%%% Density of air:
 % altitude = [0, 1e4, 2e4, 3e4, 4e4];  %(m)  %height above the ground
