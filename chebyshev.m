@@ -483,7 +483,7 @@ function [y, Dy, DDy, DDDy] = chebyshevInterpolate(f,t,d)
 %
 
 %Check to see if the t vector is on the proper domain:
-idxBndFail = t<d(1) | t>d(2);
+idxBndFail = t<min(d) | t>max(d);
 
 %Get the chebyshev points
 [k,n] = size(f);
