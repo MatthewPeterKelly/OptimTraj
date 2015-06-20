@@ -68,12 +68,12 @@ guess.control = interp1(G.time', G.control', guess.time')';
 [zGuess, pack] = packDecVar(guess.time, guess.state, guess.control);
 
 % Unpack all bounds:
-tLow = chebyshevPoints(nColPts, [B.initialTime.low, B.finalTime.low]);
+tLow = [B.initialTime.low, ones(1,nColPts-2), B.finalTime.low];
 xLow = [B.initialState.low, B.state.low*ones(1,nColPts-2), B.finalState.low];
 uLow = B.control.low*ones(1,nColPts);
 zLow = packDecVar(tLow,xLow,uLow);
 
-tUpp = chebyshevPoints(nColPts, [B.initialTime.upp, B.finalTime.upp]);
+tUpp = [B.initialTime.upp, ones(1,nColPts-2), B.finalTime.upp];
 xUpp = [B.initialState.upp, B.state.upp*ones(1,nColPts-2), B.finalState.upp];
 uUpp = B.control.upp*ones(1,nColPts);
 zUpp = packDecVar(tUpp,xUpp,uUpp);
