@@ -55,7 +55,7 @@ problem.bounds.initialState.upp = [stepAngle; -stepAngle;  inf(2,1)];
 
 problem.guess.time = [t0, tF];
 
-stepRate = (tF-t0)/(2*stepAngle);
+stepRate = (2*stepAngle)/(tF-t0);
 x0 = [stepAngle; -stepAngle; -stepRate; stepRate];
 xF = [-stepAngle; stepAngle; -stepRate; stepRate];
 problem.guess.state = [x0, xF];
@@ -72,7 +72,8 @@ problem.guess.control = [0, 0];
 %%%% and then again on a fine grid with a tight tolerance.
 
 % method = 'trapazoid';
-method = 'chebyshev';
+% method = 'chebyshev';
+method = 'multiCheb';
 
 switch method
     case 'trapazoid'
@@ -116,6 +117,30 @@ switch method
         problem.options(2).verbose = 3; % How much to print out?
         problem.options(2).method = 'chebyshev'; % Select the transcription method
         problem.options(2).chebyshev.nColPts = 15;  %method-specific options
+        
+    case 'multiCheb'
+        
+        % First iteration: get a more reasonable guess
+        problem.options(1).nlpOpt = optimset(...
+            'Display','iter',...   %{'iter','final','off'}
+            'TolFun',1e-3,...
+            'MaxFunEvals',1e4);   %options for fmincon
+        problem.options(1).verbose = 3; % How much to print out?        
+        problem.options(1).method = 'multiCheb'; % Select the transcription method
+        problem.options(1).multiCheb.nColPts = 6;  %method-specific options
+        problem.options(1).multiCheb.nSegment = 4;  %method-specific options
+        
+        
+        % Second iteration: refine guess to get precise soln
+        problem.options(2).nlpOpt = optimset(...
+            'Display','iter',...   %{'iter','final','off'}
+            'TolFun',1e-8,...
+            'MaxFunEvals',5e4);   %options for fmincon
+        problem.options(2).verbose = 3; % How much to print out?
+        problem.options(2).method = 'multiCheb'; % Select the transcription method
+         problem.options(2).multiCheb.nColPts = 9;  %method-specific options
+        problem.options(2).multiCheb.nSegment = 4;  %method-specific options
+        
         
     otherwise
         error('Invalid method!');

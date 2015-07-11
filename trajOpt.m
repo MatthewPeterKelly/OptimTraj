@@ -156,6 +156,8 @@ for iter=1:nIter
             soln(iter) = trapazoid(P);
         case 'chebyshev'
             soln(iter) = chebyshev(P);
+        case 'multiCheb'
+            soln(iter) = multiCheb(P);
         otherwise
             error('Invalid method. Type: ''help trajOpt'' for a valid list.');
     end

@@ -1,11 +1,12 @@
-function soln = chebyshev(problem)
-% soln = chebyshev(problem)
+function soln = multiCheb(problem)
+% soln = multiCheb(problem)
 %
 % This function transcribes a trajectory optimization problem Chebyshev
 % orthogonal polynomials for basis functions. This is an orthogonal
-% collocation method.
+% collocation method. This method is similiar to Chebyshev, except that
+% here I break the trajectory into several segments, rahter than just one.
 %
-% The technique is described in detail in the paper:
+% The technique is similar to the one described in detail in the paper:
 %
 %   " A Chebyshev Technique for Solving Nonlinear Optimal Control Problems"
 %   ISSS Trans. Automatic Control, 1988
@@ -43,41 +44,50 @@ F = problem.func;
 Opt = problem.options;
 
 % Check method-specific parameters and use default if doesn't exist
-if ~isfield(Opt,'chebyshev')
-    Opt.chebyshev.nColPts = 15;
+if ~isfield(Opt,'multiCheb')
+    Opt.multiCheb.nColPts = 6;  %Number of collocation points in each segment
+    Opt.multiCheb.nSegment = 5; %Number of segments
 end
-nColPts = Opt.chebyshev.nColPts;  %Number of grid points for transcription
+nColPts = Opt.multiCheb.nColPts;  %Number of collocation points in each segment
+nSegment = Opt.multiCheb.nSegment;  %Fraction of the duration spent in each segment
 
 % Print out some solver info if desired:
 if Opt.verbose > 0
-    disp('  -> Transcription via Chebyshev orthogonal collocation');
+    disp('  -> Transcription via Multiple-segment Chebyshev orthogonal collocation');
     disp('    ');
+end
+
+% This method seems to fail if a low-order polynomial is used. 
+% It gives reasonable solutions for medium-high order polynomials
+if nColPts < 6
+   disp('    WARNING: using fewer than six collocation points per interval can lead to numerical problems!');
 end
 
 % Chebyshev points and weights on the default domain
 [xx,ww] = chebyshevPoints(nColPts,[-1,1]);
 cheb.xx = xx;
 cheb.ww = ww;
+cheb.nSegment = nSegment;
+cheb.nColPts = nColPts;
 
 % Interpolate the guess at the chebyshev-points for transcription:
 guess.tSpan = G.time([1,end]);
-guess.time = chebyshevPoints(nColPts,guess.tSpan);
+guess.time = getMultiChebTime(cheb,guess.tSpan);
 guess.state = interp1(G.time', G.state', guess.time')';
 guess.control = interp1(G.time', G.control', guess.time')';
 
 [zGuess, pack] = packDecVar(guess.time, guess.state, guess.control);
 
 % Unpack all bounds:
-dummyMatrix = zeros(1,nColPts-2);  %This just needs to be the right size
-
-tLow = [B.initialTime.low, dummyMatrix, B.finalTime.low];
-xLow = [B.initialState.low, B.state.low*ones(1,nColPts-2), B.finalState.low];
-uLow = B.control.low*ones(1,nColPts);
+nGrid = nSegment*nColPts;
+tLow = getMultiChebTime(cheb,[B.initialTime.low, B.finalTime.low]);
+xLow = [B.initialState.low, B.state.low*ones(1,nGrid-2), B.finalState.low];
+uLow = B.control.low*ones(1,nGrid);
 zLow = packDecVar(tLow,xLow,uLow);
 
-tUpp = [B.initialTime.upp, dummyMatrix, B.finalTime.upp];
-xUpp = [B.initialState.upp, B.state.upp*ones(1,nColPts-2), B.finalState.upp];
-uUpp = B.control.upp*ones(1,nColPts);
+tUpp = getMultiChebTime(cheb,[B.initialTime.upp, B.finalTime.upp]);
+xUpp = [B.initialState.upp, B.state.upp*ones(1,nGrid-2), B.finalState.upp];
+uUpp = B.control.upp*ones(1,nGrid);
 zUpp = packDecVar(tUpp,xUpp,uUpp);
 
 
@@ -100,17 +110,9 @@ P.solver = 'fmincon';
 %%%% Call fmincon to solve the non-linear program (NLP)
 tic;
 [zSoln, objVal,exitFlag,output] = fmincon(P);
-[tSoln,xSoln,uSoln] = unPackDecVar(zSoln,pack,cheb);
 nlpTime = toc;
 
-%%%% Store the results:
-
-soln.grid.time = tSoln;
-soln.grid.state = xSoln;
-soln.grid.control = uSoln;
-
-soln.interp.state = @(t)( chebyshevInterpolate(xSoln,t,[tSoln(1),tSoln(end)]) );
-soln.interp.control = @(t)( chebyshevInterpolate(uSoln,t,[tSoln(1),tSoln(end)]) );
+soln = formatTrajectory(zSoln, pack, cheb);
 
 soln.info = output;
 soln.info.nlpTime = nlpTime;
@@ -189,7 +191,7 @@ nControl = pack.nControl;
 nx = nState*nTime;
 nu = nControl*nTime;
 
-[t, w] = chebyshevScalePoints(cheb.xx,cheb.ww,[z(1),z(2)]);
+[t, w] = getMultiChebTime(cheb,[z(1),z(2)]);
 x = reshape(z((2+1):(2+nx)),nState,nTime);
 u = reshape(z((2+nx+1):(2+nx+nu)),nControl,nTime);
 
@@ -197,6 +199,71 @@ u = reshape(z((2+nx+1):(2+nx+nu)),nControl,nTime);
 end
 
 %%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
+
+function [time, weights] = getMultiChebTime(cheb,tSpan)
+%
+% This function computes the time grid for a trajectory that is made up of
+% a series of chebyshev orthogonal polynomials.
+%
+% INPUTS:
+%   cheb = struct of information about the chebyshev basis functions
+%       .xx = chebyshev points, on the domain [-1,1]
+%       .ww = chebyshev weights, on the domain [-1,1]
+%       .nSegment = number of trajectory segments
+%   tSpan = [tInitial, tFinal]
+%
+% OUTPUTS:
+%   time = [timeSegment_1, timeSegment_2, ... timeSegment_nSegment];
+%
+% NOTES:
+%   This function will return duplicate times at the boundary to each
+%   segment, so that the dynamics of each segment can easily be solved
+%   independantly. These redundant points must be removed before returning
+%   the output to the user.
+%
+%   For example, time should like something like:
+%       time = [0, 1, 2, 3,  3, 4, 5, 6,  6, 7, 8, 9];
+%   
+
+d = [0, (tSpan(2)-tSpan(1))/cheb.nSegment];   %Domain for the scaled points
+[x, w] = chebyshevScalePoints(cheb.xx,cheb.ww,d);  %Scaled points
+
+offset = linspace(tSpan(1),tSpan(2),cheb.nSegment+1);   %Starting time for each segment
+time = x'*ones(1,cheb.nSegment) + ones(cheb.nColPts,1)*offset(1:(end-1));
+nGrid = numel(time);
+time = reshape(time,1,nGrid);
+
+weights = reshape(w'*ones(1,cheb.nSegment),1,nGrid);
+
+end
+
+
+%%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
+
+
+function [x,w] = chebyshevScalePoints(xx,ww,d)
+% [x,w] = chebyshevScalePoints(xx,ww,d)
+%
+% This function scales the chebyshev points to an arbitrary interval
+%
+% INPUTS:
+%   xx = chebyshev points on the domain [-1,1]
+%   ww = chebysehv weights on the domain [-1,1]
+%   d = [low, upp] = new domain
+%
+% OUTPUTS:
+%   x = chebyshev points on the new domain d
+%   w = chebyshev weights on the new domain d
+%
+
+x = ((d(2)-d(1))*xx + sum(d))/2;
+w = ww*(d(2)-d(1))/2;
+
+end
+
+
+%%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
+
 
 function cost = myObjective(z,pack,pathObj,bndObj,cheb)
 %
@@ -259,25 +326,84 @@ function [c, ceq] = myConstraint(z,pack,dynFun, pathCst, bndCst, cheb)
 
 [t,x,u] = unPackDecVar(z,pack,cheb);
 
+nSegment = cheb.nSegment;
 
 %%%% Enforce the dynamics:
 
 % Analytic differentiation of the trajectory at chebyshev points:
-dxFun = chebyshevDerivative(x,t);
+domain = [0, (t(end)-t(1))/nSegment];   %Domain for the scaled points
+xTemplate = chebyshevScalePoints(cheb.xx,cheb.ww,domain);  %Scaled points
+D = chebyshevDifferentiationMatrix(xTemplate); 
+dxFun = zeros(size(x));
+idx = 1:cheb.nColPts;
+for i=1:nSegment  %Loop over each segment of the trajectory
+   dxFun(:,idx) = (D*x(:,idx)')'; 
+   idx = idx + cheb.nColPts;
+end
 
 % Derivative, according to the dynamics function:
 dxDyn = dynFun(t,x,u);
 
-% Add a constraint that both versions of the derivative must match:
-defects = dxFun - dxDyn;
+% Add a constraint that both versions of the derivative must match.
+% This ensures that the dynamics inside of each segment are correct.
+dxError = dxFun - dxDyn;
 
+% Add an additional defect that makes the state at the end of one
+% segment match the state at the beginning of the next segment. 
+idxLow = cheb.nColPts*(1:(nSegment-1));
+idxUpp = idxLow + 1;
+stitchState = x(:,idxLow)-x(:,idxUpp);
+stitchControl = u(:,idxLow)-u(:,idxUpp);  %Also need continuous control
+
+defects = [...
+    reshape(dxError, numel(dxError),1);
+    reshape(stitchState, numel(stitchState),1);
+    reshape(stitchControl, numel(stitchControl),1)];
 
 %%%% Call user-defined constraints and pack up:
-[c, ceq] = collectConstraints(t,x,u,defects, pathCst, bndCst);
+[c, ceq] = collectConstraints(t,x,u, defects, pathCst, bndCst);
 
 end
 
 
+%%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
+
+
+function soln = formatTrajectory(zSoln, pack, cheb)
+%
+% This function formats the result of the trajectory optimization so that
+% it is easy to use for plotting and analysis by the user.
+%
+
+[tSoln,xSoln,uSoln] = unPackDecVar(zSoln,pack,cheb);
+
+nSegment = cheb.nSegment;
+nColPts = cheb.nColPts;
+
+%%%% Need to remove the duplicate data points between segments:
+idxLow = nColPts*(1:(nSegment-1));
+idxUpp = idxLow + 1;
+tSoln(idxUpp) = [];
+xSoln(:,idxLow) = 0.5*(xSoln(:,idxLow)+xSoln(:,idxUpp));
+xSoln(:,idxUpp) = [];
+uSoln(:,idxLow) = 0.5*(uSoln(:,idxLow)+uSoln(:,idxUpp));
+uSoln(:,idxUpp) = [];
+
+%%%% Store the results:
+soln.grid.time = tSoln;
+soln.grid.state = xSoln;
+soln.grid.control = uSoln;
+
+
+%%%% Set up interpolating of the chebyshev trajectory:
+idxKnot = (nColPts-1)*(1:(nSegment-1)) + 1;
+soln.interp.state = @(t)( chebyshevMultiInterpolate(xSoln,tSoln,idxKnot,t) );
+soln.interp.control = @(t)( chebyshevMultiInterpolate(uSoln,tSoln,idxKnot,t) );
+
+end
+
+
+%%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
 
 
 function [x, w] = chebyshevPoints(n,d)
@@ -329,6 +455,9 @@ end
 end
 
 
+%%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
+
+
 function w = chebyshevWeights(n) % 2nd-kind Chebyshev wieghts
 % Jörg Waldvogel, "Fast construction of the Fejér and Clenshaw-Curtis
 % quadrature rules", BIT Numerical Mathematics 43 (1), p. 001-018 (2004).
@@ -345,30 +474,19 @@ end
 end
 
 
+%%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
 
-
-function Df = chebyshevDerivative(f,x)
-%Df = chebyshevDerivative(f,x)
+function D = chebyshevDifferentiationMatrix(x)
 %
-% FUNCTION:
-%   This function computes the derivative of the chebyshev interpolant
-%   at each of the chebyshev nodes.
-%
-% INPUTS:
-%   f = [nState x nPoints] values at each chebyshev node
-%   x = chebyshev points
-%
-% OUTPUTS:
-%   Df = the derivative of the chebyshev interpolant at each chebyshev node
+% Computes the chebyshev differentiation matrix
 %
 % NOTES:
-%   The derivative at each node is computed by multiplying f by a
-%   differentiation matrix. This matrix is [nPoints x nPoints]. If f is a
-%   very large order interpolant then computing this matrix may max out the
-%   memory available to matlab.
+% 
+% Example usage:   Df = (D*f')';
+%       where  f = [nState x nPoints] values at each chebyshev node
 %
 
-n = size(f,2);
+n = length(x);
 
 %Get the weight vector
 w = ones(1,n);
@@ -394,34 +512,73 @@ D = W.*X;
 %Deal with the i=j case:
 D = D - diag(sum(D,2));
 
+end
+
+%%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
+
+function Df = chebyshevDerivative(f,x)
+%Df = chebyshevDerivative(f,x)
+%
+% FUNCTION:
+%   This function computes the derivative of the chebyshev interpolant
+%   at each of the chebyshev nodes.
+%
+% INPUTS:
+%   f = [nState x nPoints] values at each chebyshev node
+%   x = chebyshev points
+%
+% OUTPUTS:
+%   Df = the derivative of the chebyshev interpolant at each chebyshev node
+%
+% NOTES:
+%   The derivative at each node is computed by multiplying f by a
+%   differentiation matrix. This matrix is [nPoints x nPoints]. If f is a
+%   very large order interpolant then computing this matrix may max out the
+%   memory available to matlab.
+%
+
+D = chebyshevDifferentiationMatrix(x);
+
 %Apply the differentiation matrix
 Df = (D*f')';
 
 end
 
 
+%%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
 
-function [x,w] = chebyshevScalePoints(xx,ww,d)
-% [x,w] = chebyshevScalePoints(xx,ww,d)
-%
-% This function scales the chebyshev points to an arbitrary interval
-%
-% INPUTS:
-%   xx = chebyshev points on the domain [-1,1]
-%   ww = chebysehv weights on the domain [-1,1]
-%   d = [low, upp] = new domain
-%
-% OUTPUTS:
-%   x = chebyshev points on the new domain d
-%   w = chebyshev weights on the new domain d
+
+function y = chebyshevMultiInterpolate(yData,tData,idxKnot,t)
+% 
+% This function is a wrapper for chebyshevInterpolate that handles the
+% piece-wise chebyshev polynomial trajectory
 %
 
-x = ((d(2)-d(1))*xx + sum(d))/2;
-w = ww*(d(2)-d(1))/2;
+% All points are considered valid, so extend edge bins:
+Tbins = [-inf, tData(idxKnot), inf];
+
+%Figure out which bins each query is in:
+[~, idx] = histc(t,Tbins);
+
+% Loop over each segment of the trajectory:
+ny = size(yData,1);
+nt = length(t);
+gridIdx = [1, idxKnot, length(tData)];
+nSegment = length(gridIdx)-1;
+y = zeros(ny,nt);
+for i=1:nSegment
+    if sum(idx==i)>0 % Then there are points to evaluate here!
+        y(:,(idx==i)) = chebyshevInterpolate(...
+            yData(:,gridIdx(i):gridIdx(i+1)),...
+            t(idx==i),...
+            tData(gridIdx([i,i+1]))  );
+    end
+end
 
 end
 
 
+%%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
 
 
 function [y, Dy, DDy, DDDy] = chebyshevInterpolate(f,t,d)
@@ -541,9 +698,6 @@ elseif nargout == 4
     DDy(:,idxBndFail) = nan;
     DDDy(:,idxBndFail) = nan;
 end
-
-
-
 
 end
 
