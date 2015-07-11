@@ -31,9 +31,10 @@ function soln = multiCheb(problem)
 %
 % Method specific parameters:
 %
-%   problem.options.method = 'chebyshev'
-%   problem.options.chebyshev = struct with method parameters:
-%       .nColPts = number of collocation points
+%   problem.options.method = 'multiCheb'
+%   problem.options.multiCheb = struct with method parameters:
+%       .nColPts = number of collocation points in each trajectory segment
+%       .nSegment = number of segments to break the trajectory into
 %
 
 
@@ -47,6 +48,13 @@ Opt = problem.options;
 if ~isfield(Opt,'multiCheb')
     Opt.multiCheb.nColPts = 6;  %Number of collocation points in each segment
     Opt.multiCheb.nSegment = 5; %Number of segments
+else
+    if ~isfield(Opt.multiCheb,'nColPts')
+        Opt.multiCheb.nColPts = 6;
+    end
+    if ~isfield(Opt.multiCheb,'nSegment')
+        Opt.multiCheb.nSegment = 5;
+    end
 end
 nColPts = Opt.multiCheb.nColPts;  %Number of collocation points in each segment
 nSegment = Opt.multiCheb.nSegment;  %Fraction of the duration spent in each segment
@@ -57,10 +65,10 @@ if Opt.verbose > 0
     disp('    ');
 end
 
-% This method seems to fail if a low-order polynomial is used. 
+% This method seems to fail if a low-order polynomial is used.
 % It gives reasonable solutions for medium-high order polynomials
 if nColPts < 6
-   disp('    WARNING: using fewer than six collocation points per interval can lead to numerical problems!');
+    disp('    WARNING: using fewer than six collocation points per interval can lead to numerical problems!');
 end
 
 % Chebyshev points and weights on the default domain
@@ -223,7 +231,7 @@ function [time, weights] = getMultiChebTime(cheb,tSpan)
 %
 %   For example, time should like something like:
 %       time = [0, 1, 2, 3,  3, 4, 5, 6,  6, 7, 8, 9];
-%   
+%
 
 d = [0, (tSpan(2)-tSpan(1))/cheb.nSegment];   %Domain for the scaled points
 [x, w] = chebyshevScalePoints(cheb.xx,cheb.ww,d);  %Scaled points
@@ -333,12 +341,12 @@ nSegment = cheb.nSegment;
 % Analytic differentiation of the trajectory at chebyshev points:
 domain = [0, (t(end)-t(1))/nSegment];   %Domain for the scaled points
 xTemplate = chebyshevScalePoints(cheb.xx,cheb.ww,domain);  %Scaled points
-D = chebyshevDifferentiationMatrix(xTemplate); 
+D = chebyshevDifferentiationMatrix(xTemplate);
 dxFun = zeros(size(x));
 idx = 1:cheb.nColPts;
 for i=1:nSegment  %Loop over each segment of the trajectory
-   dxFun(:,idx) = (D*x(:,idx)')'; 
-   idx = idx + cheb.nColPts;
+    dxFun(:,idx) = (D*x(:,idx)')';
+    idx = idx + cheb.nColPts;
 end
 
 % Derivative, according to the dynamics function:
@@ -349,7 +357,7 @@ dxDyn = dynFun(t,x,u);
 dxError = dxFun - dxDyn;
 
 % Add an additional defect that makes the state at the end of one
-% segment match the state at the beginning of the next segment. 
+% segment match the state at the beginning of the next segment.
 idxLow = cheb.nColPts*(1:(nSegment-1));
 idxUpp = idxLow + 1;
 stitchState = x(:,idxLow)-x(:,idxUpp);
@@ -481,7 +489,7 @@ function D = chebyshevDifferentiationMatrix(x)
 % Computes the chebyshev differentiation matrix
 %
 % NOTES:
-% 
+%
 % Example usage:   Df = (D*f')';
 %       where  f = [nState x nPoints] values at each chebyshev node
 %
@@ -549,7 +557,7 @@ end
 
 
 function y = chebyshevMultiInterpolate(yData,tData,idxKnot,t)
-% 
+%
 % This function is a wrapper for chebyshevInterpolate that handles the
 % piece-wise chebyshev polynomial trajectory
 %
