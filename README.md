@@ -1,5 +1,6 @@
 # TrajOpt - Trajectory Optimization for Matlab
 TrajOpt is a matlab library that I developed while working on my PhD at Cornell, studying controller design for walking robots. Some key features of this library:
+- test
 - __Easy to install -__ no dependancies besides Matlab and the optimization toolbox
 - __Easy to use -__ check out the examples to see for yourself
 - __Readable source code -__ easy to debug your code and figure out how the software works
