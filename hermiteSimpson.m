@@ -37,8 +37,8 @@ nGrid = 2*Opt.hermiteSimpson.nSegment-1;
 
 % Print out some solver info if desired:
 if Opt.verbose > 0
-   disp(['  -> Transcription via Hermite-Simpson method, nGrid = ' ...
-       num2str(Opt.hermiteSimpson.nGrid)]); disp('    ');
+   disp(['  -> Transcription via Hermite-Simpson method, nSegment = ' ...
+       num2str(Opt.hermiteSimpson.nSegment)]); disp('    ');
 end
 
 % Interpolate the guess at the grid-points for transcription:
@@ -88,9 +88,9 @@ soln.grid.time = tSoln;
 soln.grid.state = xSoln;
 soln.grid.control = uSoln;
 
-disp('Fix the interpolation below!');
-soln.interp.state = @(t)( interp1(tSoln',xSoln',t','linear',nan)' );
-soln.interp.control = @(t)( interp1(tSoln',uSoln',t','linear',nan)' );
+% Use quadratic interpolation for each trajectory segment
+soln.interp.state = @(t)( pwPoly2(tSoln,xSoln,t) );
+soln.interp.control = @(t)( pwPoly2(tSoln,uSoln,t) );
 
 soln.info = output;
 soln.info.nlpTime = nlpTime;
@@ -198,9 +198,16 @@ function cost = myObjective(z,pack,pathObj,bndObj)
 if isempty(pathObj)
     integralCost = 0;
 else
-    dt = (t(end)-t(1))/(pack.nTime-1);
+    dt = 2*(t(end)-t(1))/(pack.nTime-1);
     integrand = pathObj(t,x,u);  %Calculate the integrand of the cost function
-    integralCost = dt*trapz(integrand);  %Trapazoidal integration
+    
+    %Simpson quadrature for integration of the cost function:
+    weights = 2*ones(pack.nTime,1);
+    weights(2:2:end) = 4;
+    weights([1,end]) = 1;
+    weights = weights/6;
+    
+    integralCost = dt*integrand*weights;  %Trapazoidal integration
 end
 
 % Compute the cost at the boundaries of the trajectory
@@ -240,22 +247,33 @@ function [c, ceq] = myConstraint(z,pack,dynFun, pathCst, bndCst)
 [t,x,u] = unPackDecVar(z,pack);
 
 
-%%%% Compute defects along the trajectory:
-
-dt = (t(end)-t(1))/(pack.nTime-1);
+%%%% Compute dynamics at each grid point:
+dt = 2*(t(end)-t(1))/(pack.nTime-1);
 dx = dynFun(t,x,u);
 
-xLow = x(:,1:end-1);
-xUpp = x(:,2:end);
+iLow = 1:2:(pack.nTime-1);
+iMid = iLow + 1;
+iUpp = iMid + 1;
 
-dxLow = dx(:,1:end-1);
-dxUpp = dx(:,2:end);
+xLow = x(:,iLow);
+xMid = x(:,iMid);
+xUpp = x(:,iUpp);
 
-% This is the key line:  (Trapazoid Rule)
-defects = xUpp-xLow - 0.5*dt*(dxLow+dxUpp);
+fLow = dx(:,iLow);
+fMid = dx(:,iMid);
+fUpp = dx(:,iUpp);
+
+
+%%%% Mid-point constraint (Hermite)
+defectMidpoint = xMid - (xUpp+xLow)/2 - dt*(fLow-fUpp)/8;
+
+%%%% Interval constraint (Simpson)
+defectInterval = xUpp - xLow - dt*(fUpp + 4*fMid + fLow)/6;
 
 
 %%%% Call user-defined constraints and pack up:
-[c, ceq] = collectConstraints(t,x,u,defects, pathCst, bndCst);
+[c, ceq] = collectConstraints(t,x,u,...
+    [defectMidpoint,defectInterval],...
+    pathCst, bndCst);
 
 end

@@ -154,6 +154,8 @@ for iter=1:nIter
     switch P.options.method
         case 'trapazoid'
             soln(iter) = trapazoid(P);
+        case 'hermiteSimpson'
+            soln(iter) = hermiteSimpson(P);
         case 'chebyshev'
             soln(iter) = chebyshev(P);
         case 'multiCheb'

@@ -40,10 +40,10 @@ problem.bounds.finalTime.upp = tF;
 
 % State: [q1;q2;dq1;dq2];
 
-problem.bounds.state.low = [-pi/2; -pi/2; -inf(2,1)];
-problem.bounds.state.upp = [ pi/2;  pi/2;  inf(2,1)];
+problem.bounds.state.low = [-pi/3; -pi/3; -inf(2,1)];
+problem.bounds.state.upp = [ pi/3;  pi/3;  inf(2,1)];
 
-stepAngle = 0.3;
+stepAngle = 0.2;
 problem.bounds.initialState.low = [stepAngle; -stepAngle; -inf(2,1)];
 problem.bounds.initialState.upp = [stepAngle; -stepAngle;  inf(2,1)];
 
@@ -72,8 +72,9 @@ problem.guess.control = [0, 0];
 %%%% and then again on a fine grid with a tight tolerance.
 
 % method = 'trapazoid';
-% method = 'chebyshev';
-method = 'multiCheb';
+% method = 'hermiteSimpson';
+method = 'chebyshev';
+% method = 'multiCheb';
 
 switch method
     case 'trapazoid'
@@ -96,7 +97,29 @@ switch method
         problem.options(2).verbose = 3; % How much to print out?
         problem.options(2).method = 'trapazoid'; % Select the transcription method
         problem.options(2).trapazoid.nGrid = 25;  %method-specific options
-                
+        
+    case 'hermiteSimpson'
+        
+        % First iteration: get a more reasonable guess
+        problem.options(1).nlpOpt = optimset(...
+            'Display','iter',...   %{'iter','final','off'}
+            'TolFun',1e-3,...
+            'MaxFunEvals',1e4);   %options for fmincon
+        problem.options(1).verbose = 3; % How much to print out?
+        problem.options(1).method = 'hermiteSimpson'; % Select the transcription method
+        problem.options(1).hermiteSimpson.nSegment = 6;  %method-specific options
+        
+        
+        % Second iteration: refine guess to get precise soln
+        problem.options(2).nlpOpt = optimset(...
+            'Display','iter',...   %{'iter','final','off'}
+            'TolFun',1e-6,...
+            'MaxFunEvals',5e4);   %options for fmincon
+        problem.options(2).verbose = 3; % How much to print out?
+        problem.options(2).method = 'hermiteSimpson'; % Select the transcription method
+        problem.options(2).hermiteSimpson.nSegment = 15;  %method-specific options
+        
+        
     case 'chebyshev'
         
         % First iteration: get a more reasonable guess
@@ -125,7 +148,7 @@ switch method
             'Display','iter',...   %{'iter','final','off'}
             'TolFun',1e-3,...
             'MaxFunEvals',1e4);   %options for fmincon
-        problem.options(1).verbose = 3; % How much to print out?        
+        problem.options(1).verbose = 3; % How much to print out?
         problem.options(1).method = 'multiCheb'; % Select the transcription method
         problem.options(1).multiCheb.nColPts = 6;  %method-specific options
         problem.options(1).multiCheb.nSegment = 4;  %method-specific options
@@ -138,7 +161,7 @@ switch method
             'MaxFunEvals',5e4);   %options for fmincon
         problem.options(2).verbose = 3; % How much to print out?
         problem.options(2).method = 'multiCheb'; % Select the transcription method
-         problem.options(2).multiCheb.nColPts = 9;  %method-specific options
+        problem.options(2).multiCheb.nColPts = 9;  %method-specific options
         problem.options(2).multiCheb.nSegment = 4;  %method-specific options
         
         
@@ -178,7 +201,7 @@ figure(100); clf;
 subplot(3,1,1); hold on;
 plot(tInt,q1Int,'r-'); plot(tInt,q2Int,'b-');
 plot([t(1),t(end)],[0,0],'k--','LineWidth',1);
-plot(t,q1,'ro'); plot(t,q2,'bo'); 
+plot(t,q1,'ro'); plot(t,q2,'bo');
 legend('leg one','leg two')
 xlabel('time (sec)')
 ylabel('angle (rad)')
@@ -186,7 +209,7 @@ title('Leg Angles')
 
 subplot(3,1,2); hold on;
 plot(tInt,dq1Int,'r-'); plot(tInt,dq2Int,'b-');
-plot(t,dq1,'ro'); plot(t,dq2,'bo'); 
+plot(t,dq1,'ro'); plot(t,dq2,'bo');
 legend('leg one','leg two')
 xlabel('time (sec)')
 ylabel('rate (rad/sec)')
