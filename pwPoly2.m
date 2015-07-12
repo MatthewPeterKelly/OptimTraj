@@ -28,6 +28,7 @@ k = length(t);
 x = zeros(m, k);
 
 % Figure out which segment each value of t should be on
+tGrid(end) = tGrid(end) + 1e-14; %Hack to include queries on the endpoint
 edges = [-inf, tGrid(1:2:end), inf];
 [~, bin] = histc(t,edges);
 
