@@ -15,7 +15,7 @@ dyn.g = 9.81;  % gravity
 dyn.l1 = 0.5;   % length of first link
 dyn.l2 = 0.5;   % length of second link
 
-maxTorque = 15;  % Max torque at the elbow
+maxTorque = 25;  % Max torque at the elbow
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                       Set up function handles                           %
@@ -73,98 +73,43 @@ problem.guess.control = [0, 0];
 %%%% and then again on a fine grid with a tight tolerance.
 
 % method = 'trapazoid';
-method = 'hermiteSimpson';
-% method = 'chebyshev';
+% method = 'hermiteSimpson';
+method = 'chebyshev';
 % method = 'multiCheb';
 
 switch method
     case 'trapazoid'
+         
+        % Low accuracy on first iteration, to get close
+        problem.options(1).method = 'trapazoid';         
+        problem.options(1).defaultAccuracy = 'low';
+        problem.options(1).nlpOpt.MaxFunEvals = 1e4;
         
-        % First iteration: get a more reasonable guess
-        problem.options(1).nlpOpt = optimset(...
-            'Display','iter',...   %{'iter','final','off'}
-            'TolFun',1e-3,...
-            'MaxFunEvals',1e4);   %options for fmincon
-        problem.options(1).verbose = 3; % How much to print out?
-        problem.options(1).method = 'trapazoid'; % Select the transcription method
-        problem.options(1).trapazoid.nGrid = 10;  %method-specific options
-        
-        
-        % Second iteration: refine guess to get precise soln
-        problem.options(2).nlpOpt = optimset(...
-            'Display','iter',...   %{'iter','final','off'}
-            'TolFun',1e-6,...
-            'MaxFunEvals',5e4);   %options for fmincon
-        problem.options(2).verbose = 3; % How much to print out?
-        problem.options(2).method = 'trapazoid'; % Select the transcription method
-        problem.options(2).trapazoid.nGrid = 25;  %method-specific options
-        
-    case 'hermiteSimpson'
-        
-        % First iteration: get a more reasonable guess
-        problem.options(1).nlpOpt = optimset(...
-            'Display','iter',...   %{'iter','final','off'}
-            'TolFun',1e-3,...
-            'MaxFunEvals',1e4);   %options for fmincon
-        problem.options(1).verbose = 3; % How much to print out?
-        problem.options(1).method = 'hermiteSimpson'; % Select the transcription method
-        problem.options(1).hermiteSimpson.nSegment = 6;  %method-specific options
+        % Medium accuracy on second iteration to refine solution
+        problem.options(2).method = 'trapazoid';
+        problem.options(2).defaultAccuracy = 'medium';
+        problem.options(2).nlpOpt.MaxFunEvals = 1e5;
         
         
-        % Second iteration: refine guess to get precise soln
-        problem.options(2).nlpOpt = optimset(...
-            'Display','iter',...   %{'iter','final','off'}
-            'TolFun',1e-6,...
-            'MaxFunEvals',5e4);   %options for fmincon
-        problem.options(2).verbose = 3; % How much to print out?
-        problem.options(2).method = 'hermiteSimpson'; % Select the transcription method
-        problem.options(2).hermiteSimpson.nSegment = 15;  %method-specific options
-        
+    case 'hermiteSimpson'        
+        problem.options(1).method = 'hermiteSimpson';    
+        problem.options(1).defaultAccuracy = 'low';
+        problem.options(2).method = 'hermiteSimpson';  
+        problem.options(2).defaultAccuracy = 'medium';     
         
     case 'chebyshev'
-        
-        % First iteration: get a more reasonable guess
-        problem.options(1).nlpOpt = optimset(...
-            'Display','iter',...   %{'iter','final','off'}
-            'TolFun',1e-3,...
-            'MaxFunEvals',1e4);   %options for fmincon
-        problem.options(1).verbose = 3; % How much to print out?
-        problem.options(1).method = 'chebyshev'; % Select the transcription method
-        problem.options(1).chebyshev.nColPts = 9;  %method-specific options
-        
-        
-        % Second iteration: refine guess to get precise soln
-        problem.options(2).nlpOpt = optimset(...
-            'Display','iter',...   %{'iter','final','off'}
-            'TolFun',1e-8,...
-            'MaxFunEvals',5e4);   %options for fmincon
-        problem.options(2).verbose = 3; % How much to print out?
-        problem.options(2).method = 'chebyshev'; % Select the transcription method
-        problem.options(2).chebyshev.nColPts = 15;  %method-specific options
+        problem.options(1).method = 'chebyshev';         
+        problem.options(1).defaultAccuracy = 'low';
+        problem.options(1).nlpOpt.MaxFunEvals = 1e5;
+        problem.options(2).method = 'chebyshev'; 
+        problem.options(2).defaultAccuracy = 'medium';
+        problem.options(1).nlpOpt.MaxFunEvals = 1e5;
         
     case 'multiCheb'
-        
-        % First iteration: get a more reasonable guess
-        problem.options(1).nlpOpt = optimset(...
-            'Display','iter',...   %{'iter','final','off'}
-            'TolFun',1e-3,...
-            'MaxFunEvals',1e4);   %options for fmincon
-        problem.options(1).verbose = 3; % How much to print out?
-        problem.options(1).method = 'multiCheb'; % Select the transcription method
-        problem.options(1).multiCheb.nColPts = 6;  %method-specific options
-        problem.options(1).multiCheb.nSegment = 4;  %method-specific options
-        
-        
-        % Second iteration: refine guess to get precise soln
-        problem.options(2).nlpOpt = optimset(...
-            'Display','iter',...   %{'iter','final','off'}
-            'TolFun',1e-8,...
-            'MaxFunEvals',5e4);   %options for fmincon
-        problem.options(2).verbose = 3; % How much to print out?
-        problem.options(2).method = 'multiCheb'; % Select the transcription method
-        problem.options(2).multiCheb.nColPts = 9;  %method-specific options
-        problem.options(2).multiCheb.nSegment = 4;  %method-specific options
-        
+        problem.options(1).method = 'multiCheb';         
+        problem.options(1).defaultAccuracy = 'low';
+        problem.options(2).method = 'multiCheb';
+        problem.options(2).defaultAccuracy = 'medium';        
         
     otherwise
         error('Invalid method!');

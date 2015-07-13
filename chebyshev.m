@@ -1,9 +1,12 @@
-function soln = chebyshev(problem)
+function soln = chebyshev(problem, defaultOptions)
 % soln = chebyshev(problem)
 %
 % This function transcribes a trajectory optimization problem Chebyshev
 % orthogonal polynomials for basis functions. This is an orthogonal
-% collocation method.
+% collocation method, where the entire trajectory is represented as a
+% single polynomial. It is for problems where the solution can be
+% gaurenteed to be smooth to the same degree as the order of the underlying
+% polynomial (nColPts-1).
 %
 % The technique is described in detail in the paper:
 %
@@ -42,10 +45,22 @@ B = problem.bounds;
 F = problem.func;
 Opt = problem.options;
 
-% Check method-specific parameters and use default if doesn't exist
-if ~isfield(Opt,'chebyshev')
-    Opt.chebyshev.nColPts = 15;
+% Create a default struct for low, medium, and high accuracy:
+switch Opt.defaultAccuracy
+    case 'low'
+        defaultOptions.chebyshev.nColPts = 8;
+        defaultOptions.nlpOpt.TolFun = 1e-3;
+    case 'medium'
+        defaultOptions.chebyshev.nColPts = 15;
+        defaultOptions.nlpOpt.TolFun = 1e-6;
+    case 'high'
+        defaultOptions.chebyshev.nColPts = 30;
+        defaultOptions.nlpOpt.TolFun = 1e-8;
+    otherwise
+        error('Unrecognized default accuracy level')
 end
+Opt = mergeDefaults(Opt, defaultOptions);
+
 nColPts = Opt.chebyshev.nColPts;  %Number of grid points for transcription
 
 % Print out some solver info if desired:
@@ -94,7 +109,7 @@ P.lb = zLow;
 P.ub = zUpp;
 P.Aineq = []; P.bineq = [];
 P.Aeq = []; P.beq = [];
-P.options = problem.options.nlpOpt;
+P.options = Opt.nlpOpt;
 P.solver = 'fmincon';
 
 %%%% Call fmincon to solve the non-linear program (NLP)
@@ -117,6 +132,7 @@ soln.info.nlpTime = nlpTime;
 soln.info.exitFlag = exitFlag;
 soln.info.objVal = objVal;
 
+problem.options = Opt;
 soln.problem = problem;  % Return the fully detailed problem struct
 
 end

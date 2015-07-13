@@ -72,8 +72,8 @@ problem.guess.control = [0, 0];
 %%%% and then again on a fine grid with a tight tolerance.
 
 % method = 'trapazoid';
-% method = 'hermiteSimpson';
-method = 'chebyshev';
+method = 'hermiteSimpson';
+% method = 'chebyshev';
 % method = 'multiCheb';
 
 switch method

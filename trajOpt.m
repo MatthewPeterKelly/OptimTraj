@@ -74,6 +74,9 @@ function soln = trajOpt(problem)
 %
 %       .method = string to pick which method is used for transcription
 %           'trapazoid'
+%           'hermiteSimpson'
+%           'chebyshev'
+%           'multiCheb'
 %
 %       .[method] = a struct to pass method-specific parameters. For
 %       example, to pass the number of grid-points to the trapazoid method,
@@ -84,6 +87,9 @@ function soln = trajOpt(problem)
 %           1 = default
 %           2 = display warnings, overrides fmincon display setting
 %           3 = debug
+%
+%       .defaultAccuracy = {'low','medium','high'}
+%           Sets the default options for each transcription method
 %
 %       * if options is a struct array, the trajOpt will run the optimization
 %       by running options(1) and then using the result to initialize a new
@@ -132,8 +138,12 @@ function soln = trajOpt(problem)
 %   and soln(end) being the final solution.
 %
 
-problem = defaultTrajOpt(problem);
+problem = inputValidation(problem);
+defaultOptions = getDefaultOptions();
+
 P = problem; P.options = [];
+
+
 
 % Loop over the options struct to solve the problem
 nIter = length(problem.options);
@@ -153,13 +163,13 @@ for iter=1:nIter
     %%%% This is the key part: call the underlying transcription method:
     switch P.options.method
         case 'trapazoid'
-            soln(iter) = trapazoid(P);
+            soln(iter) = trapazoid(P, defaultOptions);
         case 'hermiteSimpson'
-            soln(iter) = hermiteSimpson(P);
+            soln(iter) = hermiteSimpson(P, defaultOptions);
         case 'chebyshev'
-            soln(iter) = chebyshev(P);
+            soln(iter) = chebyshev(P, defaultOptions);
         case 'multiCheb'
-            soln(iter) = multiCheb(P);
+            soln(iter) = multiCheb(P, defaultOptions);
         otherwise
             error('Invalid method. Type: ''help trajOpt'' for a valid list.');
     end
@@ -172,7 +182,18 @@ end
 %%%%                       SUB-FUNCTIONS                               %%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function problem = defaultTrajOpt(problem)
+function Opt = getDefaultOptions()
+
+Opt.method = 'trapazoid';
+Opt.verbose = 1;
+Opt.nlpOpt = optimset('fmincon');
+Opt.nlpOpt.Display = 'iter';
+Opt.defaultAccuracy = 'medium';
+
+end
+
+
+function problem = inputValidation(problem)
 %
 % This function runs through the problem struct and sets any missing fields
 % to the default value. If a mandatory field is missing, then it throws an
@@ -188,26 +209,26 @@ function problem = defaultTrajOpt(problem)
 
 %%%% Check the function handles:
 
-if ~checkField(problem,'func')
+if ~isfield(problem,'func')
     error('Field ''func'' cannot be ommitted from ''problem''');
 else
-    if ~checkField(problem.func,'dynamics')
+    if ~isfield(problem.func,'dynamics')
         error('Field ''dynamics'' cannot be ommitted from ''problem.func'''); end
-    if ~checkField(problem.func,'pathObj'), problem.func.pathObj = []; end
-    if ~checkField(problem.func,'bndObj'), problem.func.bndObj = []; end
-    if ~checkField(problem.func,'pathCst'), problem.func.pathCst = []; end
-    if ~checkField(problem.func,'bndCst'), problem.func.bndCst = []; end
+    if ~isfield(problem.func,'pathObj'), problem.func.pathObj = []; end
+    if ~isfield(problem.func,'bndObj'), problem.func.bndObj = []; end
+    if ~isfield(problem.func,'pathCst'), problem.func.pathCst = []; end
+    if ~isfield(problem.func,'bndCst'), problem.func.bndCst = []; end
 end
 
 %%%% Check the initial guess (also compute nState and nControl):
-if ~checkField(problem, 'guess')
+if ~isfield(problem, 'guess')
     error('Field ''guess'' cannot be ommitted from ''problem''');
 else
-    if ~checkField(problem.guess,'time')
+    if ~isfield(problem.guess,'time')
         error('Field ''time'' cannot be ommitted from ''problem.guess'''); end
-    if ~checkField(problem.guess, 'state')
+    if ~isfield(problem.guess, 'state')
         error('Field ''state'' cannot be ommitted from ''problem.guess'''); end
-    if ~checkField(problem.guess, 'control')
+    if ~isfield(problem.guess, 'control')
         error('Field ''control'' cannot be ommitted from ''problem.guess'''); end
     
     % Compute the size of the time, state, and control based on guess
@@ -229,86 +250,61 @@ else
 end
 
 %%%% Check the problem bounds:
-if ~checkField(problem,'bounds')
+if ~isfield(problem,'bounds')
     error('Field ''bounds'' cannot be ommitted from ''problem''');
 else
     
-    if ~checkField(problem.bounds,'initialTime')
+    if ~isfield(problem.bounds,'initialTime')
         problem.bounds.initialTime = []; end
     problem.bounds.initialTime = ...
         checkLowUpp(problem.bounds.initialTime,1,1,'initialTime');
     
-    if ~checkField(problem.bounds,'finalTime')
+    if ~isfield(problem.bounds,'finalTime')
         problem.bounds.finalTime = []; end
     problem.bounds.finalTime = ...
         checkLowUpp(problem.bounds.finalTime,1,1,'finalTime');
     
-    if ~checkField(problem.bounds,'state')
+    if ~isfield(problem.bounds,'state')
         problem.bounds.state = []; end
     problem.bounds.state = ...
         checkLowUpp(problem.bounds.state,nState,1,'state');
     
-    if ~checkField(problem.bounds,'initialState')
+    if ~isfield(problem.bounds,'initialState')
         problem.bounds.initialState = []; end
     problem.bounds.initialState = ...
         checkLowUpp(problem.bounds.initialState,nState,1,'initialState');
     
-    if ~checkField(problem.bounds,'finalState')
+    if ~isfield(problem.bounds,'finalState')
         problem.bounds.finalState = []; end
     problem.bounds.finalState = ...
         checkLowUpp(problem.bounds.finalState,nState,1,'finalState');
     
-    if ~checkField(problem.bounds,'control')
+    if ~isfield(problem.bounds,'control')
         problem.bounds.control = []; end
     problem.bounds.control = ...
         checkLowUpp(problem.bounds.control,nControl,1,'control');
     
 end
 
-
-%%%% Check options for trajOpt
-
-if ~checkField(problem,'options')
-    problem.options = struct('method',[],'verbose',[],'nlpOpt',[]);
-end
-
-% Loop over each iteration:
-for iter = 1:length(problem.options)
-    
-    if ~checkField(problem.options(iter), 'method')
-        problem.options(iter).method = 'trapazoid';   end
-    
-    if ~checkField(problem.options(iter), 'verbose')
-        problem.options(iter).verbose = 1;            end
-    
-    
-    %%%% Default options for fmincon
-    if ~checkField(problem.options(iter),'nlpOpt')
-        problem.options(iter).nlpOpt = optimset('fmincon');
-        problem.options(iter).nlpOpt.Display = 'iter';
+%%%% Basic checking for options
+if ~isfield(problem,'options')
+    problem.options.method = 'trapazoid';
+    problem.options.verbose = 1;
+else
+    if ~isfield(problem.options,'method')
+        for i=1:length(problem.options)
+            problem.options(i).method = 'trapazoid';
+        end
     end
-    
-    % override fmincon display for extreme verbose options
-    if problem.options(iter).verbose == 0
-        problem.options(iter).nlpOpt.Display = 'off';
-    elseif problem.options(iter).verbose == 4
-        problem.options(iter).nlpOpt.Display = 'iter-detailed';
+    if ~isfield(problem.options,'verbose')
+        for i=1:length(problem.options)
+            problem.options(i).verbose = 1;
+        end
     end
-    
-end
-
-end
-
-
-function valid = checkField(input,field)
-%
-% This function returns true if the field exists and is non-empty
-%
-
-valid = false;   %Assume the worst
-if isfield(input,field)   %Check that field exists
-    if ~isempty(input.(field))   %Check that it's non-empty
-        valid = true;  %yay! A valid field
+    if ~isfield(problem.options,'defaultAccuracy')        
+        for i=1:length(problem.options)
+            problem.options(i).defaultAccuracy = 'medium';
+        end
     end
 end
 
@@ -321,11 +317,11 @@ function input = checkLowUpp(input,nRow,nCol,name)
 %   size(input.low) == [nRow, nCol]
 %   size(input.upp) == [nRow, nCol]
 
-if ~checkField(input,'low')
+if ~isfield(input,'low')
     input.low = -inf(nRow,nCol);
 end
 
-if ~checkField(input,'upp')
+if ~isfield(input,'upp')
     input.upp = inf(nRow,nCol);
 end
 
