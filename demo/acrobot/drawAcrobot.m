@@ -11,7 +11,7 @@ plot(0,0,'ks','MarkerSize',25,'LineWidth',4)
 plot(pos(1,:),pos(2,:),'Color',[0.1, 0.8, 0.1],'LineWidth',4)
 plot(pos(1,:),pos(2,:),'k.','MarkerSize',50)
 
-title(['Acrobot Animation,  t = ' num2str(t,2)])
+title(sprintf('Acrobot Animation,  t = %6.4f', t));
 
 drawnow; pause(0.01);
 

@@ -72,8 +72,8 @@ problem.guess.control = [0, 0];
 %%%% Run the optimization twice: once on a rough grid with a low tolerance,
 %%%% and then again on a fine grid with a tight tolerance.
 
-method = 'trapazoid';
-% method = 'hermiteSimpson';
+% method = 'trapazoid';
+method = 'hermiteSimpson';
 % method = 'chebyshev';
 % method = 'multiCheb';
 
