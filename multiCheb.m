@@ -1,4 +1,4 @@
-function soln = multiCheb(problem)
+function soln = multiCheb(problem,defaultOptions)
 % soln = multiCheb(problem)
 %
 % This function transcribes a trajectory optimization problem Chebyshev
@@ -44,18 +44,6 @@ B = problem.bounds;
 F = problem.func;
 Opt = problem.options;
 
-% Check method-specific parameters and use default if doesn't exist
-if ~isfield(Opt,'multiCheb')
-    Opt.multiCheb.nColPts = 6;  %Number of collocation points in each segment
-    Opt.multiCheb.nSegment = 5; %Number of segments
-else
-    if ~isfield(Opt.multiCheb,'nColPts')
-        Opt.multiCheb.nColPts = 6;
-    end
-    if ~isfield(Opt.multiCheb,'nSegment')
-        Opt.multiCheb.nSegment = 5;
-    end
-end
 nColPts = Opt.multiCheb.nColPts;  %Number of collocation points in each segment
 nSegment = Opt.multiCheb.nSegment;  %Fraction of the duration spent in each segment
 
@@ -112,7 +100,7 @@ P.lb = zLow;
 P.ub = zUpp;
 P.Aineq = []; P.bineq = [];
 P.Aeq = []; P.beq = [];
-P.options = problem.options.nlpOpt;
+P.options = Opt.nlpOpt;
 P.solver = 'fmincon';
 
 %%%% Call fmincon to solve the non-linear program (NLP)

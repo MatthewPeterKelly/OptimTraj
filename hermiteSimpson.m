@@ -1,8 +1,8 @@
-function soln = hermiteSimpson(problem)
+function soln = hermiteSimpson(problem,defaultOptions)
 % soln = hermiteSimpson(problem)
 %
 % This function transcribes a trajectory optimization problem using the
-% Hermite-Simpson (Seperated) method for enforcing the dynamics. It can be 
+% Hermite-Simpson (Seperated) method for enforcing the dynamics. It can be
 % found in chapter four of Bett's book:
 %
 %   John T. Betts, 2001
@@ -15,7 +15,7 @@ function soln = hermiteSimpson(problem)
 %   problem.options.method = 'hermiteSimpson'
 %   problem.options.trapazoid = struct with method parameters:
 %       .nGrid = number of grid points to use for transcription
-% 
+%
 
 %To make code more readable
 G = problem.guess;
@@ -23,22 +23,13 @@ B = problem.bounds;
 F = problem.func;
 Opt = problem.options;
 
-% Check method-specific parameters and use default if doesn't exist
-if ~isfield(Opt,'hermiteSimpson')
-    Opt.trapazoid.nSegment = 15;
-else
-    if ~isfield(Opt.hermiteSimpson,'nSegment')
-       Opt.trapazoid.nSegment = 15;
-    end
-end
-
 % Each segment needs an additional data point in the middle, thus:
-nGrid = 2*Opt.hermiteSimpson.nSegment-1; 
+nGrid = 2*Opt.hermiteSimpson.nSegment-1;
 
 % Print out some solver info if desired:
 if Opt.verbose > 0
-   disp(['  -> Transcription via Hermite-Simpson method, nSegment = ' ...
-       num2str(Opt.hermiteSimpson.nSegment)]); disp('    ');
+    disp(['  -> Transcription via Hermite-Simpson method, nSegment = ' ...
+        num2str(Opt.hermiteSimpson.nSegment)]); disp('    ');
 end
 
 % Interpolate the guess at the grid-points for transcription:
@@ -73,7 +64,7 @@ P.lb = zLow;
 P.ub = zUpp;
 P.Aineq = []; P.bineq = [];
 P.Aeq = []; P.beq = [];
-P.options = problem.options.nlpOpt;
+P.options = Opt.nlpOpt;
 P.solver = 'fmincon';
 
 %%%% Call fmincon to solve the non-linear program (NLP)
@@ -103,7 +94,7 @@ end
 
 
 %%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
-%%%% SUB FUNCTIONS %%%%
+%%%%                   SUB FUNCTIONS                                   %%%%
 %%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
 
 

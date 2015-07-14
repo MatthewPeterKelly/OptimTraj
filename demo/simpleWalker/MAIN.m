@@ -68,12 +68,14 @@ problem.guess.control = [0, 0];
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
 
-%%%% Run the optimization twice: once on a rough grid with a low tolerance,
-%%%% and then again on a fine grid with a tight tolerance.
+%NOTE:  Here I choose to run the optimization twice, mostly to demonstrate
+%   functionality, although this can be important on harder problems. I've
+%   explicitly written out many options below, but the solver will fill in
+%   almost all defaults for you if they are ommitted.
 
 % method = 'trapazoid';
-% method = 'hermiteSimpson';
-method = 'chebyshev';
+method = 'hermiteSimpson';
+% method = 'chebyshev';
 % method = 'multiCheb';
 
 switch method

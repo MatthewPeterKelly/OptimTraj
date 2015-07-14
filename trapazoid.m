@@ -1,4 +1,4 @@
-function soln = trapazoid(problem)
+function soln = trapazoid(problem, defaultOptions)
 % soln = trapazoid(problem)
 %
 % This function transcribes a trajectory optimization problem using the
@@ -15,7 +15,7 @@ function soln = trapazoid(problem)
 %   problem.options.method = 'trapazoid'
 %   problem.options.trapazoid = struct with method parameters:
 %       .nGrid = number of grid points to use for transcription
-% 
+%
 
 %To make code more readable
 G = problem.guess;
@@ -23,20 +23,12 @@ B = problem.bounds;
 F = problem.func;
 Opt = problem.options;
 
-% Check method-specific parameters and use default if doesn't exist
-if ~isfield(Opt,'trapazoid')
-    Opt.trapazoid.nGrid = 25;
-else
-    if ~isfield(Opt.trapazoid,'nGrid')
-       Opt.trapazoid.nGrid = 25;
-    end
-end
 nGrid = Opt.trapazoid.nGrid;  %Number of grid points for transcription
 
 % Print out some solver info if desired:
 if Opt.verbose > 0
-   disp(['  -> Transcription via trapazoid method, nGrid = ' ...
-       num2str(Opt.trapazoid.nGrid)]); disp('    ');
+    disp(['  -> Transcription via trapazoid method, nGrid = ' ...
+        num2str(Opt.trapazoid.nGrid)]); disp('    ');
 end
 
 % Interpolate the guess at the grid-points for transcription:
@@ -71,7 +63,7 @@ P.lb = zLow;
 P.ub = zUpp;
 P.Aineq = []; P.bineq = [];
 P.Aeq = []; P.beq = [];
-P.options = problem.options.nlpOpt;
+P.options = Opt.nlpOpt;
 P.solver = 'fmincon';
 
 %%%% Call fmincon to solve the non-linear program (NLP)
@@ -93,7 +85,7 @@ soln.info = output;
 soln.info.nlpTime = nlpTime;
 soln.info.exitFlag = exitFlag;
 soln.info.objVal = objVal;
-
+ 
 soln.problem = problem;  % Return the fully detailed problem struct
 
 end
