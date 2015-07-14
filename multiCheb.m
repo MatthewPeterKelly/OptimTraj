@@ -44,38 +44,6 @@ B = problem.bounds;
 F = problem.func;
 Opt = problem.options;
 
-% Create a default struct for low, medium, and high accuracy:
-switch Opt.defaultAccuracy
-    case 'low'
-        defaultOptions.multiCheb.nColPts = 6;
-        defaultOptions.multiCheb.nSegment = 3;
-        defaultOptions.nlpOpt.TolFun = 1e-3;
-    case 'medium'
-        defaultOptions.multiCheb.nColPts = 8;
-        defaultOptions.multiCheb.nSegment = 6;
-        defaultOptions.nlpOpt.TolFun = 1e-6;
-    case 'high'
-        defaultOptions.multiCheb.nColPts = 8;
-        defaultOptions.multiCheb.nSegment = 12;
-        defaultOptions.nlpOpt.TolFun = 1e-8;
-    otherwise
-        error('Unrecognized default accuracy level')
-end
-Opt = mergeDefaults(Opt, defaultOptions);
-
-
-% Check method-specific parameters and use default if doesn't exist
-if ~isfield(Opt,'multiCheb')
-    Opt.multiCheb.nColPts = 6;  %Number of collocation points in each segment
-    Opt.multiCheb.nSegment = 5; %Number of segments
-else
-    if ~isfield(Opt.multiCheb,'nColPts')
-        Opt.multiCheb.nColPts = 6;
-    end
-    if ~isfield(Opt.multiCheb,'nSegment')
-        Opt.multiCheb.nSegment = 5;
-    end
-end
 nColPts = Opt.multiCheb.nColPts;  %Number of collocation points in each segment
 nSegment = Opt.multiCheb.nSegment;  %Fraction of the duration spent in each segment
 
@@ -147,7 +115,6 @@ soln.info.nlpTime = nlpTime;
 soln.info.exitFlag = exitFlag;
 soln.info.objVal = objVal;
 
-problem.options = Opt;
 soln.problem = problem;  % Return the fully detailed problem struct
 
 end

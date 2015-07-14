@@ -45,22 +45,6 @@ B = problem.bounds;
 F = problem.func;
 Opt = problem.options;
 
-% Create a default struct for low, medium, and high accuracy:
-switch Opt.defaultAccuracy
-    case 'low'
-        defaultOptions.chebyshev.nColPts = 8;
-        defaultOptions.nlpOpt.TolFun = 1e-3;
-    case 'medium'
-        defaultOptions.chebyshev.nColPts = 15;
-        defaultOptions.nlpOpt.TolFun = 1e-6;
-    case 'high'
-        defaultOptions.chebyshev.nColPts = 30;
-        defaultOptions.nlpOpt.TolFun = 1e-8;
-    otherwise
-        error('Unrecognized default accuracy level')
-end
-Opt = mergeDefaults(Opt, defaultOptions);
-
 nColPts = Opt.chebyshev.nColPts;  %Number of grid points for transcription
 
 % Print out some solver info if desired:
@@ -132,7 +116,6 @@ soln.info.nlpTime = nlpTime;
 soln.info.exitFlag = exitFlag;
 soln.info.objVal = objVal;
 
-problem.options = Opt;
 soln.problem = problem;  % Return the fully detailed problem struct
 
 end

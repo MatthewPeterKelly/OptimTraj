@@ -41,9 +41,9 @@ problem.bounds.state.upp = [ 2*pi;  2*pi;  inf(2,1)];
 
 stepAngle = 0.2;
 problem.bounds.initialState.low = zeros(4,1);  %Stable equilibrium
-problem.bounds.initialState.upp = zeros(4,1);  
+problem.bounds.initialState.upp = zeros(4,1);
 problem.bounds.finalState.low = [pi; pi; 0; 0]; %Inverted balance
-problem.bounds.finalState.upp = [pi; pi; 0; 0];  
+problem.bounds.finalState.upp = [pi; pi; 0; 0];
 
 problem.bounds.control.low = -maxTorque;
 problem.bounds.control.upp = maxTorque;
@@ -72,47 +72,32 @@ problem.guess.control = [0, 0];
 %%%% Run the optimization twice: once on a rough grid with a low tolerance,
 %%%% and then again on a fine grid with a tight tolerance.
 
-% method = 'trapazoid';
-% method = 'hermiteSimpson';
-method = 'chebyshev';
-% method = 'multiCheb';
+% method = 'direct';
+method = 'orthogonal';
+
+% NOTES:
+%   - The 'direct' method takes much longer to run, but it finds a good
+%   solution. The 'orthogonal' method finds a solution much faster, but the
+%   objective function is not as good. Why?
+%
 
 switch method
-    case 'trapazoid'
-         
-        % Low accuracy on first iteration, to get close
-        problem.options(1).method = 'trapazoid';         
+    case 'direct'
+        problem.options(1).method = 'trapazoid';
         problem.options(1).defaultAccuracy = 'low';
-        problem.options(1).nlpOpt.MaxFunEvals = 1e4;
         
-        % Medium accuracy on second iteration to refine solution
-        problem.options(2).method = 'trapazoid';
+        problem.options(2).method = 'hermiteSimpson';
         problem.options(2).defaultAccuracy = 'medium';
         problem.options(2).nlpOpt.MaxFunEvals = 1e5;
+        problem.options(2).nlpOpt.MaxIter = 1e3;
         
-        
-    case 'hermiteSimpson'        
-        problem.options(1).method = 'hermiteSimpson';    
+    case 'orthogonal'
+        problem.options(1).method = 'chebyshev';
         problem.options(1).defaultAccuracy = 'low';
-        problem.options(2).method = 'hermiteSimpson';  
-        problem.options(2).defaultAccuracy = 'medium';     
         
-    case 'chebyshev'
-        problem.options(1).method = 'chebyshev';         
-        problem.options(1).defaultAccuracy = 'low';
-        problem.options(1).nlpOpt.MaxFunEvals = 1e5;
-        problem.options(2).method = 'chebyshev'; 
+        problem.options(2).method = 'chebyshev';
         problem.options(2).defaultAccuracy = 'medium';
-        problem.options(1).nlpOpt.MaxFunEvals = 1e5;
         
-    case 'multiCheb'
-        problem.options(1).method = 'multiCheb';         
-        problem.options(1).defaultAccuracy = 'low';
-        problem.options(2).method = 'multiCheb';
-        problem.options(2).defaultAccuracy = 'medium';        
-        
-    otherwise
-        error('Invalid method!');
 end
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -131,6 +116,9 @@ u = soln(end).interp.control(t);
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                     Plot the solution                                   %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+
+%HINT:  type help animate to figure out how to use the keyboard to interact
+%with the animation (slow motion, pause, jump forward / backward...)
 
 % Animate the results:
 A.plotFunc = @(t,z)( drawAcrobot(t,z,dyn) );

@@ -23,22 +23,6 @@ B = problem.bounds;
 F = problem.func;
 Opt = problem.options;
 
-% Create a default struct for low, medium, and high accuracy:
-switch Opt.defaultAccuracy
-    case 'low'
-        defaultOptions.hermiteSimpson.nSegment = 10;
-        defaultOptions.nlpOpt.TolFun = 1e-3;
-    case 'medium'
-        defaultOptions.hermiteSimpson.nSegment = 20;
-        defaultOptions.nlpOpt.TolFun = 1e-6;
-    case 'high'
-        defaultOptions.hermiteSimpson.nSegment = 40;
-        defaultOptions.nlpOpt.TolFun = 1e-8;
-    otherwise
-        error('Unrecognized default accuracy level')
-end
-Opt = mergeDefaults(Opt, defaultOptions);
-
 % Each segment needs an additional data point in the middle, thus:
 nGrid = 2*Opt.hermiteSimpson.nSegment-1;
 
@@ -104,14 +88,13 @@ soln.info.nlpTime = nlpTime;
 soln.info.exitFlag = exitFlag;
 soln.info.objVal = objVal;
 
-problem.options = Opt;
 soln.problem = problem;  % Return the fully detailed problem struct
 
 end
 
 
 %%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
-%%%% SUB FUNCTIONS %%%%
+%%%%                   SUB FUNCTIONS                                   %%%%
 %%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
 
 

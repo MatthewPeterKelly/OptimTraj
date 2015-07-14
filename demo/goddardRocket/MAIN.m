@@ -1,8 +1,8 @@
-% MAIN.m -- Goddard Rocket 
+% MAIN.m -- Goddard Rocket
 %
 % This script runs a trajectory optimization to find the optimal thrust
 % trajectory for the rocket to reach the maximum altitude. Physical
-% parameters are roughly based on the SpaceX Falcon 9 rocket. 
+% parameters are roughly based on the SpaceX Falcon 9 rocket.
 %
 % Dynamics include variable mass, inverse-square gravity, speed-dependent
 % drag coefficient, height dependent air density.
@@ -11,7 +11,7 @@
 clc; clear;
 
 %%%% Assumptions:
-% SpaceX Falcon 9 rocket: 
+% SpaceX Falcon 9 rocket:
 % http://www.spacex.com/falcon9
 %
 mTotal = 505846;   %(kg)  %Total lift-off mass
@@ -83,34 +83,46 @@ P.func.bndObj = @(t0,x0,tF,xF)( -xF(1)/10000 );  %Maximize final height
 %                  Options and Method selection                           %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
-P.options(1).method = 'trapazoid';
-P.options(1).trapazoid.nGrid = 10;
-P.options(1).nlpOpt = optimset(...
-    'TolFun',1e-3,...
-    'Display','iter',...
-    'MaxFunEvals',1e4);
+method = 'direct';
+% method = 'orthogonal';
 
-P.options(2).method = 'trapazoid';
-P.options(2).trapazoid.nGrid = 25;
-P.options(2).nlpOpt = optimset(...
-    'TolFun',1e-4,...
-    'Display','iter',...
-    'MaxFunEvals',1e4);
-
-P.options(3).method = 'trapazoid';
-P.options(3).trapazoid.nGrid = 35;
-P.options(3).nlpOpt = optimset(...
-    'TolFun',1e-6,...
-    'Display','iter',...
-    'MaxFunEvals',1e5);
+switch method
+    
+    case 'direct'
+        
+        P.options(1).method = 'trapazoid';
+        P.options(1).defaultAccuracy = 'low';
+        
+        P.options(2).method = 'trapazoid';
+        P.options(2).defaultAccuracy = 'medium';
+        P.options(2).nlpOpt.MaxFunEvals = 1e6;
+        P.options(2).nlpOpt.MaxIter = 1e5;
+        
+    case 'orthogonal'
+        
+        P.options(1).method = 'chebyshev';
+        P.options(1).defaultAccuracy = 'low';
+        
+        P.options(2).method = 'chebyshev';
+        P.options(2).defaultAccuracy = 'low';
+        P.options(2).chebyshev.nColPts = 15;
+        
+end
 
 
 %%%% NOTES:
-% 
-% 1) Chebyshev is not a good method for this problem, beause their is a
-% discontinuity in solution of the thrust curve. This will cause ringing in
-% the trajectory: an artifact, rather than a property of the solution. For
-% this reason, a non-global method, such as trapazoid is desirable.
+%
+% 1) Orthogonal collocation is not a good method for this problem, beause there is a
+% discontinuity in solution of the thrust curve. It still sort of works,
+% but will find a sub-optimal answer, or produce ringing.
+%
+% 2) Why does the 'direct' low resolution version finish so quickly and the medium
+% quality one take forever? Hint: Look at the feasibility printout: it is
+% cyclical. If you were to plot the solution as a function of iteration,
+% you would find that occasionally the discontinuity moves, which causes a
+% consistency error in the NLP. Eventually it gets to the "right" answer,
+% although it is pretty boring. I suspect that you could get more
+% interesting behavior with different constants.
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                              Solve!                                     %
