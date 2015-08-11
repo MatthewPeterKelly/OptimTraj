@@ -169,8 +169,9 @@ switch method
         
     case 'rungeKutta'
         problem.options(1).method = 'rungeKutta'; % Select the transcription method
-        problem.options(1).rungeKutta.nSegment = 10;
-        problem.options(1).rungeKutta.nSubStep = 1;
+        problem.options(1).defaultAccuracy = 'low';
+        problem.options(2).method = 'rungeKutta'; % Select the transcription method
+        problem.options(2).defaultAccuracy = 'medium';
         
     otherwise
         error('Invalid method!');

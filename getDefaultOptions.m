@@ -209,13 +209,13 @@ function OPT_rungeKutta = defaults_rungeKutta(accuracy)
 
 switch accuracy
     case 'low'
-        OPT_rungeKutta.nSegment = 15;
+        OPT_rungeKutta.nSegment = 10;
         OPT_rungeKutta.nSubStep = 2;
     case 'medium'
-        OPT_rungeKutta.nSegment = 20;        
+        OPT_rungeKutta.nSegment = 10;        
         OPT_rungeKutta.nSubStep = 3;
     case 'high'
-        OPT_rungeKutta.nSegment = 30;
+        OPT_rungeKutta.nSegment = 20;
         OPT_rungeKutta.nSubStep = 4;
     otherwise
         error('Invalid value for options.defaultAccuracy')
