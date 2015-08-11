@@ -27,3 +27,14 @@ TrajOpt is a matlab library that I developed while working on my PhD at Cornell,
 - path constraints
 - integral cost function
 - boundary cost function
+
+# Contribute:
+This code is still under development, and will be from now until at least May 2016. Please contact me if you have any comments or suggestions, or create a pull request if you would like to add content.
+
+If you are interested in contributing, here are a few possible things to do:
+- Create additional demo problems
+- Identify holes in the documentation
+- Report bugs
+- Implement new methods or features
+
+I plan on keeping an active list of things to do under the *issues* section on GitHub.
