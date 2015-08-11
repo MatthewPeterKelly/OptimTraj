@@ -72,8 +72,9 @@ problem.guess.control = [0, 0];
 %%%% Run the optimization twice: once on a rough grid with a low tolerance,
 %%%% and then again on a fine grid with a tight tolerance.
 
-% method = 'direct';
-method = 'orthogonal';
+method = 'direct';
+% method = 'rungeKutta';
+% method = 'orthogonal';
 
 % NOTES:
 %   - The 'direct' method takes much longer to run, but it finds a good
@@ -91,6 +92,13 @@ switch method
         problem.options(2).nlpOpt.MaxFunEvals = 1e5;
         problem.options(2).nlpOpt.MaxIter = 1e3;
         
+    case 'rungeKutta'
+        problem.options(1).method = 'rungeKutta';
+        problem.options(1).defaultAccuracy = 'low';
+        
+        problem.options(2).method = 'rungeKutta';
+        problem.options(2).defaultAccuracy = 'medium';
+       
     case 'orthogonal'
         problem.options(1).method = 'chebyshev';
         problem.options(1).defaultAccuracy = 'low';

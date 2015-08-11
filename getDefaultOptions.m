@@ -106,6 +106,8 @@ for i=1:length(opt)
             OPT.chebyshev = defaults_chebyshev(opt(i).defaultAccuracy);
         case 'multiCheb'
             OPT.multiCheb = defaults_multiCheb(opt(i).defaultAccuracy);
+        case 'rungeKutta'
+            OPT.rungeKutta = defaults_rungeKutta(opt(i).defaultAccuracy);
         otherwise
             error('Invalid value for options.method');
     end
@@ -196,6 +198,25 @@ switch accuracy
     case 'high'
         OPT_multiCheb.nColPts = 8;
         OPT_multiCheb.nSegment = 12;
+    otherwise
+        error('Invalid value for options.defaultAccuracy')
+end
+
+end
+
+
+function OPT_rungeKutta = defaults_rungeKutta(accuracy)
+
+switch accuracy
+    case 'low'
+        OPT_rungeKutta.nSegment = 10;
+        OPT_rungeKutta.nSubStep = 2;
+    case 'medium'
+        OPT_rungeKutta.nSegment = 10;        
+        OPT_rungeKutta.nSubStep = 3;
+    case 'high'
+        OPT_rungeKutta.nSegment = 20;
+        OPT_rungeKutta.nSubStep = 4;
     otherwise
         error('Invalid value for options.defaultAccuracy')
 end

@@ -1,4 +1,4 @@
-function soln = hermiteSimpson(problem,defaultOptions)
+function soln = hermiteSimpson(problem)
 % soln = hermiteSimpson(problem)
 %
 % This function transcribes a trajectory optimization problem using the

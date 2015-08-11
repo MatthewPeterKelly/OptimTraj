@@ -74,9 +74,10 @@ problem.guess.control = [0, 0];
 %   almost all defaults for you if they are ommitted.
 
 % method = 'trapazoid';
-method = 'hermiteSimpson';
+% method = 'hermiteSimpson';
 % method = 'chebyshev';
 % method = 'multiCheb';
+method = 'rungeKutta';
 
 switch method
     case 'trapazoid'
@@ -166,6 +167,11 @@ switch method
         problem.options(2).multiCheb.nColPts = 9;  %method-specific options
         problem.options(2).multiCheb.nSegment = 4;  %method-specific options
         
+    case 'rungeKutta'
+        problem.options(1).method = 'rungeKutta'; % Select the transcription method
+        problem.options(1).defaultAccuracy = 'low';
+        problem.options(2).method = 'rungeKutta'; % Select the transcription method
+        problem.options(2).defaultAccuracy = 'medium';
         
     otherwise
         error('Invalid method!');
@@ -175,6 +181,7 @@ end
 %                           Solve!                                        %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
+%%%%% THE KEY LINE:
 soln = trajOpt(problem);
 
 % Transcription Grid points:
