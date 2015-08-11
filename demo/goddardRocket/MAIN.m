@@ -83,12 +83,13 @@ P.func.bndObj = @(t0,x0,tF,xF)( -xF(1)/10000 );  %Maximize final height
 %                  Options and Method selection                           %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
-method = 'direct';
-% method = 'orthogonal';
+method = 'trapazoid';
+% method = 'rungeKutta';
+% method = 'chebyshev';
 
 switch method
     
-    case 'direct'
+    case 'trapazoid'
         
         P.options(1).method = 'trapazoid';
         P.options(1).defaultAccuracy = 'low';
@@ -98,7 +99,14 @@ switch method
         P.options(2).nlpOpt.MaxFunEvals = 1e6;
         P.options(2).nlpOpt.MaxIter = 1e5;
         
-    case 'orthogonal'
+    case 'rungeKutta'
+        P.options(1).method = 'rungeKutta';
+        P.options(1).defaultAccuracy = 'low';
+        
+        P.options(2).method = 'rungeKutta';
+        P.options(2).defaultAccuracy = 'medium';
+        
+    case 'chebyshev'
         
         P.options(1).method = 'chebyshev';
         P.options(1).defaultAccuracy = 'low';
@@ -112,11 +120,11 @@ end
 
 %%%% NOTES:
 %
-% 1) Orthogonal collocation is not a good method for this problem, beause there is a
+% 1) Orthogonal collocation (chebyshev) is not a good method for this problem, beause there is a
 % discontinuity in solution of the thrust curve. It still sort of works,
 % but will find a sub-optimal answer, or produce ringing.
 %
-% 2) Why does the 'direct' low resolution version finish so quickly and the medium
+% 2) Why does the 'trapazoid' low resolution version finish so quickly and the medium
 % quality one take forever? Hint: Look at the feasibility printout: it is
 % cyclical. If you were to plot the solution as a function of iteration,
 % you would find that occasionally the discontinuity moves, which causes a

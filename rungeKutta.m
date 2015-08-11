@@ -188,13 +188,16 @@ function cost = myObjective(decVars, pack,dynamics, pathObj, bndObj)
 % INPUTS:
 %   decVars = column vector of decision variables
 %   pack = details about how to convert decision variables into t,x, and u
-%   all = user-defined integral objective function
-%   endObj = user-defined end-point objective function
+%   dynamics = user-defined dynamics function handle
+%   pathObj = user-defined path-objective function
+%   bndObj = user-defined boundary objective function
 %
 % OUTPUTS:
-%   cost = scale cost for this set of decision variables
+%   cost = scalar cost for this set of decision variables
+% 
 %
 
+% All of the real work happens inside this function:
 [t,x,~,~,pathCost] = simulateSystem(decVars, pack, dynamics, pathObj);
 
 % Compute the cost at the boundaries of the trajectory
@@ -219,10 +222,22 @@ function [c, ceq] = myConstraint(decVars, pack, dynamics, pathObj, pathCst, bndC
 % This function unpacks the decision variables, computes the defects along
 % the trajectory, and then evaluates the user-defined constraint functions.
 %
-% Note: constraints are only satisfied on the boundaries of the step, not
-% on the intermediate states and controls (for example the mid-point of the
-% step).
+% INPUTS:
+%   decVars = column vector of decision variables
+%   pack = details about how to convert decision variables into t,x, and u
+%   dynamics = user-defined dynamics function handle
+%   pathObj = user-defined path-objective function
+%   pathCst = user-defined path-constraint function
+%   bndCst = user-defined boundary constraint function
 %
+% OUTPUTS:
+%   c = non-linear inequality constraint
+%   ceq = non-linear equatlity cosntraint
+%
+% NOTE:
+%   - path constraints are  satisfied at the start and end of each sub-step
+%
+
 
 [t,x,u,defects] = simulateSystem(decVars, pack, dynamics, pathObj);
 
@@ -238,11 +253,43 @@ end
 
 
 function [t,x,u,defects,pathCost] = simulateSystem(decVars, pack, dynamics, pathObj)
+%
+% This function does the real work of the transcription method. It
+% simulates the system forward in time across each segment of the
+% trajectory, computes the integral of the cost function, and then matches
+% up the defects between the end of each segment and the start of the next.
+%
+% INPUTS:
+%   decVars = column vector of decision variables
+%   pack = details about how to convert decision variables into t,x, and u
+%   dynamics = user-defined dynamics function handle
+%   pathObj = user-defined path-objective function
+%
+% OUTPUTS:
+%   t = [1 x nGrid] = time vector for the edges of the sub-step grid
+%   x = [nState x nGrid] = state vector
+%   u = [nControl x nGrid] = control vector
+%   defects = [nState x nSegment] = defect matrix
+%   pathCost = scalar cost for the path integral
+%   
+% NOTES:
+%   - nGrid = nSegment*nSubStep+1
+%   - This function is usually called twice for each combination of
+%   decision variables: once by the objective function and once by the
+%   constraint function. To keep the code fast I cache the old values and
+%   only recompute when the inputs change.
+%   
 
+
+%%%% CODE OPTIMIZATION %%%%
+%
+% Prevents the same exact code from being called twice by caching the
+% solution and reusing it when appropriate.
+%
 global RUNGE_KUTTA_t RUNGE_KUTTA_x RUNGE_KUTTA_u
 global RUNGE_KUTTA_defects RUNGE_KUTTA_pathCost
 global RUNGE_KUTTA_decVars
-
+%
 usePreviousValues = false;
 if ~isempty(RUNGE_KUTTA_decVars)
     if length(RUNGE_KUTTA_decVars) == length(decVars)
@@ -251,7 +298,7 @@ if ~isempty(RUNGE_KUTTA_decVars)
         end
     end
 end
-
+%
 if usePreviousValues
     t = RUNGE_KUTTA_t;
     x = RUNGE_KUTTA_x;
@@ -259,7 +306,11 @@ if usePreviousValues
     defects = RUNGE_KUTTA_defects;
     pathCost = RUNGE_KUTTA_pathCost;
 else
-    
+%
+%
+%%%% END CODE OPTIMIZATION %%%%
+
+
     [tSpan, state, control] = unPackDecVar(decVars,pack);
     
     nState = pack.nState;
@@ -306,6 +357,7 @@ else
     
     pathCost = sum(c);  %Sum up the integral cost over each segment
     
+    %%%% Cache results to use on the next call to this function.
     RUNGE_KUTTA_t = t;
     RUNGE_KUTTA_x = x;
     RUNGE_KUTTA_u = u;
