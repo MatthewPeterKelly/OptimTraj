@@ -13,6 +13,7 @@ p = getPhysicalParameters();
 % Initial conditions:
 q0 = [-0.25; 0.2; -0.1; -0.35; -0.55];
 dq0 = [0.2; -0.15; 0.05; 0.4; 0.45];
+
 z0 = [q0;dq0];
 
 tSpan = [0,0.5];
@@ -40,4 +41,4 @@ Anim.verbose = true;
 Anim.speed = 0.25;  %Playback at half-speed
 animate(t,q,Anim);
 
-% Plot the 
+
