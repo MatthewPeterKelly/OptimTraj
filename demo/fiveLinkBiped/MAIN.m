@@ -18,7 +18,7 @@ problem.func.dynamics =  @(t,x,u)( dynamics(x,u,param) );
 
 problem.func.pathObj = @(t,x,u)( sum(u.^2, 1) );
 
-problem.func.bndCst = @(t0,x0,tF,xF)( periodicGait(xF,x0,param) );
+problem.func.bndCst = @(t0,x0,tF,xF)( stepConstraint(xF,x0,param) );
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%

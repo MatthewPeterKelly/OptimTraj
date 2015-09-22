@@ -2,7 +2,7 @@
 %
 % This script derives the equations of motion, as well as some other useful
 % equations (kinematics, contact forces, ...) for the five-link biped
-% model. 
+% model.
 %
 %
 % Nomenclature:
@@ -42,7 +42,7 @@ syms u3 'real' % torque acting on torso from the stance leg femur
 syms u4 'real' % torque acting on swing leg femur from torso
 syms u5 'real' % torque acting on swing leg tibia from swing leg femur
 
-%%%% Physical paramters 
+%%%% Physical paramters
 syms m1 m2 m3 m4 m5 'real' % Link masses
 syms c1 c2 c3 c4 c5 'real' % center of mass distance from joint
 syms l1 l2 l3 l4 l5 'real' % link length
@@ -75,7 +75,7 @@ P5 = P4 + l5*e5;  %swing foot
 G1 = P1 - c1*e1;  % CoM stance leg tibia
 G2 = P2 - c2*e2;  % CoM stance leg febur
 G3 = P3 - c3*e3;  % CoM torso
-G4 = P2 + c4*e4;  % CoM swing leg femur 
+G4 = P2 + c4*e4;  % CoM swing leg femur
 G5 = P4 + c5*e5;  % CoM swing leg tibia
 G = (m1*G1 + m2*G2 + m3*G3 + m4*G4 + m5*G5)/(m1+m2+m3+m4+m5);  %Center of mass for entire robot
 
@@ -85,7 +85,7 @@ G = (m1*G1 + m2*G2 + m3*G3 + m4*G4 + m5*G5)/(m1+m2+m3+m4+m5);  %Center of mass f
 %                             Derivatives                                 %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
-q = [q1;q2;q3;q4;q5];   
+q = [q1;q2;q3;q4;q5];
 dq = [dq1;dq2;dq3;dq4;dq5];
 ddq = [ddq1;ddq2;ddq3;ddq4;ddq5];
 
@@ -296,24 +296,16 @@ eqnHs = [...
 [MM,ff] = equationsToMatrix(eqnHs,dq);
 
 
-
-
-
-
-
-
-
-
-
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                       Write Dynamics file                               %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
 % Resort to some Matlab trickery here to get vectorized dynamics for
 % trajectory optimization:
-Idx = find(MassMatrix);  
+Idx = find(MassMatrix);
 MassMatrixVec = MassMatrix(Idx);  % Column vector of non-zero elements
 
+% Single Stance
 matlabFunction(MassMatrixVec, Idx, GenForce,...
     'file','autoGen_dynSs.m',...
     'vars',{...
@@ -327,6 +319,7 @@ matlabFunction(MassMatrixVec, Idx, GenForce,...
     'g'},...
     'outputs',{'MM','Idx','F'});
 
+% Heel-strike
 matlabFunction(MM,ff,...
     'file','autoGen_dynHs.m',...
     'vars',{...
@@ -377,25 +370,36 @@ matlabFunction(KineticEnergy, PotentialEnergy,...
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
 P = [P1; P2; P3; P4; P5];
-G = [G1; G2; G3; G4; G5];
-matlabFunction(P,G,'file','autoGen_getPoints.m',...
+Gvec = [G1; G2; G3; G4; G5];
+dGvec = [dG1; dG2; dG3; dG4; dG5];
+
+% Used for plotting and animation
+matlabFunction(P,Gvec,'file','autoGen_getPoints.m',...
     'vars',{...
     'q1','q2','q3','q4','q5',...
     'l1','l2','l3','l4','l5',...
     'c1','c2','c3','c4','c5'},...
-    'outputs',{'P','G'});
+    'outputs',{'P','Gvec'});
 
-
-dG = [dG1; dG2; dG3; dG4; dG5];
-matlabFunction(dG,'file','autoGen_comVel.m',...
+% Used for heel-strike - computes the center of mass velocities of each
+% link of the robot.
+matlabFunction(dGvec,'file','autoGen_comVel.m',...
     'vars',{...
     'q1','q2','q3','q4','q5',...
     'dq1','dq2','dq3','dq4','dq5',...
     'l1','l2','l3','l4',...
     'c1','c2','c3','c4','c5'},...
-    'outputs',{'dG'});
+    'outputs',{'dGvec'});
 
-
+% Used for computing the step constraint - computes the center of mass
+% position of the entire robot (rather than for each link).
+matlabFunction(G,'file','autoGen_comPos.m',...
+    'vars',{...
+    'q1','q2','q3','q4','q5',...
+    'm1','m2','m3','m4','m5',...
+    'l1','l2','l3','l4',...
+    'c1','c2','c3','c4','c5'},...
+    'outputs',{'G'});
 
 
 
