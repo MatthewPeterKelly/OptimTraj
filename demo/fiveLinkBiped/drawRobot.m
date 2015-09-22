@@ -29,7 +29,7 @@ G5 = G(9:10,1);
 
 % Heuristics:
 L = (p.l1 + p.l2);  % Maximum extended leg length
-xBnd = L*[-1.5,1.5];
+xBnd = L*[-1.2,1.2];
 yBnd = [-0.2*L, L + p.l3];
 
 % Colors:

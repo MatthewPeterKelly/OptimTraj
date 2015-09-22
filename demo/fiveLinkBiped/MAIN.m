@@ -8,7 +8,15 @@
 
 clc; clear;
 
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+%                       Set up parameters and options                     %
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 param = getPhysicalParameters();
+config.param = param;  
+
+config.stepLength = 0.4;
+config.stepTime = 0.6;
+config.slope = 0*(pi/180);  %Walking slope
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                       Set up function handles                           %
@@ -18,17 +26,16 @@ problem.func.dynamics =  @(t,x,u)( dynamics(x,u,param) );
 
 problem.func.pathObj = @(t,x,u)( sum(u.^2, 1) );
 
-problem.func.bndCst = @(t0,x0,tF,xF)( stepConstraint(xF,x0,param) );
+problem.func.bndCst = @(t0,x0,tF,xF)( stepConstraint(t0,x0,tF,xF,config) );
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %               Set up bounds on time, state, and control                 %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
-t0 = 0;  tF = 0.8;
-problem.bounds.initialTime.low = t0;
-problem.bounds.initialTime.upp = t0;
-problem.bounds.finalTime.low = tF;
-problem.bounds.finalTime.upp = tF;
+problem.bounds.initialTime.low = 0;
+problem.bounds.initialTime.upp = 0;
+problem.bounds.finalTime.low = config.stepTime;
+problem.bounds.finalTime.upp = config.stepTime;
 
 % State: (absolute reference frames)
 %   1 = stance leg tibia angle
@@ -52,6 +59,10 @@ uMax = 100;  %Nm
 problem.bounds.control.low = -uMax*ones(5,1);
 problem.bounds.control.upp = uMax*ones(5,1);
 
+% Disable the stance ankle motor:
+problem.bounds.control.low(1) = 0;
+problem.bounds.control.upp(1) = 0;
+
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %              Create an initial guess for the trajectory                 %
@@ -59,7 +70,7 @@ problem.bounds.control.upp = uMax*ones(5,1);
 
 % For now, just assume a linear trajectory between boundary values
 
-problem.guess.time = [t0, tF];
+problem.guess.time = [0, config.stepTime];
 
 q0 = [...
     -0.3; % stance leg tibia angle
@@ -69,7 +80,7 @@ q0 = [...
     -0.6]; % swing leg tibia angle
 qF = heelStrikeMap(q0,zeros(5,1),param);
 
-dq0 = (qF-q0)/(tF-t0);
+dq0 = (qF-q0)/config.stepTime;
 dqF = dq0;
 
 problem.guess.state = [q0, qF; dq0, dqF];
@@ -174,3 +185,14 @@ u = soln(end).grid.control;
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                     Plot the solution                                   %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+
+Anim.figNum = 2;
+Anim.speed = 0.25;
+Anim.plotFunc = @(t,q)( drawRobot(q,param) );
+Anim.verbose = true;
+animate(t,q,Anim);
+
+
+
+
+
