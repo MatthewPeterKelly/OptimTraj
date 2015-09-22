@@ -39,10 +39,12 @@ colorSwing = [60,60,200]/255;
 colorTorso = [160, 80, 160]/255;
 
 % Set up the figure
-clf; hold on;
+hold off;
 
 % Plot the ground:
 plot(xBnd,[0,0],'LineWidth',6,'Color',colorGround);
+
+hold on;
 
 % Plot the links:
 plot(x(1:3),y(1:3),'LineWidth',4,'Color',colorStance);
