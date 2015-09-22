@@ -314,18 +314,28 @@ else
     [tSpan, state, control] = unPackDecVar(decVars,pack);
     
     nState = pack.nState;
-    nControl = pack.nControl;
     nSegment = pack.nSegment;
     nSubStep = pack.nSubStep;
+    
+    % NOTES:
+    %   The following bit of code is a bit confusing, mostly due to the
+    %   need for vectorization to make things run at a reasonable speed in
+    %   Matlab. Part of the confusion comes because the decision variables
+    %   include the state at the beginning of each segment, but the control
+    %   at the beginning and middle of each substep - thus there are more
+    %   control grid-points than state grid points. The calculations are
+    %   vectorized over segments, but not sub-steps, since the result of
+    %   one sub-step is required for the next.
     
     % time, state, and control at the ends of each substep
     nTime = 1+nSegment*nSubStep;
     t = linspace(tSpan(1), tSpan(2), nTime);
     x = zeros(nState, nTime);
-    u = control(nControl,1:2:end);  %Omit the control at the midpoint
+    u = control(:,1:2:end); % Control a the endpoints of each segment
+    uMid = control(:,2:2:end);  %Control at the mid-points of each segment
     c = zeros(1, nTime-1);  %Integral cost for each segment
     dt = (t(end)-t(1))/(nTime-1);
-    
+       
     idx = 1:nSubStep:(nTime-1);   %Indicies for the start of each segment
     x(:,[idx,end]) = state;   %Fill in the states that we already know
     for iSubStep = 1:nSubStep
@@ -333,13 +343,11 @@ else
         
         t0 = t(idx);
         x0 = x(:,idx);
-        uLow = u(:,idx);
-        uMid = control(:,2*idx);
-        uUpp = u(:,idx+1);
-        k0 = combinedDynamics(t0,        x0,                         uLow, dynamics,pathObj);
-        k1 = combinedDynamics(t0+0.5*dt, x0 + 0.5*dt*k0(1:nState,:), uMid, dynamics,pathObj);
-        k2 = combinedDynamics(t0+0.5*dt, x0 + 0.5*dt*k1(1:nState,:), uMid, dynamics,pathObj);
-        k3 = combinedDynamics(t0+dt,     x0 +     dt*k2(1:nState,:), uUpp, dynamics,pathObj);
+        
+        k0 = combinedDynamics(t0,        x0,                         u(:,idx), dynamics,pathObj);
+        k1 = combinedDynamics(t0+0.5*dt, x0 + 0.5*dt*k0(1:nState,:), uMid(:,idx), dynamics,pathObj);
+        k2 = combinedDynamics(t0+0.5*dt, x0 + 0.5*dt*k1(1:nState,:), uMid(:,idx), dynamics,pathObj);
+        k3 = combinedDynamics(t0+dt,     x0 +     dt*k2(1:nState,:), u(:,idx+1), dynamics,pathObj);
         z = (dt/6)*(k0 + 2*k1 + 2*k2 + k3);  %Change over the sub-step
         xNext = x0 + z(1:nState,:);  %Next state
         c(idx) = z(end,:);  %Integral of the cost function over this step
@@ -349,7 +357,7 @@ else
             defects = xNext - x(:,idx+1);
         else
             % Store the state for next step in time
-            idx = idx+1;
+            idx = idx+1;   %  <-- This is important!!
             x(:,idx) = xNext;
         end
         

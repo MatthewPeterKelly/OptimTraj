@@ -84,7 +84,7 @@ switch method
         
         % First iteration: get a more reasonable guess
         problem.options(1).nlpOpt = optimset(...
-            'Display','iter',...   %{'iter','final','off'}
+            'Display','iter',...   % {'iter','final','off'}
             'TolFun',1e-3,...
             'MaxFunEvals',1e4);   %options for fmincon
         problem.options(1).verbose = 3; % How much to print out?
@@ -94,7 +94,7 @@ switch method
         
         % Second iteration: refine guess to get precise soln
         problem.options(2).nlpOpt = optimset(...
-            'Display','iter',...   %{'iter','final','off'}
+            'Display','iter',...   % {'iter','final','off'}
             'TolFun',1e-6,...
             'MaxFunEvals',5e4);   %options for fmincon
         problem.options(2).verbose = 3; % How much to print out?
@@ -105,7 +105,7 @@ switch method
         
         % First iteration: get a more reasonable guess
         problem.options(1).nlpOpt = optimset(...
-            'Display','iter',...   %{'iter','final','off'}
+            'Display','iter',...   % {'iter','final','off'}
             'TolFun',1e-3,...
             'MaxFunEvals',1e4);   %options for fmincon
         problem.options(1).verbose = 3; % How much to print out?
@@ -115,7 +115,7 @@ switch method
         
         % Second iteration: refine guess to get precise soln
         problem.options(2).nlpOpt = optimset(...
-            'Display','iter',...   %{'iter','final','off'}
+            'Display','iter',...   % {'iter','final','off'}
             'TolFun',1e-6,...
             'MaxFunEvals',5e4);   %options for fmincon
         problem.options(2).verbose = 3; % How much to print out?
@@ -127,7 +127,7 @@ switch method
         
         % First iteration: get a more reasonable guess
         problem.options(1).nlpOpt = optimset(...
-            'Display','iter',...   %{'iter','final','off'}
+            'Display','iter',...   % {'iter','final','off'}
             'TolFun',1e-3,...
             'MaxFunEvals',1e4);   %options for fmincon
         problem.options(1).verbose = 3; % How much to print out?
@@ -137,7 +137,7 @@ switch method
         
         % Second iteration: refine guess to get precise soln
         problem.options(2).nlpOpt = optimset(...
-            'Display','iter',...   %{'iter','final','off'}
+            'Display','iter',...   % {'iter','final','off'}
             'TolFun',1e-8,...
             'MaxFunEvals',5e4);   %options for fmincon
         problem.options(2).verbose = 3; % How much to print out?
@@ -148,7 +148,7 @@ switch method
         
         % First iteration: get a more reasonable guess
         problem.options(1).nlpOpt = optimset(...
-            'Display','iter',...   %{'iter','final','off'}
+            'Display','iter',...   % {'iter','final','off'}
             'TolFun',1e-3,...
             'MaxFunEvals',1e4);   %options for fmincon
         problem.options(1).verbose = 3; % How much to print out?
@@ -159,7 +159,7 @@ switch method
         
         % Second iteration: refine guess to get precise soln
         problem.options(2).nlpOpt = optimset(...
-            'Display','iter',...   %{'iter','final','off'}
+            'Display','iter',...   % {'iter','final','off'}
             'TolFun',1e-8,...
             'MaxFunEvals',5e4);   %options for fmincon
         problem.options(2).verbose = 3; % How much to print out?

@@ -10,10 +10,15 @@ clc; clear;
 p = getPhysicalParameters();
 
 % Pick a test configuration
-q = [-0.25; 0.2; -0.1; -0.35; -0.55];
+q = [...
+    -0.3; % stance leg tibia angle
+    0.7; % stance leg femur angle
+    0.0; % torso angle
+    -0.5; % swing leg femur angle
+    -0.6]; % swing leg tibia angle
 
 % Draw the robot to check configuration:
-figure(1); 
+figure(1); clf;
 drawRobot(q,p);
 
 
