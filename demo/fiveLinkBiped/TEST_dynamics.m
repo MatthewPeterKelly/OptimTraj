@@ -20,8 +20,8 @@ tSpan = [0,0.5];
 dynFun = @(t,z)( dynamics(z,zeros(5,1),p) );
 
 options = odeset(...
-    'AbsTol',1e-8,...
-    'RelTol',1e-8);
+    'AbsTol',1e-10,...
+    'RelTol',1e-10);
 
 % Simulation with ode45:
 sol = ode45(dynFun,tSpan,z0,options);
@@ -40,5 +40,8 @@ Anim.plotFunc = @(t,q)( drawRobot(q,p) );
 Anim.verbose = true;
 Anim.speed = 0.25;  %Playback at half-speed
 animate(t,q,Anim);
+
+% Check energy conservation:
+sprintf('Energy variation: %4.4g',std(KE+PE))
 
 
