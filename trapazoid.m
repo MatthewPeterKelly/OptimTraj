@@ -26,21 +26,21 @@ function soln = trapazoid(problem)
 %
 %         [dx, dxGrad] = dynamics(t,x,u)
 %                 dx = [nState, nTime] = dx/dt = derivative of state wrt time
-%                 dxGrad = [nState, nTime, 1+nx+nu]
+%                 dxGrad = [nState, 1+nx+nu, nTime]
 %
 %         [dObj, dObjGrad] = pathObj(t,x,u)
 %                 dObj = [1, nTime] = integrand from the cost function
-%                 dObjGrad = [1, nTime, 1+nx+nu]
-%
-%         [obj, objGrad] = bndObj(t0,x0,tF,xF)
-%                 obj = scalar = objective function for boundry points
-%                 objGrad = [1, 1+nx+1+nx]
+%                 dObjGrad = [1+nx+nu, nTime]
 %
 %         [c, ceq, cGrad, ceqGrad] = pathCst(t,x,u)
 %                 c = [nCst, nTime] = column vector of inequality constraints  ( c <= 0 )
 %                 ceq = [nCstEq, nTime] = column vector of equality constraints ( c == 0 )
-%                 cGrad = [nCst, nTime, 1+nx+nu];
-%                 ceqGrad = [nCstEq, nTime, 1+nx+nu];
+%                 cGrad = [nCst, 1+nx+nu, nTime];
+%                 ceqGrad = [nCstEq, 1+nx+nu, nTime];
+%
+%         [obj, objGrad] = bndObj(t0,x0,tF,xF)
+%                 obj = scalar = objective function for boundry points
+%                 objGrad = [1+nx+1+nx, 1]
 %
 %         [c, ceq, cGrad, ceqGrad] = bndCst(t0,x0,tF,xF)
 %                 c = [nCst,1] = column vector of inequality constraints  ( c <= 0 )
@@ -327,34 +327,38 @@ end
 
 
 
-function [tGrad, xGrad, uGrad] = getDecVarGrad(t,x,u,tIdx,xIdx,uIdx,nz)
+function [tGrad, xGrad, uGrad] = getDecVarGrad(t,x,u,tIdx,xIdx,uIdx,nDecVar)
 %
 % Computes the gradients of t,x,u with respect to the original decision
 % variable vector.
 %
+% tGrad = [nDecVar,1,nTime]
+% xGrad = [nDecVar,nx,nTime]
+% uGrad = [nDecVar,nu,nTime]
+%
 
-nt = size(t,2);
-nx = size(x,1);
-nu = size(u,1);
+nTime = size(t,2);
+nState = size(x,1);
+nControl = size(u,1);
 
-tGrad = zeros(nt,1, nz);
-xGrad = zeros(nt,nx,nz);
-uGrad = zeros(nt,nu,nz);
+tGrad = zeros(nDecVar,1, nTime);
+xGrad = zeros(nDecVar,nState,nTime);
+uGrad = zeros(nDecVar,nControl,nTime);
 
 %%%% Compute gradients of time:
 % alpha = (0..N-1)/(N-1)
 % t = alpha*tUpp + (1-alpha)*tLow
-alpha = (0:(nt-1))/(nt-1);
-tGrad(:,1,tIdx(1)) = 1-alpha;
-tGrad(:,1,tIdx(2)) = alpha;
+alpha = (0:(nTime-1))/(nTime-1);
+tGrad(tIdx(1),1,:) = 1-alpha;
+tGrad(tIdx(2),1,:) = alpha;
 
 %%%% Compute gradients of state and control:
-for it=1:nt
-    for is=1:nx
-        xGrad(it,is,xIdx(is,it)) = 1;
+for iTime=1:nTime
+    for iState=1:nState
+        xGrad(xIdx(iState,iTime),iState,iTime) = 1;
     end
-    for is=1:nu
-        uGrad(it,is,uIdx(is,it)) = 1;
+    for iControl=1:nControl
+        uGrad(uIdx(iControl,iTime),iControl,iTime) = 1;
     end
 end
 
@@ -364,44 +368,28 @@ end
 %%%%%%%%%%%%%%%%%
 
 
-function [fun, funGrad] = extractGradients(t,x,u,tGrad, xGrad, uGrad,userFun)
+function grad = extractGradients(stateGrad, gradRaw)
 %
-% fun
-%   -output
-%   -time
+% This function converts the raw gradients from the user function into
+% gradients with respect to the decision variables.
 %
-% funGrad:
-%   -output
-%   -time
-%   -decVar
+% INPUTS:
+%   stateGrad = [nDecVar,nInput,nTime]
+%   gradRaw = [nOutput,nInput,nTime]
 %
-% funGradRaw:
-%   -output
-%   -time
-%   -input [t;x;u]
-%
-% Goal: convert funGradRaw -> funGrad 
-%
-% stateGrad:
-%   -time
-%   -input
-%   -decVar
+% OUTPUTS:
+%   grad = [nOutput,nTime,nDecVar]
 %
 
+nDecVar = size(stateGrad,1);
+[nOutput, ~, nTime] = size(gradRaw);
 
-[fun, funGradRaw] = userFun(t,x,u);
-no = size(fun,1);  %Number of outputs
+grad = zeros(nOutput,nTime,nDecVar);
 
-stateGrad = cat(2,tGrad,xGrad,uGrad);
-
-[nt,~,nz] = size(stateGrad);
-funGrad = zeros(no,nt,nz);
-
-stateGrad = permute(stateGrad,[1,3,2]);
-for it=1:nt
-    for iz=1:nz
-        for io=1:no
-            funGrad(io,it,iz) = sum(funGradRaw(io,it,:).*stateGrad(it,iz,:));
+for iTime=1:nTime
+    for iDecVar=1:nDecVar
+        for iOutput=1:nOutput
+            grad(iOutput,iTime,iDecVar) = sum(gradRaw(iOutput,:,iTime).*stateGrad(iDecVar,:,iTime));
         end
     end
 end
@@ -428,49 +416,53 @@ function [cost, costGrad] = myObjGrad(z,pack,pathObj,bndObj)
 %
 
 % Dummy vector for tracking indicies:
-nz = length(z);
-index = 1:nz;
+nDecVar = length(z);
+index = 1:nDecVar;
 [tIdx,xIdx,uIdx] = unPackDecVar(index,pack);  tIdx = tIdx([1,end]);
 
 %Unpack the decision variables:
 [t,x,u] = unPackDecVar(z,pack);
 
 % Time step for integration:
-[dt, dtGrad] = getTimeStepGrad(t,tIdx,nz);
-nt = length(t);
-nx = size(x,1);
-nu = size(u,1);
+[dt, dtGrad] = getTimeStepGrad(t,tIdx,nDecVar);
+nTime = length(t);
+nState = size(x,1);
+nControl = size(u,1);
 
 % Compute the cost integral along the trajectory
 if isempty(pathObj)
     integralCost = 0;
-    integralCostGrad = zeros(nx+nu,1);
+    integralCostGrad = zeros(nState+nControl,1);
 else
     
     
     %Compute gradients of the decision variables:
-    [tGrad, xGrad, uGrad] = getDecVarGrad(t,x,u,tIdx,xIdx,uIdx,nz);
+    [tGrad, xGrad, uGrad] = getDecVarGrad(t,x,u,tIdx,xIdx,uIdx,nDecVar);
     
     % integration weights:
     weights = ones(pack.nTime,1); weights([1,end]) = 0.5;
     
     % Objective function integrand and gradients:
-    [dCost, dCostGrad] = extractGradients(t,x,u,tGrad, xGrad, uGrad,pathObj);
+    stateGrad = cat(2,tGrad,xGrad,uGrad);
+    [obj, objGradRaw] = pathObj(t,x,u);
+    nInput = size(objGradRaw,1);
+    objGradRaw = reshape(objGradRaw,1,nInput,nTime);
+    objGrad = extractGradients(stateGrad, objGradRaw);
     
     % integral objective function
-    integralCost = dt*dCost*weights;
+    integralCost = dt*obj*weights;
     
     % Gradient of integral objective function
-    dCostGrad = reshape(dCostGrad,nt,nz);
+    objGrad = reshape(objGrad,nTime,nDecVar);
     integralCostGrad = ...
-        dtGrad*(dCost*weights) + ...
-        dt*sum(dCostGrad.*(weights*ones(1,nz)),1);
+        dtGrad*(obj*weights) + ...
+        dt*sum(objGrad.*(weights*ones(1,nDecVar)),1);
 end
 
 % Compute the cost at the boundaries of the trajectory
 if isempty(bndObj)
     bndCost = 0;
-    bndCostGrad = zeros(1,nz);
+    bndCostGrad = zeros(1,nDecVar);
 else
     
     error('Analytic gradients for the boundary objective are not yet implemented!');
@@ -523,12 +515,14 @@ index = 1:nz;
 [tGrad, xGrad, uGrad] = getDecVarGrad(t,x,u,tIdx,xIdx,uIdx,nz);
 
 %%%% Compute defects along the trajectory:
-[dx, dxGrad] = extractGradients(t,x,u,tGrad, xGrad, uGrad,dynFun);
+stateGrad = cat(2,tGrad,xGrad,uGrad);
+[dx, dxGradRaw] = dynFun(t,x,u);
+dxGrad = extractGradients(stateGrad, dxGradRaw);
+xGrad = permute(xGrad,[2,3,1]);
 
 xLow = x(:,1:end-1);
 xUpp = x(:,2:end);
 
-xGrad = permute(xGrad,[2,1,3]);
 xLowGrad = xGrad(:,1:end-1,:);
 xUppGrad = xGrad(:,2:end,:);
 
@@ -554,7 +548,7 @@ defectsGrad = xUppGrad - xLowGrad ...
     - 0.5*dtGradFull.*dxGradFull...
     - 0.5*dt*(dxLowGrad+dxUppGrad);
 
-%%%% Call user-defined constraints and pack up:
+%%%% Reshape defect into constraint vector for fmincon
 nDefects = numel(defects);
 ceq_dyn = reshape(defects,nDefects,1);
 ceq_dynGrad = zeros(nDefects,nz);
@@ -590,7 +584,6 @@ end
 c = [c_path;c_bnd];
 ceq = [ceq_dyn; ceq_path; ceq_bnd];
 
-%%%% TODO:
 cGrad = [c_pathGrad;c_bndGrad];
 ceqGrad = [ceq_dynGrad; ceq_pathGrad; ceq_bndGrad]';  
 

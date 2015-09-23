@@ -1,7 +1,9 @@
 % Derive Equations - Pendulum
 %
 % This script derives the equations of motion for a simple pendulum, as
-% well as the gradients of the dynamics.
+% well as the gradients of the dynamics. There is a sine-wave forcing
+% function, as well as a crazy cost function for the purposes of checking
+% gradients.
 %
 
 clc; clear;
@@ -13,7 +15,7 @@ syms m g l c 'real'
 
 %%%% Dynamics
 
-sumTorques = u - m*g*l*sin(q) - c*dq;
+sumTorques = u - m*g*l*sin(q) - c*dq + sin(t);  %Add forcing function
 sumInertia = m*l*l*ddq;
 ddqSoln = solve(sumTorques-sumInertia,ddq);
 

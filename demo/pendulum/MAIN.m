@@ -45,7 +45,7 @@ problem.options.nlpOpt = optimset(...
     'DerivativeCheck','on');
 
 problem.options.method = 'trapazoid';
-problem.options.defaultAccuracy = 'high';
+problem.options.defaultAccuracy = 'low';
 
 % Solve the problem
 soln = trajOpt(problem);
