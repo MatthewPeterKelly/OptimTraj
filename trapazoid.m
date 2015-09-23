@@ -106,6 +106,10 @@ else
     P.nonlcon = @(z)( ...
         myConstraint(z, pack, F.dynamics, F.pathCst, F.bndCst) ); %Numerical gradients
 end
+if flagGradCst || flagGradObj
+    computeReMapVariables(length(zGuess),pack);
+end
+
 P.x0 = zGuess;
 P.lb = zLow;
 P.ub = zUpp;
@@ -307,7 +311,7 @@ end
 
 
 
-function [dt, dtGrad] = getTimeStepGrad(t,tIdx,nz)
+function [dt, dtGrad] = getTimeStepGrad(t)
 %
 % Computes the time step and its gradient
 %
@@ -315,50 +319,49 @@ function [dt, dtGrad] = getTimeStepGrad(t,tIdx,nz)
 % dtGrad = [1,nz]
 %
 
+global REMAP_tIdx REMAP_nDecVar
+
 nTime = length(t);
 
 dt = (t(end)-t(1))/(nTime-1);
-dtGrad = zeros(1,nz);
+dtGrad = zeros(1,REMAP_nDecVar);
 
-dtGrad(1,tIdx(1)) = -1/(nTime-1);
-dtGrad(1,tIdx(end)) = 1/(nTime-1);
+dtGrad(1,REMAP_tIdx(1)) = -1/(nTime-1);
+dtGrad(1,REMAP_tIdx(2)) = 1/(nTime-1);
 
 end
 
 
 
-function [tGrad, xGrad, uGrad] = getDecVarGrad(t,x,u,tIdx,xIdx,uIdx,nDecVar)
+function computeReMapVariables(nDecVar,pack)
 %
-% Computes the gradients of t,x,u with respect to the original decision
-% variable vector.
-%
-% tGrad = [nDecVar,1,nTime]
-% xGrad = [nDecVar,nx,nTime]
-% uGrad = [nDecVar,nu,nTime]
+% This function computes a set of variables that are used to convert from
+% the gradient format the the user functions return to the one that is
+% required by fmincon.
 %
 
-nTime = size(t,2);
-nState = size(x,1);
-nControl = size(u,1);
+global REMAP_tIdx REMAP_xuIdx REMAP_alpha REMAP_nDecVar REMAP_xGrad
 
-tGrad = zeros(nDecVar,1, nTime);
-xGrad = zeros(nDecVar,nState,nTime);
-uGrad = zeros(nDecVar,nControl,nTime);
+nTime = pack.nTime;
+nState = pack.nState;
+
+zIdx = 1:nDecVar;
+REMAP_nDecVar = nDecVar;
+[tIdx, xIdx, uIdx] = unPackDecVar(zIdx,pack);
+REMAP_tIdx = tIdx([1,end]);
+REMAP_xuIdx = [xIdx;uIdx];
 
 %%%% Compute gradients of time:
 % alpha = (0..N-1)/(N-1)
 % t = alpha*tUpp + (1-alpha)*tLow
 alpha = (0:(nTime-1))/(nTime-1);
-tGrad(tIdx(1),1,:) = 1-alpha;
-tGrad(tIdx(2),1,:) = alpha;
+REMAP_alpha = [1-alpha; alpha];
 
-%%%% Compute gradients of state and control:
+%%%% Compute gradients of state
+REMAP_xGrad = zeros(nState,nTime,nDecVar);
 for iTime=1:nTime
     for iState=1:nState
-        xGrad(xIdx(iState,iTime),iState,iTime) = 1;
-    end
-    for iControl=1:nControl
-        uGrad(uIdx(iControl,iTime),iControl,iTime) = 1;
+        REMAP_xGrad(iState,iTime,xIdx(iState,iTime)) = 1;
     end
 end
 
@@ -368,29 +371,36 @@ end
 %%%%%%%%%%%%%%%%%
 
 
-function grad = extractGradients(stateGrad, gradRaw)
+function grad = extractGradients(gradRaw)
 %
 % This function converts the raw gradients from the user function into
 % gradients with respect to the decision variables.
 %
 % INPUTS:
-%   stateGrad = [nDecVar,nInput,nTime]
-%   gradRaw = [nOutput,nInput,nTime]
+%   stateRaw = [nOutput,nInput,nTime]
 %
 % OUTPUTS:
 %   grad = [nOutput,nTime,nDecVar]
 %
 
-nDecVar = size(stateGrad,1);
+global REMAP_tIdx REMAP_xuIdx REMAP_alpha REMAP_nDecVar
+
 [nOutput, ~, nTime] = size(gradRaw);
 
-grad = zeros(nOutput,nTime,nDecVar);
+grad = zeros(nOutput,nTime,REMAP_nDecVar);
 
-for iTime=1:nTime
-    for iDecVar=1:nDecVar
-        for iOutput=1:nOutput
-            grad(iOutput,iTime,iDecVar) = sum(gradRaw(iOutput,:,iTime).*stateGrad(iDecVar,:,iTime));
-        end
+% First, loop through and deal with time.
+timeGrad = gradRaw(:,1,:); timeGrad = permute(timeGrad,[1,3,2]);
+for iOutput=1:nOutput
+    A = ([1;1]*timeGrad(iOutput,:)).*REMAP_alpha;
+    grad(iOutput,:,REMAP_tIdx) = permute(A,[3,2,1]);
+end
+
+% Now deal with state and control:
+for iOutput=1:nOutput
+    for iTime=1:nTime
+        B = gradRaw(iOutput,2:end,iTime);
+        grad(iOutput,iTime,REMAP_xuIdx(:,iTime)) = permute(B,[3,1,2]);
     end
 end
 
@@ -415,19 +425,15 @@ function [cost, costGrad] = myObjGrad(z,pack,pathObj,bndObj)
 %   cost = scale cost for this set of decision variables
 %
 
-% Dummy vector for tracking indicies:
-nDecVar = length(z);
-index = 1:nDecVar;
-[tIdx,xIdx,uIdx] = unPackDecVar(index,pack);  tIdx = tIdx([1,end]);
-
 %Unpack the decision variables:
 [t,x,u] = unPackDecVar(z,pack);
 
 % Time step for integration:
-[dt, dtGrad] = getTimeStepGrad(t,tIdx,nDecVar);
+[dt, dtGrad] = getTimeStepGrad(t);
 nTime = length(t);
 nState = size(x,1);
 nControl = size(u,1);
+nDecVar = length(z);
 
 % Compute the cost integral along the trajectory
 if isempty(pathObj)
@@ -435,19 +441,14 @@ if isempty(pathObj)
     integralCostGrad = zeros(nState+nControl,1);
 else
     
-    
-    %Compute gradients of the decision variables:
-    [tGrad, xGrad, uGrad] = getDecVarGrad(t,x,u,tIdx,xIdx,uIdx,nDecVar);
-    
     % integration weights:
     weights = ones(pack.nTime,1); weights([1,end]) = 0.5;
     
     % Objective function integrand and gradients:
-    stateGrad = cat(2,tGrad,xGrad,uGrad);
     [obj, objGradRaw] = pathObj(t,x,u);
     nInput = size(objGradRaw,1);
     objGradRaw = reshape(objGradRaw,1,nInput,nTime);
-    objGrad = extractGradients(stateGrad, objGradRaw);
+    objGrad = extractGradients(objGradRaw);
     
     % integral objective function
     integralCost = dt*obj*weights;
@@ -500,31 +501,24 @@ function [c, ceq, cGrad, ceqGrad] = myCstGrad(z,pack,dynFun, pathCst, bndCst)
 %   ceq = equality constraints to be passed to fmincon
 %
 
-% Dummy vector for tracking indicies:
-nz = length(z);
-index = 1:nz;
-[tIdx,xIdx,uIdx] = unPackDecVar(index,pack);  tIdx = tIdx([1,end]);
+global REMAP_xGrad
 
 %Unpack the decision variables:
+nz = length(z);
 [t,x,u] = unPackDecVar(z,pack);
 
 % Time step for integration:
-[dt, dtGrad] = getTimeStepGrad(t,tIdx,nz);
-
-%Compute gradients of the decision variables:
-[tGrad, xGrad, uGrad] = getDecVarGrad(t,x,u,tIdx,xIdx,uIdx,nz);
+[dt, dtGrad] = getTimeStepGrad(t);
 
 %%%% Compute defects along the trajectory:
-stateGrad = cat(2,tGrad,xGrad,uGrad);
 [dx, dxGradRaw] = dynFun(t,x,u);
-dxGrad = extractGradients(stateGrad, dxGradRaw);
-xGrad = permute(xGrad,[2,3,1]);
+dxGrad = extractGradients(dxGradRaw);
 
 xLow = x(:,1:end-1);
 xUpp = x(:,2:end);
 
-xLowGrad = xGrad(:,1:end-1,:);
-xUppGrad = xGrad(:,2:end,:);
+xLowGrad = REMAP_xGrad(:,1:end-1,:);
+xUppGrad = REMAP_xGrad(:,2:end,:);
 
 dxLow = dx(:,1:end-1);
 dxUpp = dx(:,2:end);

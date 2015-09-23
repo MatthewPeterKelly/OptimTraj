@@ -1,2 +1,10 @@
 # Matlab autosave files:
 *.m~
+
+# Matlab coder automatically generated files
+**/codegen/*
+**/*_mex.mex*
+
+# Large data files:
+**/*.mat
+**/*.mp4
