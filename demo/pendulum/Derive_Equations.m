@@ -24,7 +24,8 @@ Fz = reshape(Fz,numel(Fz),1);
 
 %%%% Objective function
 
-C = u^2;
+% C = u^2;
+C = u^2*(1+sin(t)) + dq^2 + cos(q);  %Crazy cost function for testing
 Cz = jacobian(C,z);
 Cz = reshape(Cz,numel(Cz),1);
 

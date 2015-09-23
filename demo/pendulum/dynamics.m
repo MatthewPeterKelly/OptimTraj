@@ -14,9 +14,10 @@ else % Analytic gradients
     
     [nState, nTime] = size(x);
     nControl = size(u,1);
-    dxGrad = zeros(nState,nState+nControl,nTime);
+    nVars = 1+nState+nControl;
+    dxGrad = zeros(nState,nVars,nTime);
     for i=1:nTime
-        dxGrad(:,:,i) = Fz(:,i);
+        dxGrad(:,:,i) = reshape(Fz(:,i),nState,nVars);
     end
 end
 
