@@ -19,6 +19,7 @@ else % Analytic gradients
     for i=1:nTime
         dxGrad(:,:,i) = reshape(Fz(:,i),nState,nVars);
     end
+    dxGrad = permute(dxGrad,[1,3,2]);
 end
 
 end

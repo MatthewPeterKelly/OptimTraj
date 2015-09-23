@@ -519,40 +519,48 @@ index = 1:nz;
 % Time step for integration:
 [dt, dtGrad] = getTimeStepGrad(t,tIdx,nz);
 
-
 %Compute gradients of the decision variables:
 [tGrad, xGrad, uGrad] = getDecVarGrad(t,x,u,tIdx,xIdx,uIdx,nz);
 
-% integration weights:
-weights = ones(pack.nTime,1); weights([1,end]) = 0.5;
-
 %%%% Compute defects along the trajectory:
-[dyn, dynGrad] = extractGradients(t,x,u,tGrad, xGrad, uGrad,dynFun);
+[dx, dxGrad] = extractGradients(t,x,u,tGrad, xGrad, uGrad,dynFun);
 
 xLow = x(:,1:end-1);
 xUpp = x(:,2:end);
 
+xGrad = permute(xGrad,[2,1,3]);
 xLowGrad = xGrad(:,1:end-1,:);
 xUppGrad = xGrad(:,2:end,:);
 
 dxLow = dx(:,1:end-1);
 dxUpp = dx(:,2:end);
 
-dxLowGrad = dxGrad(:,:,1:end-1);
-dxUppGrad = dxGrad(:,:,2:end);
+dxLowGrad = dxGrad(:,1:end-1,:);
+dxUppGrad = dxGrad(:,2:end,:);
 
 % This is the key line:  (Trapazoid Rule)
 defects = xUpp-xLow - 0.5*dt*(dxLow+dxUpp);
 
+% Matrix size magic...
+dtGradFull = zeros(size(dxUppGrad));
+dxGradFull = zeros(size(dxUppGrad));
+for i=1:length(dtGrad)
+    dtGradFull(:,:,i) = dtGrad(i);
+    dxGradFull(:,:,i) = dxLow+dxUpp;
+end
+
 % Gradient of the defects:
 defectsGrad = xUppGrad - xLowGrad ...
-    - 0.5*dtGrad*(dxLow+dxUpp)...
+    - 0.5*dtGradFull.*dxGradFull...
     - 0.5*dt*(dxLowGrad+dxUppGrad);
 
-
 %%%% Call user-defined constraints and pack up:
-
-ceq_dyn = reshape(defects,numel(defects),1);
+nDefects = numel(defects);
+ceq_dyn = reshape(defects,nDefects,1);
+ceq_dynGrad = zeros(nDefects,nz);
+for i=1:nz
+    ceq_dynGrad(:,i) = reshape(defectsGrad(:,:,i),nDefects,1);
+end
 
 %%%% Compute the user-defined constraints:
 if isempty(pathCst)
@@ -561,6 +569,7 @@ if isempty(pathCst)
     c_pathGrad = [];
     ceq_pathGrad = [];
 else
+    error('Not Implemented yet!');
     [c_path, ceq_path, c_pathGrad, ceq_pathGrad] = pathCst(t,x,u);
 end
 if isempty(bndCst)
@@ -569,6 +578,7 @@ if isempty(bndCst)
     c_bndGrad = [];
     ceq_bndGrad = [];
 else
+    error('Not Implemented yet!');
     t0 = t(1);
     tF = t(end);
     x0 = x(:,1);
@@ -581,8 +591,8 @@ c = [c_path;c_bnd];
 ceq = [ceq_dyn; ceq_path; ceq_bnd];
 
 %%%% TODO:
-cGrad = [];
-ceqGrad = [];
+cGrad = [c_pathGrad;c_bndGrad];
+ceqGrad = [ceq_dynGrad; ceq_pathGrad; ceq_bndGrad]';  
 
 end
 
