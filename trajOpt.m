@@ -42,11 +42,11 @@ function soln = trajOpt(problem)
 %
 %   bounds - struct with bounds for the problem:
 %
-%       initialTime.low = [1, 1]
-%       initialTime.upp = [1, 1]
+%       .initialTime.low = [1, 1]
+%       .initialTime.upp = [1, 1]
 %
-%       finalTime.low = [1, 1]
-%       finalTime.upp = [1, 1]
+%       .finalTime.low = [1, 1]
+%       .finalTime.upp = [1, 1]
 %
 %       .state.low = [nState,1] = lower bound on the state
 %       .state.upp = [nState,1] = lower bound on the state

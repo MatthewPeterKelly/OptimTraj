@@ -1,4 +1,4 @@
-function soln = trapazoid(problem, defaultOptions)
+function soln = trapazoid(problem)
 % soln = trapazoid(problem)
 %
 % This function transcribes a trajectory optimization problem using the
@@ -16,6 +16,40 @@ function soln = trapazoid(problem, defaultOptions)
 %   problem.options.trapazoid = struct with method parameters:
 %       .nGrid = number of grid points to use for transcription
 %
+% This transcription method is compatable with analytic gradients. To
+% enable this option, set:
+%   problem.nlpOpt.GradObj = 'on'
+%   problem.nlpOpt.GradConstr = 'on'
+%
+% Then the user-provided functions must provide gradients. The modified
+% function templates are as follows:
+%
+%         [dx, dxGrad] = dynamics(t,x,u)
+%                 dx = [nState, nTime] = dx/dt = derivative of state wrt time
+%                 dxGrad = [nState, 1+nx+nu, nTime]
+%
+%         [dObj, dObjGrad] = pathObj(t,x,u)
+%                 dObj = [1, nTime] = integrand from the cost function
+%                 dObjGrad = [1, 1+nx+nu, nTime]
+%
+%         [obj, objGrad] = bndObj(t0,x0,tF,xF)
+%                 obj = scalar = objective function for boundry points
+%                 objGrad = [1, 1+nx+1+nx]
+%
+%         [c, ceq, cGrad, ceqGrad] = pathCst(t,x,u)
+%                 c = column vector of inequality constraints  ( c <= 0 )
+%                 ceq = column vector of equality constraints ( c == 0 )
+%                 cGrad = [nCst, 1+nx+nu, nTime];
+%                 ceqGrad = [nCstEq, 1+nx+nu, nTime];
+%
+%         [c, ceq, cGrad, ceqGrad] = bndCst(t0,x0,tF,xF)
+%                 c = column vector of inequality constraints  ( c <= 0 )
+%                 ceq = column vector of equality constraints ( c == 0 )
+%                 cGrad = [nCst, 1+nx+1+nx];
+%                 ceqGrad = [nCstEq, 1+nx+1+nx];
+%
+% The gradients should be taken with respect to the inputs
+%
 
 %To make code more readable
 G = problem.guess;
@@ -25,10 +59,19 @@ Opt = problem.options;
 
 nGrid = Opt.trapazoid.nGrid;  %Number of grid points for transcription
 
+flagGradObj = strcmp(Opt.nlpOpt.GradObj,'on');
+flagGradCst = strcmp(Opt.nlpOpt.GradConstr,'on');
+
 % Print out some solver info if desired:
 if Opt.verbose > 0
-    disp(['  -> Transcription via trapazoid method, nGrid = ' ...
-        num2str(Opt.trapazoid.nGrid)]); disp('    ');
+    fprintf('  -> Transcription via trapazoid method, nGrid = %d\n ',Opt.trapazoid.nGrid);
+    if flagGradObj
+        fprintf('      - using analytic gradients of objective function\n');
+    end
+    if flagGradCst
+        fprintf('      - using analytic gradients of constraint function\n');
+    end
+    fprintf('\n');
 end
 
 % Interpolate the guess at the grid-points for transcription:
@@ -51,13 +94,20 @@ uUpp = B.control.upp*ones(1,nGrid);
 zUpp = packDecVar(tUpp,xUpp,uUpp);
 
 %%%% Set up problem for fmincon:
-
-P.objective = @(z)( ...
-    myObjective(z, pack, F.pathObj, F.bndObj) );
-
-P.nonlcon = @(z)( ...
-    myConstraint(z, pack, F.dynamics, F.pathCst, F.bndCst) );
-
+if flagGradObj
+    P.objective = @(z)( ...
+        myObjGrad(z, pack, F.pathObj, F.bndObj) );   %Analytic gradients
+else
+    P.objective = @(z)( ...
+        myObjective(z, pack, F.pathObj, F.bndObj) );   %Numerical gradients
+end
+if flagGradCst
+    P.nonlcon = @(z)( ...
+        myCstGrad(z, pack, F.dynamics, F.pathCst, F.bndCst) ); %Analytic gradients
+else
+    P.nonlcon = @(z)( ...
+        myConstraint(z, pack, F.dynamics, F.pathCst, F.bndCst) ); %Numerical gradients
+end
 P.x0 = zGuess;
 P.lb = zLow;
 P.ub = zUpp;
@@ -85,14 +135,14 @@ soln.info = output;
 soln.info.nlpTime = nlpTime;
 soln.info.exitFlag = exitFlag;
 soln.info.objVal = objVal;
- 
+
 soln.problem = problem;  % Return the fully detailed problem struct
 
 end
 
 
 %%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
-%%%% SUB FUNCTIONS %%%%
+%%%%                          SUB FUNCTIONS                            %%%%
 %%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
 
 
@@ -189,7 +239,8 @@ if isempty(pathObj)
 else
     dt = (t(end)-t(1))/(pack.nTime-1);
     integrand = pathObj(t,x,u);  %Calculate the integrand of the cost function
-    integralCost = dt*trapz(integrand);  %Trapazoidal integration
+    weights = ones(length(t),1); weights([1,end]) = 0.5;
+    integralCost = dt*integrand*weights;  %Trapazoidal integration
 end
 
 % Compute the cost at the boundaries of the trajectory
@@ -248,3 +299,236 @@ defects = xUpp-xLow - 0.5*dt*(dxLow+dxUpp);
 [c, ceq] = collectConstraints(t,x,u,defects, pathCst, bndCst);
 
 end
+
+
+
+
+%%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
+%%%%            Additional Sub-Functions for Gradients                 %%%%
+%%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
+
+
+
+function [dt, dtGrad] = getTimeStepGrad(t,tIdx,nz)
+%
+% Computes the time step and its gradient
+%
+% dt = [1,1]
+% dtGrad = [1,nz]
+%
+
+nTime = length(t);
+
+dt = (t(end)-t(1))/(nTime-1);
+dtGrad = zeros(1,nz);
+
+dtGrad(1,tIdx(1)) = -1/(nTime-1);
+dtGrad(1,tIdx(end)) = 1/(nTime-1);
+
+end
+
+
+
+function [tGrad, xGrad, uGrad] = getDecVarGrad(t,x,u,tIdx,xIdx,uIdx,nz)
+%
+% Computes the gradients of t,x,u with respect to the original decision
+% variable vector.
+%
+
+nt = size(t,2);
+nx = size(x,1);
+nu = size(u,1);
+
+tGrad = zeros(1,nt,nz);
+xGrad = zeros(nx,nt,nz);
+uGrad = zeros(nu,nt,nz);
+
+%%%% Compute gradients of time:
+% alpha = (0..N-1)/(N-1)
+% t = alpha*tUpp + (1-alpha)*tLow
+alpha = (0:(nt-1))/(nt-1);
+tGrad(1,:,tIdx(1)) = 1-alpha;
+tGrad(1,:,tIdx(2)) = alpha;
+
+%%%% Compute gradients of state and control:
+for i=1:nt
+    for j=1:nx
+        xGrad(j,i,xIdx(j,i)) = 1;
+    end
+    for j=1:nu
+        uGrad(j,i,uIdx(j,i)) = 1;
+    end
+end
+
+end
+
+
+%%%%%%%%%%%%%%%%%
+
+
+function [dCost, dCostGrad] = getObjGrad(t,x,u,tGrad, xGrad, uGrad,pathObj)
+
+
+[dCost, integrandGrad] = pathObj(t,x,u);  %Calculate the integrand of the cost function
+
+dCost = dCost';
+
+stateGrad = [tGrad;xGrad;uGrad];
+
+[~,nt,nz] = size(stateGrad);
+dCostGrad = zeros(nt,nz);
+
+for i=1:nt
+    for j=1:nz
+        dCostGrad(i,j) = sum(integrandGrad(:,i).*stateGrad(:,i,j));
+    end
+end
+
+end
+
+
+%%%%%%%%%%%%%%%%%
+
+
+function [cost, costGrad] = myObjGrad(z,pack,pathObj,bndObj)
+%
+% This function unpacks the decision variables, sends them to the
+% user-defined objective functions, and then returns the final cost
+%
+% INPUTS:
+%   z = column vector of decision variables
+%   pack = details about how to convert decision variables into t,x, and u
+%   pathObj = user-defined integral objective function
+%   endObj = user-defined end-point objective function
+%
+% OUTPUTS:
+%   cost = scale cost for this set of decision variables
+%
+
+% Dummy vector for tracking indicies:
+nz = length(z);
+index = 1:nz;
+[tIdx,xIdx,uIdx] = unPackDecVar(index,pack);  tIdx = tIdx([1,end]);
+
+%Unpack the decision variables:
+[t,x,u] = unPackDecVar(z,pack);
+
+    % Time step for integration:
+    [dt, dtGrad] = getTimeStepGrad(t,tIdx,nz);
+nx = size(x,1);
+nu = size(u,1);
+
+% Compute the cost integral along the trajectory
+if isempty(pathObj)
+    integralCost = 0;
+    integralCostGrad = zeros(nx+nu,1);
+else
+    
+    
+    %Compute gradients of the decision variables:
+    [tGrad, xGrad, uGrad] = getDecVarGrad(t,x,u,tIdx,xIdx,uIdx,nz);
+    
+    % integration weights:
+    weights = ones(pack.nTime,1); weights([1,end]) = 0.5;
+    
+    % Objective function integrand and gradients:
+    [dCost, dCostGrad] = getObjGrad(t,x,u,tGrad, xGrad, uGrad,pathObj);
+    
+    % integral objective function
+    integralCost = dt*weights'*dCost;
+    
+    % Gradient of integral objective function
+    integralCostGrad = ...
+        dtGrad*(weights'*dCost) + ...
+        dt*weights'*dCostGrad;
+end
+
+% Compute the cost at the boundaries of the trajectory
+if isempty(bndObj)
+    bndCost = 0;
+    bndCostGrad = zeros(1,nz);
+else
+    t0 = t(1);
+    tF = t(end);
+    x0 = x(:,1);
+    xF = x(:,end);
+    [bndCost, bndCostGrad] = bndObj(t0,x0,tF,xF);
+    error('Not yet implemented!');
+end
+
+cost = bndCost + integralCost;
+
+% Gradients...
+costGrad = bndCostGrad + integralCostGrad;
+
+end
+
+%%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
+
+function [c, ceq, cGrad, ceqGrad] = myCstGrad(z,pack,dynFun, pathCst, bndCst)
+%
+% This function unpacks the decision variables, computes the defects along
+% the trajectory, and then evaluates the user-defined constraint functions.
+%
+% INPUTS:
+%   z = column vector of decision variables
+%   pack = details about how to convert decision variables into t,x, and u
+%   dynFun = user-defined dynamics function
+%   pathCst = user-defined constraints along the path
+%   endCst = user-defined constraints at the boundaries
+%
+% OUTPUTS:
+%   c = inequality constraints to be passed to fmincon
+%   ceq = equality constraints to be passed to fmincon
+%
+
+[t,x,u] = unPackDecVar(z,pack);
+
+
+%%%% Compute defects along the trajectory:
+
+dt = (t(end)-t(1))/(pack.nTime-1);
+[dx, dxGrad] = dynFun(t,x,u);
+
+xLow = x(:,1:end-1);
+xUpp = x(:,2:end);
+
+dxLow = dx(:,1:end-1);
+dxUpp = dx(:,2:end);
+
+% This is the key line:  (Trapazoid Rule)
+defects = xUpp-xLow - 0.5*dt*(dxLow+dxUpp);
+
+
+%%%% Call user-defined constraints and pack up:
+
+ceq_dyn = reshape(defects,numel(defects),1);
+
+%%%% Compute the user-defined constraints:
+if isempty(pathCst)
+    c_path = [];
+    ceq_path = [];
+else
+    [c_path, ceq_path, c_pathGrad, ceq_pathGrad] = pathCst(t,x,u);
+end
+if isempty(bndCst)
+    c_bnd = [];
+    ceq_bnd = [];
+else
+    t0 = t(1);
+    tF = t(end);
+    x0 = x(:,1);
+    xF = x(:,end);
+    [c_bnd, ceq_bnd, c_bndGrad, ceq_bndGrad] = bndCst(t0,x0,tF,xF);
+end
+
+%%%% Pack everything up:
+c = [c_path;c_bnd];
+ceq = [ceq_dyn; ceq_path; ceq_bnd];
+
+%%%% TODO:
+cGrad = [];
+ceqGrad = [];
+
+end
+
