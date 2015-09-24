@@ -12,21 +12,19 @@ clc; clear;
 %                       Set up parameters and options                     %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 param = getPhysicalParameters();
-config.param = param;  
 
-config.stepLength = 0.4;
-config.stepTime = 0.6;
-config.slope = 0*(pi/180);  %Walking slope
+param.stepLength = 0.4;
+param.stepTime = 0.6;
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                       Set up function handles                           %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
-problem.func.dynamics =  @(t,x,u)( dynamics(x,u,param) );
+problem.func.dynamics =  @(t,x,u)( dynamics(t,x,u,param) );
 
 problem.func.pathObj = @(t,x,u)( sum(u.^2, 1) );
 
-problem.func.bndCst = @(t0,x0,tF,xF)( stepConstraint(t0,x0,tF,xF,config) );
+problem.func.bndCst = @(t0,x0,tF,xF)( stepConstraint(x0,xF,param) );
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -34,8 +32,8 @@ problem.func.bndCst = @(t0,x0,tF,xF)( stepConstraint(t0,x0,tF,xF,config) );
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 problem.bounds.initialTime.low = 0;
 problem.bounds.initialTime.upp = 0;
-problem.bounds.finalTime.low = config.stepTime;
-problem.bounds.finalTime.upp = config.stepTime;
+problem.bounds.finalTime.low = param.stepTime;
+problem.bounds.finalTime.upp = param.stepTime;
 
 % State: (absolute reference frames)
 %   1 = stance leg tibia angle
@@ -70,7 +68,7 @@ problem.bounds.control.upp(1) = 0;
 
 % For now, just assume a linear trajectory between boundary values
 
-problem.guess.time = [0, config.stepTime];
+problem.guess.time = [0, param.stepTime];
 
 q0 = [...
     -0.3; % stance leg tibia angle
@@ -78,9 +76,9 @@ q0 = [...
     0.0; % torso angle
     -0.5; % swing leg femur angle
     -0.6]; % swing leg tibia angle
-qF = heelStrikeMap(q0,zeros(5,1),param);
+qF = q0([5;4;3;2;1]);   %Flip left-right
 
-dq0 = (qF-q0)/config.stepTime;
+dq0 = (qF-q0)/param.stepTime;
 dqF = dq0;
 
 problem.guess.state = [q0, qF; dq0, dqF];
@@ -98,9 +96,9 @@ problem.guess.control = zeros(5,2);  %Start with passive trajectory
 %   explicitly written out many options below, but the solver will fill in
 %   almost all defaults for you if they are ommitted.
 
-% method = 'trapazoid';
+method = 'trapazoid';
 % method = 'hermiteSimpson';
-method = 'chebyshev';
+% method = 'chebyshev';
 % method = 'multiCheb';
 % method = 'rungeKutta';
 

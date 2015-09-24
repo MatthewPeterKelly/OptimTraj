@@ -33,7 +33,7 @@ clc; clear;
 disp('Creating variables and derivatives...')
 
 %%%% Absolute orientation (angle) of each link
-q1 = sym('q1','real');
+q1 = sym('q1', 'real');
 q2 = sym('q2','real');
 q3 = sym('q3','real');
 q4 = sym('q4','real');
@@ -335,9 +335,10 @@ disp('Done!');
         P0m = subs(P0,inVars,outVarsM);
         P1m = subs(P1,inVars,outVarsM);
         P2m = subs(P2,inVars,outVarsM);
-        P3m = subs(P3,inVars,outVarsM);  
+        P3m = subs(P3,inVars,outVarsM);
         P4m = subs(P4,inVars,outVarsM);
-        P5m = subs(P5,inVars,outVarsM); 
+        P5m = subs(P5,inVars,outVarsM);
+        dP5m = subs(dP5,inVars,outVarsM);
         G1m = subs(G1,inVars,outVarsM);
         G2m = subs(G2,inVars,outVarsM);
         G3m = subs(G3,inVars,outVarsM);
@@ -354,9 +355,10 @@ disp('Done!');
         P0p = subs(P0,inVars,outVarsP);
         P1p = subs(P1,inVars,outVarsP);
         P2p = subs(P2,inVars,outVarsP);
-        P3p = subs(P3,inVars,outVarsP);  
+        P3p = subs(P3,inVars,outVarsP);
         P4p = subs(P4,inVars,outVarsP);
-        P5p = subs(P5,inVars,outVarsP);  
+        P5p = subs(P5,inVars,outVarsP);
+        dP5p = subs(dP5,inVars,outVarsP);
         G1p = subs(G1,inVars,outVarsP);
         G2p = subs(G2,inVars,outVarsP);
         G3p = subs(G3,inVars,outVarsP);
@@ -441,7 +443,7 @@ disp('Done!');
         % Heel-strike
         matlabFunction(m, mi, f, fi,...   %dynamics
             mz, mzi, mzd, fz, fzi, fzd,...  %gradients
-            'file','autoGen_dynHs.m',...
+            'file','autoGen_cst_heelStrike.m',...
             'vars',{...
             'q1p','q2p','q3p','q4p','q5p',...
             'q1m','q2m','q3m','q4m','q5m',...
@@ -451,6 +453,27 @@ disp('Done!');
             'l1','l2','l3','l4','l5',...
             'c1','c2','c3','c4','c5','empty'});
         
+        % Collision velocity of the swing foot:
+        cst = [-dP5p(2); dP5m(2)];  %Swing foot velocity before and after collision (negative sign is intentional, since output is constrained to be negative);
+        cstJac = jacobian(cst,zBnd);  %Gradient
+        matlabFunction(cst, cstJac,...
+            'file','autoGen_cst_footVel.m',...
+            'vars',{...
+            'q1p','q2p','q4p','q5p',...
+            'q1m','q2m','q4m','q5m',...
+            'dq1p','dq2p','dq4p','dq5p',...
+            'dq1m','dq2m','dq4m','dq5m',...
+            'l1','l2','l4','l5'});
+        
+        % Step length and height constraint:
+        stepLength = sym('stepLength','real');
+        ceq = [P5m(1)-stepLength; P5m(1)];
+        ceqJac = jacobian(ceq,zBnd);  %Gradient
+                matlabFunction(ceq, ceqJac,...
+            'file','autoGen_cst_steplength.m',...
+            'vars',{...
+            'q1m','q2m','q4m','q5m',...
+            'l1','l2','l4','l5','stepLength'});
     end
 
 
@@ -531,7 +554,6 @@ disp('Done!');
         
         P = [P1; P2; P3; P4; P5];
         Gvec = [G1; G2; G3; G4; G5];
-        dGvec = [dG1; dG2; dG3; dG4; dG5];
         
         % Used for plotting and animation
         matlabFunction(P,Gvec,'file','autoGen_getPoints.m',...
@@ -540,24 +562,6 @@ disp('Done!');
             'l1','l2','l3','l4','l5',...
             'c1','c2','c3','c4','c5'},...
             'outputs',{'P','Gvec'});
-        
-        % Used for heel-strike - computes the center of mass velocities of each
-        % link of the robot.
-        matlabFunction(dGvec,'file','autoGen_comVel.m',...
-            'vars',{...
-            'q1','q2','q3','q4','q5',...
-            'dq1','dq2','dq3','dq4','dq5',...
-            'l1','l2','l3','l4',...
-            'c1','c2','c3','c4','c5'},...
-            'outputs',{'dGvec'});
-        
-        % Used for computing the constraints on the step map:
-        matlabFunction(P5, dP5, 'file', 'autoGen_swingFootKinematics.m',...
-            'vars',{...
-            'q1','q2','q4','q5',...
-            'dq1','dq2','dq4','dq5',...
-            'l1','l2','l4','l5'},...
-            'outputs',{'P5', 'dP5'});
         
     end
 
