@@ -92,7 +92,7 @@ g = sym('g','real'); % Gravity
 Fx = sym('Fx','real');   %Horizontal contact force at stance foot
 Fy = sym('Fy','real');   %Vertical contact force at stance foot
 empty = sym('empty','real');   %Used for vectorization, user should pass a vector of zeros
-t = sym('t','real');  %
+t = sym('t','real');  %dummy continuous time
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                Set up coordinate system and unit vectors                %
@@ -292,82 +292,134 @@ disp('Done!');
     function heelStrikeDynamics()
         disp('Deriving heel-strike dynamics...')
         
-        dG1mx = sym('dG1mx','real');
-        dG2mx = sym('dG2mx','real');
-        dG3mx = sym('dG3mx','real');
-        dG4mx = sym('dG4mx','real');
-        dG5mx = sym('dG5mx','real');
+        %%%% Notes:
+        % xF - heelStrike(xI) --> constraint --> 0
+        % xF - collision(footSwap(xI));
+        %
         
-        dG1my = sym('dG1my','real');
-        dG2my = sym('dG2my','real');
-        dG3my = sym('dG3my','real');
-        dG4my = sym('dG4my','real');
-        dG5my = sym('dG5my','real');
+        % Angles before heel-strike:
+        q1m = sym('q1m','real');
+        q2m = sym('q2m','real');
+        q3m = sym('q3m','real');
+        q4m = sym('q4m','real');
+        q5m = sym('q5m','real');
+        qm = [q1m;q2m;q3m;q4m;q5m];
         
+        % Angles after heel-strike
+        q1p = sym('q1p','real');
+        q2p = sym('q2p','real');
+        q3p = sym('q3p','real');
+        q4p = sym('q4p','real');
+        q5p = sym('q5p','real');
+        qp = [q1p;q2p;q3p;q4p;q5p];
+        
+        % Angular rates before heel-strike:
         dq1m = sym('dq1m','real');
         dq2m = sym('dq2m','real');
         dq3m = sym('dq3m','real');
         dq4m = sym('dq4m','real');
         dq5m = sym('dq5m','real');
+        dqm = [dq1m;dq2m;dq3m;dq4m;dq5m];
         
-        dG1m = [dG1mx; dG1my];
-        dG2m = [dG2mx; dG2my];
-        dG3m = [dG3mx; dG3my];
-        dG4m = [dG4mx; dG4my];
-        dG5m = [dG5mx; dG5my];
+        % Angular rates after heel-strike
+        dq1p = sym('dq1p','real');
+        dq2p = sym('dq2p','real');
+        dq3p = sym('dq3p','real');
+        dq4p = sym('dq4p','real');
+        dq5p = sym('dq5p','real');
+        dqp = [dq1p;dq2p;dq3p;dq4p;dq5p];
         
-        %%%% AMB - entire system @ P0
+        % Compute kinematics before heel-strike:
+        inVars = {'q1','q2','q3','q4','q5','dq1','dq2','dq3','dq4','dq5'};
+        outVarsM = {'q1m','q2m','q3m','q4m','q5m','dq1m','dq2m','dq3m','dq4m','dq5m'};
+        P0m = subs(P0,inVars,outVarsM);
+        P1m = subs(P1,inVars,outVarsM);
+        P2m = subs(P2,inVars,outVarsM);
+        P3m = subs(P3,inVars,outVarsM);  
+        P4m = subs(P4,inVars,outVarsM);
+        P5m = subs(P5,inVars,outVarsM); 
+        G1m = subs(G1,inVars,outVarsM);
+        G2m = subs(G2,inVars,outVarsM);
+        G3m = subs(G3,inVars,outVarsM);
+        G4m = subs(G4,inVars,outVarsM);
+        G5m = subs(G5,inVars,outVarsM);
+        dG1m = subs(dG1,inVars,outVarsM);
+        dG2m = subs(dG2,inVars,outVarsM);
+        dG3m = subs(dG3,inVars,outVarsM);
+        dG4m = subs(dG4,inVars,outVarsM);
+        dG5m = subs(dG5,inVars,outVarsM);
+        
+        % Compute kinematics after heel-strike:
+        outVarsP = {'q1p','q2p','q3p','q4p','q5p','dq1p','dq2p','dq3p','dq4p','dq5p'};
+        P0p = subs(P0,inVars,outVarsP);
+        P1p = subs(P1,inVars,outVarsP);
+        P2p = subs(P2,inVars,outVarsP);
+        P3p = subs(P3,inVars,outVarsP);  
+        P4p = subs(P4,inVars,outVarsP);
+        P5p = subs(P5,inVars,outVarsP);  
+        G1p = subs(G1,inVars,outVarsP);
+        G2p = subs(G2,inVars,outVarsP);
+        G3p = subs(G3,inVars,outVarsP);
+        G4p = subs(G4,inVars,outVarsP);
+        G5p = subs(G5,inVars,outVarsP);
+        dG1p = subs(dG1,inVars,outVarsP);
+        dG2p = subs(dG2,inVars,outVarsP);
+        dG3p = subs(dG3,inVars,outVarsP);
+        dG4p = subs(dG4,inVars,outVarsP);
+        dG5p = subs(dG5,inVars,outVarsP);
+        
+        %%%% AMB - entire system @ New stance foot
         eqnHs0m = ...   %Before collision
-            cross2d(G1-P0,m1*dG1m) + dq1m*I1 + ...
-            cross2d(G2-P0,m2*dG2m) + dq2m*I2 + ...
-            cross2d(G3-P0,m3*dG3m) + dq3m*I3 + ...
-            cross2d(G4-P0,m4*dG4m) + dq4m*I4 + ...
-            cross2d(G5-P0,m5*dG5m) + dq5m*I5;
+            cross2d(G1m-P5m,m1*dG1m) + dq1m*I1 + ...
+            cross2d(G2m-P5m,m2*dG2m) + dq2m*I2 + ...
+            cross2d(G3m-P5m,m3*dG3m) + dq3m*I3 + ...
+            cross2d(G4m-P5m,m4*dG4m) + dq4m*I4 + ...
+            cross2d(G5m-P5m,m5*dG5m) + dq5m*I5;
         eqnHs0 = ...   %After collision
-            cross2d(G1-P0,m1*dG1) + dq1*I1 + ...
-            cross2d(G2-P0,m2*dG2) + dq2*I2 + ...
-            cross2d(G3-P0,m3*dG3) + dq3*I3 + ...
-            cross2d(G4-P0,m4*dG4) + dq4*I4 + ...
-            cross2d(G5-P0,m5*dG5) + dq5*I5;
+            cross2d(G1p-P0p,m1*dG1p) + dq1p*I1 + ...
+            cross2d(G2p-P0p,m2*dG2p) + dq2p*I2 + ...
+            cross2d(G3p-P0p,m3*dG3p) + dq3p*I3 + ...
+            cross2d(G4p-P0p,m4*dG4p) + dq4p*I4 + ...
+            cross2d(G5p-P0p,m5*dG5p) + dq5p*I5;
         
         
-        %%%% AMB - swing leg, torso, stance femer  @ stance knee
+        %%%% AMB - swing leg, torso, stance femer  @ new stance knee
         eqnHs1m = ...   %Before collision
-            cross2d(G2-P1,m2*dG2m) + dq2m*I2 + ...
-            cross2d(G3-P1,m3*dG3m) + dq3m*I3 + ...
-            cross2d(G4-P1,m4*dG4m) + dq4m*I4 + ...
-            cross2d(G5-P1,m5*dG5m) + dq5m*I5;
+            cross2d(G2m-P4m,m2*dG2m) + dq2m*I2 + ...
+            cross2d(G3m-P4m,m3*dG3m) + dq3m*I3 + ...
+            cross2d(G4m-P4m,m4*dG4m) + dq4m*I4 + ...
+            cross2d(G5m-P4m,m5*dG5m) + dq5m*I5;
         eqnHs1 = ...   %After collision
-            cross2d(G2-P1,m2*dG2) + dq2*I2 + ...
-            cross2d(G3-P1,m3*dG3) + dq3*I3 + ...
-            cross2d(G4-P1,m4*dG4) + dq4*I4 + ...
-            cross2d(G5-P1,m5*dG5) + dq5*I5;
+            cross2d(G2p-P1p,m2*dG2p) + dq2p*I2 + ...
+            cross2d(G3p-P1p,m3*dG3p) + dq3p*I3 + ...
+            cross2d(G4p-P1p,m4*dG4p) + dq4p*I4 + ...
+            cross2d(G5p-P1p,m5*dG5p) + dq5p*I5;
         
         
-        %%%% AMB - swing leg, torso  @ hip
+        %%%% AMB - swing leg, torso  @ new hip
         eqnHs2m = ...   %Before collision
-            cross2d(G3-P2,m3*dG3m) + dq3m*I3 + ...
-            cross2d(G4-P2,m4*dG4m) + dq4m*I4 + ...
-            cross2d(G5-P2,m5*dG5m) + dq5m*I5;
+            cross2d(G3m-P2m,m3*dG3m) + dq3m*I3 + ...
+            cross2d(G4m-P2m,m4*dG4m) + dq4m*I4 + ...
+            cross2d(G5m-P2m,m5*dG5m) + dq5m*I5;
         eqnHs2 = ...   %After collision
-            cross2d(G3-P2,m3*dG3) + dq3*I3 + ...
-            cross2d(G4-P2,m4*dG4) + dq4*I4 + ...
-            cross2d(G5-P2,m5*dG5) + dq5*I5;
+            cross2d(G3p-P2p,m3*dG3p) + dq3p*I3 + ...
+            cross2d(G4p-P2p,m4*dG4p) + dq4p*I4 + ...
+            cross2d(G5p-P2p,m5*dG5p) + dq5p*I5;
         
         
-        %%%% AMB - swing leg @ hip
+        %%%% AMB - swing leg @ new hip
         eqnHs3m = ...   %Before collision
-            cross2d(G4-P2,m4*dG4m) + dq4m*I4 + ...
-            cross2d(G5-P2,m5*dG5m) + dq5m*I5;
+            cross2d(G4m-P2m,m4*dG4m) + dq4m*I4 + ...
+            cross2d(G5m-P2m,m5*dG5m) + dq5m*I5;
         eqnHs3 = ...   %After collision
-            cross2d(G4-P2,m4*dG4) + dq4*I4 + ...
-            cross2d(G5-P2,m5*dG5) + dq5*I5;
+            cross2d(G4p-P2p,m4*dG4p) + dq4p*I4 + ...
+            cross2d(G5p-P2p,m5*dG5p) + dq5p*I5;
         
-        %%%% AMB - swing tibia @ swing knee
+        %%%% AMB - swing tibia @ new swing knee
         eqnHs4m = ...   %Before collision
-            cross2d(G5-P4,m5*dG5m) + dq5m*I5;
+            cross2d(G5m-P1m,m5*dG5m) + dq5m*I5;
         eqnHs4 = ...   %After collision
-            cross2d(G5-P4,m5*dG5) + dq5*I5;
+            cross2d(G5p-P4p,m5*dG5p) + dq5p*I5;
         
         
         %%%% Collect and solve equations:
@@ -377,26 +429,26 @@ disp('Done!');
             eqnHs2m - eqnHs2;
             eqnHs3m - eqnHs3;
             eqnHs4m - eqnHs4];
-        [MM, FF] = equationsToMatrix(eqnHs,dq);
-               
-        error('Need to compute gradients with respect to the correct inputs!');
+        [MM, FF] = equationsToMatrix(eqnHs,dqp);
         
         %%%% Compute gradients:
-        [m, mi, mz, mzi, mzd] = computeGradients(MM,z,empty);
-        [f, fi, fz, fzi, fzd] = computeGradients(FF,z,empty); 
-                
+        tp = sym('tp','real');   %Initial trajectory time
+        tm = sym('tm','real');   %Final trajectory time
+        zBnd = [tp;qp;dqp;tm;qm;dqm];
+        [m, mi, mz, mzi, mzd] = computeGradients(MM,zBnd,empty);
+        [f, fi, fz, fzi, fzd] = computeGradients(FF,zBnd,empty);
+        
         % Heel-strike
         matlabFunction(m, mi, f, fi,...   %dynamics
             mz, mzi, mzd, fz, fzi, fzd,...  %gradients
             'file','autoGen_dynHs.m',...
             'vars',{...
-            'q1','q2','q3','q4','q5',...
+            'q1p','q2p','q3p','q4p','q5p',...
+            'q1m','q2m','q3m','q4m','q5m',...
             'dq1m','dq2m','dq3m','dq4m','dq5m',...
-            'dG1mx', 'dG2mx', 'dG3mx', 'dG4mx', 'dG5mx',...
-            'dG1my', 'dG2my', 'dG3my', 'dG4my', 'dG5my',...
             'm1','m2','m3','m4','m5',...
             'I1','I2','I3','I4','I5',...
-            'l1','l2','l3','l4',...
+            'l1','l2','l3','l4','l5',...
             'c1','c2','c3','c4','c5','empty'});
         
     end
