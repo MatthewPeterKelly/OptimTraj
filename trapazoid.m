@@ -16,6 +16,7 @@ function soln = trapazoid(problem)
 %   problem.options.trapazoid = struct with method parameters:
 %       .nGrid = number of grid points to use for transcription
 %
+%
 % This transcription method is compatable with analytic gradients. To
 % enable this option, set:
 %   problem.nlpOpt.GradObj = 'on'
