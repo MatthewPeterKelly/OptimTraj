@@ -311,28 +311,6 @@ end
 
 
 
-function [dt, dtGrad] = getTimeStepGrad(t)
-%
-% Computes the time step and its gradient
-%
-% dt = [1,1]
-% dtGrad = [1,nz]
-%
-
-global REMAP_tIdx REMAP_nDecVar
-
-nTime = length(t);
-
-dt = (t(end)-t(1))/(nTime-1);
-dtGrad = zeros(1,REMAP_nDecVar);
-
-dtGrad(1,REMAP_tIdx(1)) = -1/(nTime-1);
-dtGrad(1,REMAP_tIdx(2)) = 1/(nTime-1);
-
-end
-
-
-
 function computeReMapVariables(nDecVar,pack)
 %
 % This function computes a set of variables that are used to convert from
@@ -371,6 +349,29 @@ end
 %%%%%%%%%%%%%%%%%
 
 
+function [dt, dtGrad] = getTimeStepGrad(t)
+%
+% Computes the time step and its gradient
+%
+% dt = [1,1]
+% dtGrad = [1,nz]
+%
+
+global REMAP_tIdx REMAP_nDecVar
+
+nTime = length(t);
+
+dt = (t(end)-t(1))/(nTime-1);
+dtGrad = zeros(1,REMAP_nDecVar);
+
+dtGrad(1,REMAP_tIdx(1)) = -1/(nTime-1);
+dtGrad(1,REMAP_tIdx(2)) = 1/(nTime-1);
+
+end
+
+%%%%%%%%%%%%%%%%%%%
+
+
 function grad = extractGradients(gradRaw)
 %
 % This function converts the raw gradients from the user function into
@@ -385,22 +386,26 @@ function grad = extractGradients(gradRaw)
 
 global REMAP_tIdx REMAP_xuIdx REMAP_alpha REMAP_nDecVar
 
-[nOutput, ~, nTime] = size(gradRaw);
-
-grad = zeros(nOutput,nTime,REMAP_nDecVar);
-
-% First, loop through and deal with time.
-timeGrad = gradRaw(:,1,:); timeGrad = permute(timeGrad,[1,3,2]);
-for iOutput=1:nOutput
-    A = ([1;1]*timeGrad(iOutput,:)).*REMAP_alpha;
-    grad(iOutput,:,REMAP_tIdx) = permute(A,[3,2,1]);
-end
-
-% Now deal with state and control:
-for iOutput=1:nOutput
-    for iTime=1:nTime
-        B = gradRaw(iOutput,2:end,iTime);
-        grad(iOutput,iTime,REMAP_xuIdx(:,iTime)) = permute(B,[3,1,2]);
+if isempty(gradRaw)
+    grad = [];
+else
+    [nOutput, ~, nTime] = size(gradRaw);
+    
+    grad = zeros(nOutput,nTime,REMAP_nDecVar);
+    
+    % First, loop through and deal with time.
+    timeGrad = gradRaw(:,1,:); timeGrad = permute(timeGrad,[1,3,2]);
+    for iOutput=1:nOutput
+        A = ([1;1]*timeGrad(iOutput,:)).*REMAP_alpha;
+        grad(iOutput,:,REMAP_tIdx) = permute(A,[3,2,1]);
+    end
+    
+    % Now deal with state and control:
+    for iOutput=1:nOutput
+        for iTime=1:nTime
+            B = gradRaw(iOutput,2:end,iTime);
+            grad(iOutput,iTime,REMAP_xuIdx(:,iTime)) = permute(B,[3,1,2]);
+        end
     end
 end
 
@@ -484,6 +489,20 @@ end
 
 %%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
 
+function C = flattenConstraintGradient(CC)
+%
+% This function takes a constraint gradient that 3D and collapses it to 2D
+%
+if isempty(CC)
+    C = [];
+else
+   [n1,n2,n3] = size(CC);
+   C = reshape(CC,n1*n2,n3);
+end
+
+end
+
+
 function [c, ceq, cGrad, ceqGrad] = myCstGrad(z,pack,dynFun, pathCst, bndCst)
 %
 % This function unpacks the decision variables, computes the defects along
@@ -528,6 +547,7 @@ dxUppGrad = dxGrad(:,2:end,:);
 
 % This is the key line:  (Trapazoid Rule)
 defects = xUpp-xLow - 0.5*dt*(dxLow+dxUpp);
+ceq_dyn = reshape(defects,numel(defects),1);
 
 % Matrix size magic...
 dtGradFull = zeros(size(dxUppGrad));
@@ -541,14 +561,7 @@ end
 defectsGrad = xUppGrad - xLowGrad ...
     - 0.5*dtGradFull.*dxGradFull...
     - 0.5*dt*(dxLowGrad+dxUppGrad);
-
-%%%% Reshape defect into constraint vector for fmincon
-nDefects = numel(defects);
-ceq_dyn = reshape(defects,nDefects,1);
-ceq_dynGrad = zeros(nDefects,nz);
-for i=1:nz
-    ceq_dynGrad(:,i) = reshape(defectsGrad(:,:,i),nDefects,1);
-end
+ceq_dynGrad = flattenConstraintGradient(defectsGrad);
 
 %%%% Compute the user-defined constraints:
 if isempty(pathCst)
@@ -557,8 +570,9 @@ if isempty(pathCst)
     c_pathGrad = [];
     ceq_pathGrad = [];
 else
-    error('Not Implemented yet!');
-    [c_path, ceq_path, c_pathGrad, ceq_pathGrad] = pathCst(t,x,u);
+    [c_path, ceq_path, c_pathGradRaw, ceq_pathGradRaw] = pathCst(t,x,u);
+    c_pathGrad = flattenConstraintGradient(extractGradients(c_pathGradRaw));
+    ceq_pathGrad = flattenConstraintGradient(extractGradients(ceq_pathGradRaw));
 end
 if isempty(bndCst)
     c_bnd = [];
@@ -578,8 +592,8 @@ end
 c = [c_path;c_bnd];
 ceq = [ceq_dyn; ceq_path; ceq_bnd];
 
-cGrad = [c_pathGrad;c_bndGrad];
-ceqGrad = [ceq_dynGrad; ceq_pathGrad; ceq_bndGrad]';  
+cGrad = [c_pathGrad;c_bndGrad]';
+ceqGrad = [ceq_dynGrad; ceq_pathGrad; ceq_bndGrad]';
 
 end
 

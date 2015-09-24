@@ -14,6 +14,7 @@ p.c = 0.1;
 % User-defined dynamics and objective functions
 problem.func.dynamics = @(t,x,u)( dynamics(t,x,u,p) );
 problem.func.pathObj = @(t,x,u)( objective(t,x,u,p) );
+problem.func.pathCst = @(t,x,u)( pathConstraint(t,x,u,p) );
 
 % Problem bounds
 problem.bounds.initialTime.low = 0;
@@ -41,11 +42,11 @@ problem.options.nlpOpt = optimset(...
     'Display','iter',...
     'MaxFunEvals',1e5,...
     'GradObj','on',...
-    'GradConstr','on',...
+    'GradConstr','off',...
     'DerivativeCheck','on');
 
 problem.options.method = 'trapazoid';
-problem.options.defaultAccuracy = 'low';
+problem.options.defaultAccuracy = 'medium';
 
 % Solve the problem
 soln = trajOpt(problem);

@@ -31,6 +31,12 @@ C = u^2*(1+sin(t)) + dq^2 + cos(q);  %Crazy cost function for testing
 Cz = jacobian(C,z);
 Cz = reshape(Cz,numel(Cz),1);
 
+%%%% Path Constraint:
+P = -(sin(q)+0.1);  %Another crazy constraint for testing
+Pz = jacobian(P,z);
+Pz = reshape(Pz,numel(Pz),1);
+
+
 %%%% Write files:
 syms empty 'real'   %Stupid hack for vectorization.
 
@@ -43,4 +49,10 @@ matlabFunction(C+empty,Cz+empty,...
     'file','autoGen_objective.m',...
     'vars',{t,q dq u m g l c empty},...
     'outputs',{'C','Cz'});
+
+matlabFunction(P+empty,Pz+empty,...
+    'file','autoGen_pathCst.m',...
+    'vars',{t,q dq u m g l c empty},...
+    'outputs',{'P','Pz'});
+
 
