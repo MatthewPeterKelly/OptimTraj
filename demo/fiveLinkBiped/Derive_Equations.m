@@ -332,10 +332,10 @@ disp('Done!');
         % Compute kinematics before heel-strike:
         inVars = {'q1','q2','q3','q4','q5','dq1','dq2','dq3','dq4','dq5'};
         outVarsM = {'q1m','q2m','q3m','q4m','q5m','dq1m','dq2m','dq3m','dq4m','dq5m'};
-        P0m = subs(P0,inVars,outVarsM);
+%         P0m = subs(P0,inVars,outVarsM);
         P1m = subs(P1,inVars,outVarsM);
         P2m = subs(P2,inVars,outVarsM);
-        P3m = subs(P3,inVars,outVarsM);
+%         P3m = subs(P3,inVars,outVarsM);
         P4m = subs(P4,inVars,outVarsM);
         P5m = subs(P5,inVars,outVarsM);
         dP5m = subs(dP5,inVars,outVarsM);
@@ -355,9 +355,9 @@ disp('Done!');
         P0p = subs(P0,inVars,outVarsP);
         P1p = subs(P1,inVars,outVarsP);
         P2p = subs(P2,inVars,outVarsP);
-        P3p = subs(P3,inVars,outVarsP);
+%         P3p = subs(P3,inVars,outVarsP);
         P4p = subs(P4,inVars,outVarsP);
-        P5p = subs(P5,inVars,outVarsP);
+%         P5p = subs(P5,inVars,outVarsP);
         dP5p = subs(dP5,inVars,outVarsP);
         G1p = subs(G1,inVars,outVarsP);
         G2p = subs(G2,inVars,outVarsP);
@@ -467,7 +467,7 @@ disp('Done!');
         
         % Step length and height constraint:
         stepLength = sym('stepLength','real');
-        ceq = [P5m(1)-stepLength; P5m(1)];
+        ceq = [P5m(1)-stepLength; P5m(2)];
         ceqJac = jacobian(ceq,zBnd);  %Gradient
                 matlabFunction(ceq, ceqJac,...
             'file','autoGen_cst_steplength.m',...

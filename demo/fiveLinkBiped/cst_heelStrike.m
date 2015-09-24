@@ -20,7 +20,7 @@ dqm = xF(6:10);
 dqp = x0(6:10);
 
 if nargout == 1   %numerical gradients
-    [m,mi,f,fi] = autoGen_dynHs(...
+    [m,mi,f,fi] = autoGen_cst_heelStrike(...
         qp(1),qp(2),qp(3),qp(4),qp(5),...  %Angles "plus" - immediately after heel strike
         qm(1),qm(2),qm(3),qm(4),qm(5),...  %Angles "minus" - immediately before heel-strike
         dqm(1),dqm(2),dqm(3),dqm(4),dqm(5),...   %Rates "minus" - immediately before heel-strike
@@ -36,7 +36,7 @@ if nargout == 1   %numerical gradients
     
 else %Analytic gradients
     
-    [m,mi,f,fi,mz,mzi,mzd,fz,fzi,fzd] = autoGen_dynHs(...
+    [m,mi,f,fi,mz,mzi,mzd,fz,fzi,fzd] = autoGen_cst_heelStrike(...
         qp(1),qp(2),qp(3),qp(4),qp(5),...  %Angles "plus" - immediately after heel strike
         qm(1),qm(2),qm(3),qm(4),qm(5),...  %Angles "minus" - immediately before heel-strike
         dqm(1),dqm(2),dqm(3),dqm(4),dqm(5),...   %Rates "minus" - immediately before heel-strike

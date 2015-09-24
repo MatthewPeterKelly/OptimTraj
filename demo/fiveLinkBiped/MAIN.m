@@ -96,7 +96,8 @@ problem.guess.control = zeros(5,2);  %Start with passive trajectory
 %   explicitly written out many options below, but the solver will fill in
 %   almost all defaults for you if they are ommitted.
 
-method = 'trapazoid';
+method = 'debug';
+% method = 'trapazoid';
 % method = 'hermiteSimpson';
 % method = 'chebyshev';
 % method = 'multiCheb';
@@ -114,6 +115,11 @@ problem.options(2).nlpOpt = optimset(...
 
 
 switch method
+    case 'debug'
+        problem.options = problem.options(1);
+        problem.options(1).method = 'trapazoid';
+        problem.options.defaultAccuracy = 'low';
+        
     case 'trapazoid'
         problem.options(1).method = 'trapazoid'; % Select the transcription method
         problem.options(1).trapazoid.nGrid = 10;  %method-specific options

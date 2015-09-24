@@ -6,7 +6,7 @@ function [c, ceq, cGrad, ceqGrad] = stepConstraint(x0,xF,p)
 % mapping.
 %
 
-if nargout == 1 %Numerical gradients
+if nargout == 2 %Numerical gradients
     
     % Gait must be periodic
     ceq1 = cst_heelStrike(x0,xF,p);
@@ -19,6 +19,10 @@ if nargout == 1 %Numerical gradients
     
     % Pack up equality constraints:
     ceq = [ceq1;ceq2];
+    
+    %%%% HACK %%%%
+    ceq = ceq2;
+    
     
 else %Analytic gradients
     
