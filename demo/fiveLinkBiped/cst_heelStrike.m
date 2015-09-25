@@ -32,7 +32,9 @@ if nargout == 1   %numerical gradients
     F(fi) = f(:,1);
     dqpDyn = M\F;  %Numerically invert the mass matrix
     
-    ceq = dqpDyn - dqp;
+    ceqPos = qp - qm([5;4;3;2;1]);
+    ceqVel = dqpDyn - dqp;
+    ceq = [ceqPos;ceqVel];
     
 else %Analytic gradients
     

@@ -19,10 +19,7 @@ if nargout == 2 %Numerical gradients
     
     % Pack up equality constraints:
     ceq = [ceq1;ceq2];
-    
-    %%%% HACK %%%%
-    ceq = ceq2;
-    
+       
     
 else %Analytic gradients
     

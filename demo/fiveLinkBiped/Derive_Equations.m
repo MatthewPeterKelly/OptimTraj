@@ -332,10 +332,10 @@ disp('Done!');
         % Compute kinematics before heel-strike:
         inVars = {'q1','q2','q3','q4','q5','dq1','dq2','dq3','dq4','dq5'};
         outVarsM = {'q1m','q2m','q3m','q4m','q5m','dq1m','dq2m','dq3m','dq4m','dq5m'};
-%         P0m = subs(P0,inVars,outVarsM);
+        %         P0m = subs(P0,inVars,outVarsM);
         P1m = subs(P1,inVars,outVarsM);
         P2m = subs(P2,inVars,outVarsM);
-%         P3m = subs(P3,inVars,outVarsM);
+        %         P3m = subs(P3,inVars,outVarsM);
         P4m = subs(P4,inVars,outVarsM);
         P5m = subs(P5,inVars,outVarsM);
         dP5m = subs(dP5,inVars,outVarsM);
@@ -355,9 +355,9 @@ disp('Done!');
         P0p = subs(P0,inVars,outVarsP);
         P1p = subs(P1,inVars,outVarsP);
         P2p = subs(P2,inVars,outVarsP);
-%         P3p = subs(P3,inVars,outVarsP);
+        %         P3p = subs(P3,inVars,outVarsP);
         P4p = subs(P4,inVars,outVarsP);
-%         P5p = subs(P5,inVars,outVarsP);
+        %         P5p = subs(P5,inVars,outVarsP);
         dP5p = subs(dP5,inVars,outVarsP);
         G1p = subs(G1,inVars,outVarsP);
         G2p = subs(G2,inVars,outVarsP);
@@ -385,12 +385,12 @@ disp('Done!');
             cross2d(G5p-P0p,m5*dG5p) + dq5p*I5;
         
         
-        %%%% AMB - swing leg, torso, stance femer  @ new stance knee
+        %%%% AMB - new swing leg, torso, stance femer  @  stance knee
         eqnHs1m = ...   %Before collision
+            cross2d(G1m-P4m,m1*dG1m) + dq1m*I1 + ...
             cross2d(G2m-P4m,m2*dG2m) + dq2m*I2 + ...
             cross2d(G3m-P4m,m3*dG3m) + dq3m*I3 + ...
-            cross2d(G4m-P4m,m4*dG4m) + dq4m*I4 + ...
-            cross2d(G5m-P4m,m5*dG5m) + dq5m*I5;
+            cross2d(G4m-P4m,m4*dG4m) + dq4m*I4;
         eqnHs1 = ...   %After collision
             cross2d(G2p-P1p,m2*dG2p) + dq2p*I2 + ...
             cross2d(G3p-P1p,m3*dG3p) + dq3p*I3 + ...
@@ -401,8 +401,8 @@ disp('Done!');
         %%%% AMB - swing leg, torso  @ new hip
         eqnHs2m = ...   %Before collision
             cross2d(G3m-P2m,m3*dG3m) + dq3m*I3 + ...
-            cross2d(G4m-P2m,m4*dG4m) + dq4m*I4 + ...
-            cross2d(G5m-P2m,m5*dG5m) + dq5m*I5;
+            cross2d(G2m-P2m,m2*dG2m) + dq2m*I2 + ...
+            cross2d(G1m-P2m,m1*dG1m) + dq1m*I1;
         eqnHs2 = ...   %After collision
             cross2d(G3p-P2p,m3*dG3p) + dq3p*I3 + ...
             cross2d(G4p-P2p,m4*dG4p) + dq4p*I4 + ...
@@ -411,15 +411,15 @@ disp('Done!');
         
         %%%% AMB - swing leg @ new hip
         eqnHs3m = ...   %Before collision
-            cross2d(G4m-P2m,m4*dG4m) + dq4m*I4 + ...
-            cross2d(G5m-P2m,m5*dG5m) + dq5m*I5;
+            cross2d(G1m-P2m,m1*dG1m) + dq1m*I1 + ...
+            cross2d(G2m-P2m,m2*dG2m) + dq2m*I2;
         eqnHs3 = ...   %After collision
             cross2d(G4p-P2p,m4*dG4p) + dq4p*I4 + ...
             cross2d(G5p-P2p,m5*dG5p) + dq5p*I5;
         
         %%%% AMB - swing tibia @ new swing knee
         eqnHs4m = ...   %Before collision
-            cross2d(G5m-P1m,m5*dG5m) + dq5m*I5;
+            cross2d(G1m-P1m,m1*dG1m) + dq1m*I1;
         eqnHs4 = ...   %After collision
             cross2d(G5p-P4p,m5*dG5p) + dq5p*I5;
         
@@ -469,7 +469,7 @@ disp('Done!');
         stepLength = sym('stepLength','real');
         ceq = [P5m(1)-stepLength; P5m(2)];
         ceqJac = jacobian(ceq,zBnd);  %Gradient
-                matlabFunction(ceq, ceqJac,...
+        matlabFunction(ceq, ceqJac,...
             'file','autoGen_cst_steplength.m',...
             'vars',{...
             'q1m','q2m','q4m','q5m',...

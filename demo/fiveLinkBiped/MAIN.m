@@ -96,8 +96,8 @@ problem.guess.control = zeros(5,2);  %Start with passive trajectory
 %   explicitly written out many options below, but the solver will fill in
 %   almost all defaults for you if they are ommitted.
 
-method = 'debug';
-% method = 'trapazoid';
+% method = 'debug';
+method = 'trapazoid';
 % method = 'hermiteSimpson';
 % method = 'chebyshev';
 % method = 'multiCheb';
