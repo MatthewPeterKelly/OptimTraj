@@ -1,0 +1,11 @@
+function [dObj, dObjGrad] = obj_torqueSquared(u)
+% [dObj, dObjGrad] = obj_torqueSquared(u)
+%
+% This function computes the torque-squared objective function and its
+% gradients.
+%
+if nargout == 1 % 
+
+[f,fz,fzi] = autoGen_obj_torqueSquared(u1,u2,u3,u4,u5);
+
+end

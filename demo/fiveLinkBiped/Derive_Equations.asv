@@ -292,13 +292,8 @@ disp('Done!');
 
     function objectiveFunctions()
         
-        % Torque-squared objective function
-       F = u1*u1 + u2*u2 + u3*u3 + u4*u4 + u5*u5; 
-       [f, ~, fz, fzi, ~]  = computeGradients(F,z,empty);
+       objTorqueSquared = u1*u1 + u2*u2 + u3*u3 + u4*u4 + u5*u5;  
         
-       matlabFunction(f,fz,fzi,...
-           'file','autoGen_obj_torqueSquared.m',...
-           'vars',{'u1','u2','u3','u4','u5'});
         
         
     end
@@ -626,7 +621,7 @@ mz3 = simplify(mz3);
 mi = find(M);
 m = M(mi);
 mzi = find(mz3);
-mz = mz3(mzi); mz = mz(:);  %Collapse to a column vector
+mz = mz3(mzi);
 dim = [na,nb,nc];
 
 % Pad any constant terms with "empty" to permit vectorization:

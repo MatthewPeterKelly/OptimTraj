@@ -22,7 +22,7 @@ param.stepTime = 0.6;
 
 problem.func.dynamics =  @(t,x,u)( dynamics(t,x,u,param) );
 
-problem.func.pathObj = @(t,x,u)( sum(u.^2, 1) );
+problem.func.pathObj = @(t,x,u)( obj_torqueSquared(u) );
 
 problem.func.bndCst = @(t0,x0,tF,xF)( stepConstraint(x0,xF,param) );
 
@@ -97,7 +97,8 @@ problem.guess.control = zeros(5,2);  %Start with passive trajectory
 %   almost all defaults for you if they are ommitted.
 
 % method = 'debug';
-method = 'trapazoid';
+% method = 'trapazoid';
+method = 'trapGrad';
 % method = 'hermiteSimpson';
 % method = 'chebyshev';
 % method = 'multiCheb';
@@ -126,6 +127,17 @@ switch method
         
         problem.options(2).method = 'trapazoid'; % Select the transcription method
         problem.options(2).trapazoid.nGrid = 25;  %method-specific options
+        
+    case 'trapGrad'  %trapazoid with analytic gradients
+        
+        problem.options = [];
+        problem.options.nlpOpt = optimset(...
+            'Display','iter',...
+            'TolFun',1e-4,...
+            'MaxFunEvals',5e4,...
+            'GradObj','on',...
+            'DerivativeCheck','on');
+        problem.options.method = 'trapazoid';
         
     case 'hermiteSimpson'
         
