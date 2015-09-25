@@ -97,8 +97,8 @@ problem.guess.control = zeros(5,2);  %Start with passive trajectory
 %   almost all defaults for you if they are ommitted.
 
 % method = 'debug';
-% method = 'trapazoid';
-method = 'trapGrad';
+method = 'trapazoid';
+% method = 'trapGrad';
 % method = 'hermiteSimpson';
 % method = 'chebyshev';
 % method = 'multiCheb';
@@ -134,10 +134,10 @@ switch method
         problem.options(1).trapazoid.nGrid = 10;  %method-specific options
         problem.options(1).nlpOpt.GradConstr = 'on';
         problem.options(1).nlpOpt.GradObj = 'on';
-%         problem.options(1).nlpOpt.DerivativeCheck = 'on';
+        problem.options(1).nlpOpt.DerivativeCheck = 'off';
         
         problem.options(2).method = 'trapazoid'; % Select the transcription method
-        problem.options(2).trapazoid.nGrid = 25;  %method-specific options
+        problem.options(2).trapazoid.nGrid = 45;  %method-specific options
         problem.options(2).nlpOpt.GradConstr = 'on';
         problem.options(2).nlpOpt.GradObj = 'on';
         
