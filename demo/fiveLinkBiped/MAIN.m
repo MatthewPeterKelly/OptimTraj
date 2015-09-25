@@ -130,16 +130,16 @@ switch method
         
     case 'trapGrad'  %trapazoid with analytic gradients
         
-        problem.options = [];
-        problem.options.nlpOpt = optimset(...
-            'Display','iter',...
-            'TolFun',1e-4,...
-            'MaxFunEvals',5e4,...
-            'GradObj','on',...
-            'GradConstr','on',...
-            'DerivativeCheck','on');
-        problem.options.method = 'trapazoid';
-        problem.options.defaultAccuracy = 'low';
+        problem.options(1).method = 'trapazoid'; % Select the transcription method
+        problem.options(1).trapazoid.nGrid = 10;  %method-specific options
+        problem.options(1).nlpOpt.GradConstr = 'on';
+        problem.options(1).nlpOpt.GradObj = 'on';
+%         problem.options(1).nlpOpt.DerivativeCheck = 'on';
+        
+        problem.options(2).method = 'trapazoid'; % Select the transcription method
+        problem.options(2).trapazoid.nGrid = 25;  %method-specific options
+        problem.options(2).nlpOpt.GradConstr = 'on';
+        problem.options(2).nlpOpt.GradObj = 'on';
         
     case 'hermiteSimpson'
         
