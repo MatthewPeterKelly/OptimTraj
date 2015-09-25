@@ -60,24 +60,7 @@ else %Analytic gradients
     for j=1:nz
         dqpDynGrad(:,j) = M\( -Mz(:,:,j)*dqpDyn + Fz(:,:,j) );  % Derivative of a matrix inverse http://www.atmos.washington.edu/~dennis/MatrixCalculus.pdf
     end
-    
-    dqpGrad = zeros(5,nz);
-    qpGrad = zeros(5,nz);
-    qmGrad = zeros(5,nz);
-    for i=1:5
-        qpGrad(i,1+i) = 1;
-        dqpGrad(i,6+i) = 1;
-        qmGrad(i,12+i) = 1;
-    end
-    
-    ceqPos = qp - qm([5;4;3;2;1]);
-    ceqVel = dqpDyn - dqp;
-    ceq = [ceqPos;ceqVel];
-    
-    ceqPosGrad = qpGrad - qmGrad([5;4;3;2;1],:);
-    ceqVelGrad = dqpDynGrad - dqpGrad;
-    ceqGrad = [ceqPosGrad;ceqVelGrad];
-    
+   
 end
 
 end

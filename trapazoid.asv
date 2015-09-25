@@ -345,7 +345,7 @@ for iTime=1:nTime
 end
 
 %%%% For unpacking the boundary constraints and objective:
-REMAP_bndIdxMap = [tIdx(1); xIdx(:,1); tIdx(end); xIdx(:,end)];
+REMAP_bndIdxMap = [REMAP_tIdx(1); xIdx
 
 end
 
@@ -507,24 +507,6 @@ end
 end
 
 
-%%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
-
-
-function CC = expandBoundaryGrad(C)
-%
-% This function takes a boundary constraint or objective from the user
-% and expands it to match the full set of decision variables
-%
-global REMAP_nDecVar REMAP_bndIdxMap
-
-CC = zeros(size(C,1),REMAP_nDecVar);
-CC(:,REMAP_bndIdxMap) = C;
-
-end
-
-
-%%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
-
 function [c, ceq, cGrad, ceqGrad] = myCstGrad(z,pack,dynFun, pathCst, bndCst)
 %
 % This function unpacks the decision variables, computes the defects along
@@ -542,7 +524,7 @@ function [c, ceq, cGrad, ceqGrad] = myCstGrad(z,pack,dynFun, pathCst, bndCst)
 %   ceq = equality constraints to be passed to fmincon
 %
 
-global REMAP_xGrad REMAP_bndIdxMap
+global REMAP_xGrad
 
 %Unpack the decision variables:
 nz = length(z);
@@ -607,8 +589,8 @@ else
     x0 = x(:,1);
     xF = x(:,end);
     [c_bnd, ceq_bnd, c_bndGradRaw, ceq_bndGradRaw] = bndCst(t0,x0,tF,xF);
-    c_bndGrad = expandBoundaryGrad(c_bndGradRaw);
-    ceq_bndGrad = expandBoundaryGrad(ceq_bndGradRaw);
+    c_bndGrad = flattenConstraintGradient(extractGradients(c_bndGradRaw));
+    ceq_bndGrad = flattenConstraintGradient(extractGradients(ceq_bndGradRaw));
 end
 
 %%%% Pack everything up:

@@ -50,16 +50,14 @@ else  % Using analytic gradients
         Fz(fzi) = fz(:,i);
         ddq(:,i) = M\F;  %Numerically invert the mass matrix
         for j=1:nz
-            ddqGrad(:,j,i) = M\( -Mz(:,:,j)*ddq(:,i) + Fz(:,:,j) );  % Derivative of a matrix inverse http://www.atmos.washington.edu/~dennis/MatrixCalculus.pdf
+            ddqGrad(:,j,i) = M\( -Mz(:,:,j)*ddq(:,i) + Fz(:,:,j) );
         end
     end
     
-    dqGrad = zeros(5,nz,nt); 
-    for i=1:5
-       dqGrad(i,1+5+i,:) = 1; 
-    end
+    dqGrad = zeros(5
     
-    dxGrad = cat(1,dqGrad,ddqGrad);
+    
+    disp('TODO - analytic gradient of dynamics');
     
 end
 
