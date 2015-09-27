@@ -1,9 +1,9 @@
-function soln = trapazoid(problem)
-% soln = trapazoid(problem)
+function soln = hermiteSimpson(problem)
+% soln = hermiteSimpson(problem)
 %
 % This function transcribes a trajectory optimization problem using the
-% trapazoid method for enforcing the dynamics. It can be found in chapter
-% four of Bett's book:
+% Hermite-Simpson (Seperated) method for enforcing the dynamics. It can be
+% found in chapter four of Bett's book:
 %
 %   John T. Betts, 2001
 %   Practical Methods for Optimal Control Using Nonlinear Programming
@@ -12,42 +12,9 @@ function soln = trapazoid(problem)
 %
 % Method specific parameters:
 %
-%   problem.options.method = 'trapazoid'
+%   problem.options.method = 'hermiteSimpson'
 %   problem.options.trapazoid = struct with method parameters:
 %       .nGrid = number of grid points to use for transcription
-%
-%
-% This transcription method is compatable with analytic gradients. To
-% enable this option, set:
-%   problem.nlpOpt.GradObj = 'on'
-%   problem.nlpOpt.GradConstr = 'on'
-%
-% Then the user-provided functions must provide gradients. The modified
-% function templates are as follows:
-%
-%         [dx, dxGrad] = dynamics(t,x,u)
-%                 dx = [nState, nTime] = dx/dt = derivative of state wrt time
-%                 dxGrad = [nState, 1+nx+nu, nTime]
-%
-%         [dObj, dObjGrad] = pathObj(t,x,u)
-%                 dObj = [1, nTime] = integrand from the cost function
-%                 dObjGrad = [1+nx+nu, nTime]
-%
-%         [c, ceq, cGrad, ceqGrad] = pathCst(t,x,u)
-%                 c = [nCst, nTime] = column vector of inequality constraints  ( c <= 0 )
-%                 ceq = [nCstEq, nTime] = column vector of equality constraints ( c == 0 )
-%                 cGrad = [nCst, 1+nx+nu, nTime];
-%                 ceqGrad = [nCstEq, 1+nx+nu, nTime];
-%
-%         [obj, objGrad] = bndObj(t0,x0,tF,xF)
-%                 obj = scalar = objective function for boundry points
-%                 objGrad = [1+nx+1+nx, 1]
-%
-%         [c, ceq, cGrad, ceqGrad] = bndCst(t0,x0,tF,xF)
-%                 c = [nCst,1] = column vector of inequality constraints  ( c <= 0 )
-%                 ceq = [nCstEq,1] = column vector of equality constraints ( c == 0 )
-%                 cGrad = [nCst, 1+nx+1+nx];
-%                 ceqGrad = [nCstEq, 1+nx+1+nx];
 %
 
 %To make code more readable
@@ -56,14 +23,16 @@ B = problem.bounds;
 F = problem.func;
 Opt = problem.options;
 
-nGrid = Opt.trapazoid.nGrid;  %Number of grid points for transcription
+% Each segment needs an additional data point in the middle, thus:
+nGrid = 2*Opt.hermiteSimpson.nSegment-1;
 
 flagGradObj = strcmp(Opt.nlpOpt.GradObj,'on');
 flagGradCst = strcmp(Opt.nlpOpt.GradConstr,'on');
 
 % Print out some solver info if desired:
 if Opt.verbose > 0
-    fprintf('  -> Transcription via trapazoid method, nGrid = %d\n',Opt.trapazoid.nGrid);
+    disp(['  -> Transcription via Hermite-Simpson method, nSegment = ' ...
+        num2str(Opt.hermiteSimpson.nSegment)]); disp('    ');
     if flagGradObj
         fprintf('      - using analytic gradients of objective function\n');
     end
@@ -111,7 +80,6 @@ else
         myConstraint(z, pack, F.dynamics, F.pathCst, F.bndCst) ); %Numerical gradients
 end
 
-
 P.x0 = zGuess;
 P.lb = zLow;
 P.ub = zUpp;
@@ -132,8 +100,9 @@ soln.grid.time = tSoln;
 soln.grid.state = xSoln;
 soln.grid.control = uSoln;
 
-soln.interp.state = @(t)( interp1(tSoln',xSoln',t','linear',nan)' );
-soln.interp.control = @(t)( interp1(tSoln',uSoln',t','linear',nan)' );
+% Use quadratic interpolation for each trajectory segment
+soln.interp.state = @(t)( pwPoly2(tSoln,xSoln,t) );
+soln.interp.control = @(t)( pwPoly2(tSoln,uSoln,t) );
 
 soln.info = output;
 soln.info.nlpTime = nlpTime;
@@ -146,7 +115,7 @@ end
 
 
 %%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
-%%%%                          SUB FUNCTIONS                            %%%%
+%%%%                   SUB FUNCTIONS                                   %%%%
 %%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
 
 
@@ -241,9 +210,15 @@ function cost = myObjective(z,pack,pathObj,bndObj)
 if isempty(pathObj)
     integralCost = 0;
 else
-    dt = (t(end)-t(1))/(pack.nTime-1);
+    dt = 2*(t(end)-t(1))/(pack.nTime-1);
     integrand = pathObj(t,x,u);  %Calculate the integrand of the cost function
-    weights = ones(length(t),1); weights([1,end]) = 0.5;
+    
+    %Simpson quadrature for integration of the cost function:
+    weights = 2*ones(pack.nTime,1);
+    weights(2:2:end) = 4;
+    weights([1,end]) = 1;
+    weights = weights/6;
+    
     integralCost = dt*integrand*weights;  %Trapazoidal integration
 end
 
@@ -284,25 +259,38 @@ function [c, ceq] = myConstraint(z,pack,dynFun, pathCst, bndCst)
 [t,x,u] = unPackDecVar(z,pack);
 
 
-%%%% Compute defects along the trajectory:
-
-dt = (t(end)-t(1))/(pack.nTime-1);
+%%%% Compute dynamics at each grid point:
+dt = 2*(t(end)-t(1))/(pack.nTime-1);
 dx = dynFun(t,x,u);
 
-xLow = x(:,1:end-1);
-xUpp = x(:,2:end);
+iLow = 1:2:(pack.nTime-1);
+iMid = iLow + 1;
+iUpp = iMid + 1;
 
-dxLow = dx(:,1:end-1);
-dxUpp = dx(:,2:end);
+xLow = x(:,iLow);
+xMid = x(:,iMid);
+xUpp = x(:,iUpp);
 
-% This is the key line:  (Trapazoid Rule)
-defects = xUpp-xLow - 0.5*dt*(dxLow+dxUpp);
+fLow = dx(:,iLow);
+fMid = dx(:,iMid);
+fUpp = dx(:,iUpp);
+
+
+%%%% Mid-point constraint (Hermite)
+defectMidpoint = xMid - (xUpp+xLow)/2 - dt*(fLow-fUpp)/8;
+
+%%%% Interval constraint (Simpson)
+defectInterval = xUpp - xLow - dt*(fUpp + 4*fMid + fLow)/6;
 
 
 %%%% Call user-defined constraints and pack up:
-[c, ceq] = collectConstraints(t,x,u,defects, pathCst, bndCst);
+[c, ceq] = collectConstraints(t,x,u,...
+    [defectMidpoint,defectInterval],...
+    pathCst, bndCst);
 
 end
+
+
 
 
 
@@ -366,6 +354,7 @@ end
 %%%%%%%%%%%%%%%%%
 
 
+
 function [cost, costGrad] = myObjGrad(z,pack,pathObj,bndObj,gradInfo)
 %
 % This function unpacks the decision variables, sends them to the
@@ -397,23 +386,26 @@ if isempty(pathObj)
     integralCostGrad = zeros(nState+nControl,1);
 else
     
-    % integration weights:
-    weights = ones(pack.nTime,1); weights([1,end]) = 0.5;
-        
     % Objective function integrand and gradients:
     [obj, objGradRaw] = pathObj(t,x,u);
     nInput = size(objGradRaw,1);
     objGradRaw = reshape(objGradRaw,1,nInput,nTime); 
     objGrad = grad_reshapeContinuous(objGradRaw,gradInfo);
     
-    % integral objective function
-    integralCost = dt*obj*weights;
+    %Simpson quadrature for integration of the cost function:
+    weights = 2*ones(pack.nTime,1);
+    weights(2:2:end) = 4;
+    weights([1,end]) = 1;
+    weights = weights/3;
     
-    % Gradient of integral objective function
+    integralCost = dt*integrand*weights;  % Integration
+    
+     % Gradient of integral objective function
     objGrad = reshape(objGrad,nTime,nDecVar);
     integralCostGrad = ...
         dtGrad*(obj*weights) + ...
         dt*sum(objGrad.*(weights*ones(1,nDecVar)),1);
+   
 end
 
 % Compute the cost at the boundaries of the trajectory
@@ -438,7 +430,10 @@ costGrad = bndCostGrad + integralCostGrad;
 end
 
 
+
 %%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
+
+
 
 function [c, ceq, cGrad, ceqGrad] = myCstGrad(z,pack,dynFun, pathCst, bndCst,gradInfo)
 %
@@ -467,24 +462,44 @@ function [c, ceq, cGrad, ceqGrad] = myCstGrad(z,pack,dynFun, pathCst, bndCst,gra
 [dx, dxGradRaw] = dynFun(t,x,u);
 dxGrad = grad_reshapeContinuous(dxGradRaw,gradInfo);
 
-xLow = x(:,1:end-1);
-xUpp = x(:,2:end);
+iLow = 1:2:(pack.nTime-1);
+iMid = iLow + 1;
+iUpp = iMid + 1;
 
-xLowGrad = gradInfo.xGrad(:,1:end-1,:);
-xUppGrad = gradInfo.xGrad(:,2:end,:);
+xLow = x(:,iLow);
+xMid = x(:,iMid);
+xUpp = x(:,iUpp);
 
-fLow = dx(:,1:end-1);
-fUpp = dx(:,2:end);
+fLow = dx(:,iLow);
+fMid = dx(:,iMid);
+fUpp = dx(:,iUpp);
 
-fLowGrad = dxGrad(:,1:end-1,:);
-fUppGrad = dxGrad(:,2:end,:);
+xLowGrad = gradInfo.xGrad(:,iLow,:);
+xMidGrad = gradInfo.xGrad(:,iMid,:);
+xUppGrad = gradInfo.xGrad(:,iUpp,:);
 
-% This is the key line:  (Trapazoid Rule)
-defects = xUpp-xLow - 0.5*dt*(fLow+fUpp);
+fLowGrad = dxGrad(:,iLow,:);
+fMidGrad = dxGrad(:,iMid,:);
+fUppGrad = dxGrad(:,iUpp,:);
+
+%%%% Mid-point constraint (Hermite)
+defectMidpoint = xMid - (xUpp+xLow)/2 - dt*(fLow-fUpp)/4;
+
+defectMidpointGrad = xMidGrad - 
+
+
+%%%% Interval constraint (Simpson)
+defectInterval = xUpp - xLow - dt*(fUpp + 4*fMid + fLow)/3;
+
+
+
+
 
 % Matrix size magic...
 dtGradFull = zeros(size(fUppGrad));
-dxGradFull = zeros(size(fUppGrad));
+fLowFull = zeros(size(fLowGrad));
+fMidFull = zeros(size(fGrad));
+fUppFull = zeros(size(fLowGrad));
 for i=1:length(dtGrad)
     dtGradFull(:,:,i) = dtGrad(i);
     dxGradFull(:,:,i) = fLow+fUpp;
@@ -494,6 +509,9 @@ end
 defectsGrad = xUppGrad - xLowGrad ...
     - 0.5*dtGradFull.*dxGradFull...
     - 0.5*dt*(fLowGrad+fUppGrad);
+
+
+
 
 % Compute gradients of the user-defined constraints and then pack up:
 [c, ceq, cGrad, ceqGrad] = grad_collectConstraints(t,x,u,...
