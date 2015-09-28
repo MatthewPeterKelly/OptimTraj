@@ -108,6 +108,8 @@ for i=1:length(opt)
             OPT.multiCheb = defaults_multiCheb(opt(i).defaultAccuracy);
         case 'rungeKutta'
             OPT.rungeKutta = defaults_rungeKutta(opt(i).defaultAccuracy);
+        case 'gpops'
+            OPT.gpops = defaults_gpops(opt(i).defaultAccuracy);
         otherwise
             error('Invalid value for options.method');
     end
@@ -212,11 +214,45 @@ switch accuracy
         OPT_rungeKutta.nSegment = 10;
         OPT_rungeKutta.nSubStep = 2;
     case 'medium'
-        OPT_rungeKutta.nSegment = 10;        
+        OPT_rungeKutta.nSegment = 10;
         OPT_rungeKutta.nSubStep = 3;
     case 'high'
         OPT_rungeKutta.nSegment = 20;
         OPT_rungeKutta.nSubStep = 4;
+    otherwise
+        error('Invalid value for options.defaultAccuracy')
+end
+
+end
+
+
+
+
+function OPT_gpops = defaults_gpops(accuracy)
+
+OPT_gpops.name = 'TrajOpt_GPOPS';
+OPT_gpops.auxdata = [];
+OPT_gpops.nlp.solver = 'ipopt'; % {'ipopt','snopt'}
+OPT_gpops.derivatives.supplier = 'sparseCD'; %'sparseCD';  %'adigator'
+OPT_gpops.derivatives.derivativelevel = 'first'; %'second';
+OPT_gpops.mesh.method = 'hp-PattersonRao';
+OPT_gpops.method = 'RPM-Integration';
+OPT_gpops.mesh.colpointsmin = 4;
+OPT_gpops.mesh.colpointsmax = 10;
+OPT_gpops.mesh.colpoints = 10;
+OPT_gpops.mesh.phase.fraction = ones(1,10)/10;
+
+switch accuracy
+    case 'low'
+        OPT_gpops.mesh.tolerance = 1e-2;
+        OPT_gpops.mesh.maxiteration = 0;
+    case 'medium'
+        OPT_gpops.mesh.tolerance = 1e-6;
+        OPT_gpops.mesh.maxiteration = 1;
+        
+    case 'high'
+        OPT_gpops.mesh.tolerance = 1e-8;
+        OPT_gpops.mesh.maxiteration = 4;
     otherwise
         error('Invalid value for options.defaultAccuracy')
 end

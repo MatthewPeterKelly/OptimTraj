@@ -101,11 +101,12 @@ problem.guess.control = zeros(5,2);  %Start with passive trajectory
 
 % method = 'trapazoid';
 % method = 'trapGrad';
-method = 'hermiteSimpson';
+% method = 'hermiteSimpson';
 % method = 'hermiteSimpsonGrad';
 % method = 'chebyshev';
 % method = 'multiCheb';
 % method = 'rungeKutta';
+method = 'gpops';
 
 %%%% Method-independent options:
 problem.options(1).nlpOpt = optimset(...
@@ -191,6 +192,11 @@ switch method
         problem.options(1).defaultAccuracy = 'low';
         problem.options(2).method = 'rungeKutta'; % Select the transcription method
         problem.options(2).defaultAccuracy = 'medium';
+        
+    case 'gpops'
+        problem.options = [];
+        problem.options.method = 'gpops';
+        problem.options.defaultAccuracy = 'low';
         
     otherwise
         error('Invalid method!');
