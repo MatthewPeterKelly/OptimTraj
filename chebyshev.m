@@ -1,4 +1,4 @@
-function soln = chebyshev(problem, defaultOptions)
+function soln = chebyshev(problem)
 % soln = chebyshev(problem)
 %
 % This function transcribes a trajectory optimization problem Chebyshev

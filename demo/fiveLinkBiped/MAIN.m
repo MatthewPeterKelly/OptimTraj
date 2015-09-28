@@ -5,6 +5,9 @@
 % phases of motion connected by impulsive heel-strike (no double-stance or
 % flight phases).
 %
+% The equations of motion and gradients are all derived by:
+%   --> Derive_Equations.m 
+%
 
 clc; clear;
 
@@ -12,21 +15,19 @@ clc; clear;
 %                       Set up parameters and options                     %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 param = getPhysicalParameters();
-config.param = param;  
 
-config.stepLength = 0.4;
-config.stepTime = 0.6;
-config.slope = 0*(pi/180);  %Walking slope
+param.stepLength = 0.4;
+param.stepTime = 0.6;
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                       Set up function handles                           %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
-problem.func.dynamics =  @(t,x,u)( dynamics(x,u,param) );
+problem.func.dynamics =  @(t,x,u)( dynamics(t,x,u,param) );
 
-problem.func.pathObj = @(t,x,u)( sum(u.^2, 1) );
+problem.func.pathObj = @(t,x,u)( obj_torqueSquared(u) );
 
-problem.func.bndCst = @(t0,x0,tF,xF)( stepConstraint(t0,x0,tF,xF,config) );
+problem.func.bndCst = @(t0,x0,tF,xF)( stepConstraint(x0,xF,param) );
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -34,8 +35,8 @@ problem.func.bndCst = @(t0,x0,tF,xF)( stepConstraint(t0,x0,tF,xF,config) );
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 problem.bounds.initialTime.low = 0;
 problem.bounds.initialTime.upp = 0;
-problem.bounds.finalTime.low = config.stepTime;
-problem.bounds.finalTime.upp = config.stepTime;
+problem.bounds.finalTime.low = param.stepTime;
+problem.bounds.finalTime.upp = param.stepTime;
 
 % State: (absolute reference frames)
 %   1 = stance leg tibia angle
@@ -70,7 +71,7 @@ problem.bounds.control.upp(1) = 0;
 
 % For now, just assume a linear trajectory between boundary values
 
-problem.guess.time = [0, config.stepTime];
+problem.guess.time = [0, param.stepTime];
 
 q0 = [...
     -0.3; % stance leg tibia angle
@@ -78,9 +79,9 @@ q0 = [...
     0.0; % torso angle
     -0.5; % swing leg femur angle
     -0.6]; % swing leg tibia angle
-qF = heelStrikeMap(q0,zeros(5,1),param);
+qF = q0([5;4;3;2;1]);   %Flip left-right
 
-dq0 = (qF-q0)/config.stepTime;
+dq0 = (qF-q0)/param.stepTime;
 dqF = dq0;
 
 problem.guess.state = [q0, qF; dq0, dqF];
@@ -99,8 +100,10 @@ problem.guess.control = zeros(5,2);  %Start with passive trajectory
 %   almost all defaults for you if they are ommitted.
 
 % method = 'trapazoid';
-% method = 'hermiteSimpson';
-method = 'chebyshev';
+% method = 'trapGrad';
+method = 'hermiteSimpson';
+% method = 'hermiteSimpsonGrad';
+% method = 'chebyshev';
 % method = 'multiCheb';
 % method = 'rungeKutta';
 
@@ -116,12 +119,26 @@ problem.options(2).nlpOpt = optimset(...
 
 
 switch method
+    
     case 'trapazoid'
         problem.options(1).method = 'trapazoid'; % Select the transcription method
         problem.options(1).trapazoid.nGrid = 10;  %method-specific options
         
         problem.options(2).method = 'trapazoid'; % Select the transcription method
         problem.options(2).trapazoid.nGrid = 25;  %method-specific options
+        
+    case 'trapGrad'  %trapazoid with analytic gradients
+        
+        problem.options(1).method = 'trapazoid'; % Select the transcription method
+        problem.options(1).trapazoid.nGrid = 10;  %method-specific options
+        problem.options(1).nlpOpt.GradConstr = 'on';
+        problem.options(1).nlpOpt.GradObj = 'on';
+        problem.options(1).nlpOpt.DerivativeCheck = 'off';
+        
+        problem.options(2).method = 'trapazoid'; % Select the transcription method
+        problem.options(2).trapazoid.nGrid = 45;  %method-specific options
+        problem.options(2).nlpOpt.GradConstr = 'on';
+        problem.options(2).nlpOpt.GradObj = 'on';
         
     case 'hermiteSimpson'
         
@@ -132,6 +149,19 @@ switch method
         % Second iteration: refine guess to get precise soln
         problem.options(2).method = 'hermiteSimpson'; % Select the transcription method
         problem.options(2).hermiteSimpson.nSegment = 15;  %method-specific options
+        
+    case 'hermiteSimpsonGrad'  %hermite simpson with analytic gradients
+        
+        problem.options(1).method = 'hermiteSimpson'; % Select the transcription method
+        problem.options(1).trapazoid.nGrid = 6;  %method-specific options
+        problem.options(1).nlpOpt.GradConstr = 'on';
+        problem.options(1).nlpOpt.GradObj = 'on';
+        problem.options(1).nlpOpt.DerivativeCheck = 'off';
+        
+        problem.options(2).method = 'hermiteSimpson'; % Select the transcription method
+        problem.options(2).trapazoid.nGrid = 15;  %method-specific options
+        problem.options(2).nlpOpt.GradConstr = 'on';
+        problem.options(2).nlpOpt.GradObj = 'on';
         
         
     case 'chebyshev'
