@@ -1,5 +1,6 @@
 # Matlab autosave files:
-*.m~
+**/*.m~
+**/*.asv
 
 # Matlab coder automatically generated files
 **/codegen/*
