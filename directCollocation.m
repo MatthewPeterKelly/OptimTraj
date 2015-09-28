@@ -178,7 +178,7 @@ end
 
 %%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
 
-function cost = myObjective(z,pack,pathObj,bndObj)
+function cost = myObjective(z,pack,pathObj,bndObj,weights)
 %
 % This function unpacks the decision variables, sends them to the
 % user-defined objective functions, and then returns the final cost
@@ -201,7 +201,6 @@ if isempty(pathObj)
 else
     dt = (t(end)-t(1))/(pack.nTime-1);
     integrand = pathObj(t,x,u);  %Calculate the integrand of the cost function
-    weights = ones(length(t),1); weights([1,end]) = 0.5;
     integralCost = dt*integrand*weights;  %Trapazoidal integration
 end
 
@@ -222,7 +221,7 @@ end
 
 %%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
 
-function [c, ceq] = myConstraint(z,pack,dynFun, pathCst, bndCst)
+function [c, ceq] = myConstraint(z,pack,dynFun, pathCst, bndCst, defectCst)
 %
 % This function unpacks the decision variables, computes the defects along
 % the trajectory, and then evaluates the user-defined constraint functions.
@@ -243,19 +242,9 @@ function [c, ceq] = myConstraint(z,pack,dynFun, pathCst, bndCst)
 
 
 %%%% Compute defects along the trajectory:
-
-dt = (t(end)-t(1))/(pack.nTime-1);
-dx = dynFun(t,x,u);
-
-xLow = x(:,1:end-1);
-xUpp = x(:,2:end);
-
-dxLow = dx(:,1:end-1);
-dxUpp = dx(:,2:end);
-
-% This is the key line:  (Trapazoid Rule)
-defects = xUpp-xLow - 0.5*dt*(dxLow+dxUpp);
-
+dt = (t(end)-t(1))/(length(t)-1);
+f = dynFun(t,x,u);
+defects = defectCst(dt,x,f);
 
 %%%% Call user-defined constraints and pack up:
 [c, ceq] = collectConstraints(t,x,u,defects, pathCst, bndCst);

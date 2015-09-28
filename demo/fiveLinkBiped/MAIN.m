@@ -5,6 +5,9 @@
 % phases of motion connected by impulsive heel-strike (no double-stance or
 % flight phases).
 %
+% The equations of motion and gradients are all derived by:
+%   --> Derive_Equations.m 
+%
 
 clc; clear;
 
@@ -96,10 +99,10 @@ problem.guess.control = zeros(5,2);  %Start with passive trajectory
 %   explicitly written out many options below, but the solver will fill in
 %   almost all defaults for you if they are ommitted.
 
-method = 'debug';
 % method = 'trapazoid';
 % method = 'trapGrad';
-% method = 'hermiteSimpson';
+method = 'hermiteSimpson';
+% method = 'hermiteSimpsonGrad';
 % method = 'chebyshev';
 % method = 'multiCheb';
 % method = 'rungeKutta';
@@ -116,18 +119,7 @@ problem.options(2).nlpOpt = optimset(...
 
 
 switch method
-    case 'debug'
-        problem.options = [];
-        problem.options.method = 'hermiteSimpson';
-        problem.options.defaultAccuracy = 'low';
-        problem.options.nlpOpt = optimset(...
-            'Display','iter',...   % {'iter','final','off'}
-            'TolFun',1e-3,...
-            'MaxFunEvals',1e4,...
-            'GradObj','on',...
-            'GradConstr','on',...
-            'DerivativeCheck','on');   %options for fmincon
-        
+    
     case 'trapazoid'
         problem.options(1).method = 'trapazoid'; % Select the transcription method
         problem.options(1).trapazoid.nGrid = 10;  %method-specific options
@@ -141,7 +133,7 @@ switch method
         problem.options(1).trapazoid.nGrid = 10;  %method-specific options
         problem.options(1).nlpOpt.GradConstr = 'on';
         problem.options(1).nlpOpt.GradObj = 'on';
-        problem.options(1).nlpOpt.DerivativeCheck = 'on';
+        problem.options(1).nlpOpt.DerivativeCheck = 'off';
         
         problem.options(2).method = 'trapazoid'; % Select the transcription method
         problem.options(2).trapazoid.nGrid = 45;  %method-specific options
@@ -157,6 +149,19 @@ switch method
         % Second iteration: refine guess to get precise soln
         problem.options(2).method = 'hermiteSimpson'; % Select the transcription method
         problem.options(2).hermiteSimpson.nSegment = 15;  %method-specific options
+        
+    case 'hermiteSimpsonGrad'  %hermite simpson with analytic gradients
+        
+        problem.options(1).method = 'hermiteSimpson'; % Select the transcription method
+        problem.options(1).trapazoid.nGrid = 6;  %method-specific options
+        problem.options(1).nlpOpt.GradConstr = 'on';
+        problem.options(1).nlpOpt.GradObj = 'on';
+        problem.options(1).nlpOpt.DerivativeCheck = 'off';
+        
+        problem.options(2).method = 'hermiteSimpson'; % Select the transcription method
+        problem.options(2).trapazoid.nGrid = 15;  %method-specific options
+        problem.options(2).nlpOpt.GradConstr = 'on';
+        problem.options(2).nlpOpt.GradObj = 'on';
         
         
     case 'chebyshev'

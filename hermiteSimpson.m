@@ -86,7 +86,21 @@ end
 
 function [defects, defectsGrad] = computeDefects(dt,x,f,dtGrad,xGrad,fGrad)
 %
-% TODO: Documentation
+% This function computes the defects that are used to enforce the
+% continuous dynamics of the system along the trajectory.
+%
+% INPUTS:
+%   dt = time step (scalar)
+%   x = [nState, nTime] = state at each grid-point along the trajectory
+%   f = [nState, nTime] = dynamics of the state along the trajectory
+%   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+%   dtGrad = [2,1] = gradient of time step with respect to [t0; tF]
+%   xGrad = [nState,nTime,nDecVar] = gradient of trajectory wrt dec vars
+%   fGrad = [nState,nTime,nDecVar] = gradient of dynamics wrt dec vars
+%
+% OUTPUTS:
+%   defects = [nState, nTime-1] = error in dynamics along the trajectory
+%   defectsGrad = [nState, nTime-1, nDecVars] = gradient of defects
 %
 
 nTime = size(x,2);
