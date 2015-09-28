@@ -16,254 +16,82 @@ function soln = hermiteSimpson(problem)
 %   problem.options.trapazoid = struct with method parameters:
 %       .nGrid = number of grid points to use for transcription
 %
-
-%To make code more readable
-G = problem.guess;
-B = problem.bounds;
-F = problem.func;
-Opt = problem.options;
+% This transcription method is compatable with analytic gradients. To
+% enable this option, set:
+%   problem.nlpOpt.GradObj = 'on'
+%   problem.nlpOpt.GradConstr = 'on'
+%
+% Then the user-provided functions must provide gradients. The modified
+% function templates are as follows:
+%
+%         [dx, dxGrad] = dynamics(t,x,u)
+%                 dx = [nState, nTime] = dx/dt = derivative of state wrt time
+%                 dxGrad = [nState, 1+nx+nu, nTime]
+%
+%         [dObj, dObjGrad] = pathObj(t,x,u)
+%                 dObj = [1, nTime] = integrand from the cost function
+%                 dObjGrad = [1+nx+nu, nTime]
+%
+%         [c, ceq, cGrad, ceqGrad] = pathCst(t,x,u)
+%                 c = [nCst, nTime] = column vector of inequality constraints  ( c <= 0 )
+%                 ceq = [nCstEq, nTime] = column vector of equality constraints ( c == 0 )
+%                 cGrad = [nCst, 1+nx+nu, nTime];
+%                 ceqGrad = [nCstEq, 1+nx+nu, nTime];
+%
+%         [obj, objGrad] = bndObj(t0,x0,tF,xF)
+%                 obj = scalar = objective function for boundry points
+%                 objGrad = [1+nx+1+nx, 1]
+%
+%         [c, ceq, cGrad, ceqGrad] = bndCst(t0,x0,tF,xF)
+%                 c = [nCst,1] = column vector of inequality constraints  ( c <= 0 )
+%                 ceq = [nCstEq,1] = column vector of equality constraints ( c == 0 )
+%                 cGrad = [nCst, 1+nx+1+nx];
+%                 ceqGrad = [nCstEq, 1+nx+1+nx];
+%
 
 % Each segment needs an additional data point in the middle, thus:
-nGrid = 2*Opt.hermiteSimpson.nSegment-1;
-
-flagGradObj = strcmp(Opt.nlpOpt.GradObj,'on');
-flagGradCst = strcmp(Opt.nlpOpt.GradConstr,'on');
+nGrid = 2*problem.options.hermiteSimpson.nSegment-1;
 
 % Print out some solver info if desired:
-if Opt.verbose > 0
-    disp(['  -> Transcription via Hermite-Simpson method, nSegment = ' ...
-        num2str(Opt.hermiteSimpson.nSegment)]); disp('    ');
-    if flagGradObj
-        fprintf('      - using analytic gradients of objective function\n');
-    end
-    if flagGradCst
-        fprintf('      - using analytic gradients of constraint function\n');
-    end
-    fprintf('\n');
+if problem.options.verbose > 0
+    fprintf('  -> Transcription via Hermite-Simpson method, nSegment = %d\n',...
+        problem.options.hermiteSimpson.nSegment);
 end
 
-% Interpolate the guess at the grid-points for transcription:
-guess.tSpan = G.time([1,end]);
-guess.time = linspace(guess.tSpan(1), guess.tSpan(2), nGrid);
-guess.state = interp1(G.time', G.state', guess.time')';
-guess.control = interp1(G.time', G.control', guess.time')';
+%%%% Method-specific details to pass along to solver:
 
-[zGuess, pack] = packDecVar(guess.time, guess.state, guess.control);
-if flagGradCst || flagGradObj
-    gradInfo = grad_computeInfo(pack);
-end
+%Simpson quadrature for integration of the cost function:
+problem.func.weights = (2/3)*ones(nGrid,1);
+problem.func.weights(2:2:end) = 4/3;
+problem.func.weights([1,end]) = 1/3;
 
-% Unpack all bounds:
-tLow = linspace(B.initialTime.low, B.finalTime.low, nGrid);
-xLow = [B.initialState.low, B.state.low*ones(1,nGrid-2), B.finalState.low];
-uLow = B.control.low*ones(1,nGrid);
-zLow = packDecVar(tLow,xLow,uLow);
+% Hermite-Simpson calculation of defects:
+problem.func.defectCst = @computeDefects;
 
-tUpp = linspace(B.initialTime.upp, B.finalTime.upp, nGrid);
-xUpp = [B.initialState.upp, B.state.upp*ones(1,nGrid-2), B.finalState.upp];
-uUpp = B.control.upp*ones(1,nGrid);
-zUpp = packDecVar(tUpp,xUpp,uUpp);
-
-%%%% Set up problem for fmincon:
-if flagGradObj
-    P.objective = @(z)( ...
-        myObjGrad(z, pack, F.pathObj, F.bndObj, gradInfo) );   %Analytic gradients
-else
-    P.objective = @(z)( ...
-        myObjective(z, pack, F.pathObj, F.bndObj) );   %Numerical gradients
-end
-if flagGradCst
-    P.nonlcon = @(z)( ...
-        myCstGrad(z, pack, F.dynamics, F.pathCst, F.bndCst, gradInfo) ); %Analytic gradients
-else
-    P.nonlcon = @(z)( ...
-        myConstraint(z, pack, F.dynamics, F.pathCst, F.bndCst) ); %Numerical gradients
-end
-
-P.x0 = zGuess;
-P.lb = zLow;
-P.ub = zUpp;
-P.Aineq = []; P.bineq = [];
-P.Aeq = []; P.beq = [];
-P.options = Opt.nlpOpt;
-P.solver = 'fmincon';
-
-%%%% Call fmincon to solve the non-linear program (NLP)
-tic;
-[zSoln, objVal,exitFlag,output] = fmincon(P);
-[tSoln,xSoln,uSoln] = unPackDecVar(zSoln,pack);
-nlpTime = toc;
-
-%%%% Store the results:
-
-soln.grid.time = tSoln;
-soln.grid.state = xSoln;
-soln.grid.control = uSoln;
+%%%% The key line - solve the problem by direct collocation:
+soln = directCollocation(problem);
 
 % Use quadratic interpolation for each trajectory segment
-soln.interp.state = @(t)( pwPoly2(tSoln,xSoln,t) );
-soln.interp.control = @(t)( pwPoly2(tSoln,uSoln,t) );
-
-soln.info = output;
-soln.info.nlpTime = nlpTime;
-soln.info.exitFlag = exitFlag;
-soln.info.objVal = objVal;
-
-soln.problem = problem;  % Return the fully detailed problem struct
+soln.interp.state = @(t)( interp1(tSoln,xSoln,t,'pchip') );
+soln.interp.control = @(t)( interp1(tSoln,uSoln,t,'pchip') );
 
 end
 
 
 %%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
-%%%%                   SUB FUNCTIONS                                   %%%%
+%%%%                          SUB FUNCTIONS                            %%%%
 %%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
 
 
-function [z,pack] = packDecVar(t,x,u)
+
+function [defects, defectsGrad] = computeDefects(dt,x,f,dtGrad,xGrad,fGrad)
 %
-% This function collapses the time (t), state (x)
-% and control (u) matricies into a single vector
-%
-% INPUTS:
-%   t = [1, nTime] = time vector (grid points)
-%   x = [nState, nTime] = state vector at each grid point
-%   u = [nControl, nTime] = control vector at each grid point
-%
-% OUTPUTS:
-%   z = column vector of 2 + nTime*(nState+nControl) decision variables
-%   pack = details about how to convert z back into t,x, and u
-%       .nTime
-%       .nState
-%       .nControl
+% TODO: Documentation
 %
 
-nTime = length(t);
-nState = size(x,1);
-nControl = size(u,1);
+nTime = size(x,2);
 
-tSpan = [t(1); t(end)];
-xCol = reshape(x, nState*nTime, 1);
-uCol = reshape(u, nControl*nTime, 1);
-
-z = [tSpan;xCol;uCol];
-
-pack.nTime = nTime;
-pack.nState = nState;
-pack.nControl = nControl;
-
-end
-
-%%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
-
-function [t,x,u] = unPackDecVar(z,pack)
-%
-% This function unpacks the decision variables for
-% trajectory optimization into the time (t),
-% state (x), and control (u) matricies
-%
-% INPUTS:
-%   z = column vector of 2 + nTime*(nState+nControl) decision variables
-%   pack = details about how to convert z back into t,x, and u
-%       .nTime
-%       .nState
-%       .nControl
-%
-% OUTPUTS:
-%   t = [1, nTime] = time vector (grid points)
-%   x = [nState, nTime] = state vector at each grid point
-%   u = [nControl, nTime] = control vector at each grid point
-%
-
-nTime = pack.nTime;
-nState = pack.nState;
-nControl = pack.nControl;
-nx = nState*nTime;
-nu = nControl*nTime;
-
-t = linspace(z(1),z(2),nTime);
-
-x = reshape(z((2+1):(2+nx)),nState,nTime);
-u = reshape(z((2+nx+1):(2+nx+nu)),nControl,nTime);
-
-end
-
-%%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
-
-function cost = myObjective(z,pack,pathObj,bndObj)
-%
-% This function unpacks the decision variables, sends them to the
-% user-defined objective functions, and then returns the final cost
-%
-% INPUTS:
-%   z = column vector of decision variables
-%   pack = details about how to convert decision variables into t,x, and u
-%   pathObj = user-defined integral objective function
-%   endObj = user-defined end-point objective function
-%
-% OUTPUTS:
-%   cost = scale cost for this set of decision variables
-%
-
-[t,x,u] = unPackDecVar(z,pack);
-
-% Compute the cost integral along trajectory
-if isempty(pathObj)
-    integralCost = 0;
-else
-    dt = 2*(t(end)-t(1))/(pack.nTime-1);
-    integrand = pathObj(t,x,u);  %Calculate the integrand of the cost function
-    
-    %Simpson quadrature for integration of the cost function:
-    weights = 2*ones(pack.nTime,1);
-    weights(2:2:end) = 4;
-    weights([1,end]) = 1;
-    weights = weights/6;
-    
-    integralCost = dt*integrand*weights;  %Trapazoidal integration
-end
-
-% Compute the cost at the boundaries of the trajectory
-if isempty(bndObj)
-    bndCost = 0;
-else
-    t0 = t(1);
-    tF = t(end);
-    x0 = x(:,1);
-    xF = x(:,end);
-    bndCost = bndObj(t0,x0,tF,xF);
-end
-
-cost = bndCost + integralCost;
-
-end
-
-%%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
-
-function [c, ceq] = myConstraint(z,pack,dynFun, pathCst, bndCst)
-%
-% This function unpacks the decision variables, computes the defects along
-% the trajectory, and then evaluates the user-defined constraint functions.
-%
-% INPUTS:
-%   z = column vector of decision variables
-%   pack = details about how to convert decision variables into t,x, and u
-%   dynFun = user-defined dynamics function
-%   pathCst = user-defined constraints along the path
-%   endCst = user-defined constraints at the boundaries
-%
-% OUTPUTS:
-%   c = inequality constraints to be passed to fmincon
-%   ceq = equality constraints to be passed to fmincon
-%
-
-[t,x,u] = unPackDecVar(z,pack);
-
-
-%%%% Compute dynamics at each grid point:
-dt = 2*(t(end)-t(1))/(pack.nTime-1);
-dx = dynFun(t,x,u);
-
-iLow = 1:2:(pack.nTime-1);
+iLow = 1:2:(nTime-1);
 iMid = iLow + 1;
 iUpp = iMid + 1;
 
@@ -271,250 +99,49 @@ xLow = x(:,iLow);
 xMid = x(:,iMid);
 xUpp = x(:,iUpp);
 
-fLow = dx(:,iLow);
-fMid = dx(:,iMid);
-fUpp = dx(:,iUpp);
+fLow = f(:,iLow);
+fMid = f(:,iMid);
+fUpp = f(:,iUpp);
 
-
-%%%% Mid-point constraint (Hermite)
-defectMidpoint = xMid - (xUpp+xLow)/2 - dt*(fLow-fUpp)/8;
-
-%%%% Interval constraint (Simpson)
-defectInterval = xUpp - xLow - dt*(fUpp + 4*fMid + fLow)/6;
-
-
-%%%% Call user-defined constraints and pack up:
-[c, ceq] = collectConstraints(t,x,u,...
-    [defectMidpoint,defectInterval],...
-    pathCst, bndCst);
-
-end
-
-
-
-
-
-
-%%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
-%%%%            Additional Sub-Functions for Gradients                 %%%%
-%%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
-
-function gradInfo = grad_computeInfo(pack)
-%
-% This function computes the matrix dimensions and indicies that are used
-% to map the gradients from the user functions to the gradients needed by
-% fmincon. The key difference is that the gradients in the user functions
-% are with respect to their input (t,x,u) or (t0,x0,tF,xF), while the
-% gradients for fmincon are with respect to all decision variables.
-%
-% INPUTS:
-%   nDeVar = number of decision variables
-%   pack = details about packing and unpacking the decision variables
-%       .nTime
-%       .nState
-%       .nControl
-%
-% OUTPUTS:
-%   gradInfo = details about how to transform gradients
-%
-
-
-nTime = pack.nTime;
-nState = pack.nState;
-nControl = pack.nControl;
-nDecVar = 2 + nState*nTime + nControl*nTime;
-
-zIdx = 1:nDecVar;
-gradInfo.nDecVar = nDecVar;
-[tIdx, xIdx, uIdx] = unPackDecVar(zIdx,pack);
-gradInfo.tIdx = tIdx([1,end]);
-gradInfo.xuIdx = [xIdx;uIdx];
-
-%%%% Compute gradients of time:
-% alpha = (0..N-1)/(N-1)
-% t = alpha*tUpp + (1-alpha)*tLow
-alpha = (0:(nTime-1))/(nTime-1);
-gradInfo.alpha = [1-alpha; alpha];
-
-%%%% Compute gradients of state
-gradInfo.xGrad = zeros(nState,nTime,nDecVar);
-for iTime=1:nTime
-    for iState=1:nState
-        gradInfo.xGrad(iState,iTime,xIdx(iState,iTime)) = 1;
-    end
-end
-
-%%%% For unpacking the boundary constraints and objective:
-gradInfo.bndIdxMap = [tIdx(1); xIdx(:,1); tIdx(end); xIdx(:,end)];
-
-
-end
-
-
-%%%%%%%%%%%%%%%%%
-
-
-
-function [cost, costGrad] = myObjGrad(z,pack,pathObj,bndObj,gradInfo)
-%
-% This function unpacks the decision variables, sends them to the
-% user-defined objective functions, and then returns the final cost
-%
-% INPUTS:
-%   z = column vector of decision variables
-%   pack = details about how to convert decision variables into t,x, and u
-%   pathObj = user-defined integral objective function
-%   endObj = user-defined end-point objective function
-%
-% OUTPUTS:
-%   cost = scale cost for this set of decision variables
-%
-
-%Unpack the decision variables:
-[t,x,u] = unPackDecVar(z,pack);
-
-% Time step for integration:
-[dt, dtGrad] = grad_timeStep(t, gradInfo);
-nTime = length(t);
-nState = size(x,1);
-nControl = size(u,1);
-nDecVar = length(z);
-
-% Compute the cost integral along the trajectory
-if isempty(pathObj)
-    integralCost = 0;
-    integralCostGrad = zeros(nState+nControl,1);
-else
-    
-    % Objective function integrand and gradients:
-    [obj, objGradRaw] = pathObj(t,x,u);
-    nInput = size(objGradRaw,1);
-    objGradRaw = reshape(objGradRaw,1,nInput,nTime); 
-    objGrad = grad_reshapeContinuous(objGradRaw,gradInfo);
-    
-    %Simpson quadrature for integration of the cost function:
-    weights = 2*ones(pack.nTime,1);
-    weights(2:2:end) = 4;
-    weights([1,end]) = 1;
-    weights = weights/3;
-    
-    integralCost = dt*obj*weights;  % Integration
-    
-     % Gradient of integral objective function
-    objGrad = reshape(objGrad,nTime,nDecVar);
-    integralCostGrad = ...
-        dtGrad*(obj*weights) + ...
-        dt*sum(objGrad.*(weights*ones(1,nDecVar)),1);
-   
-end
-
-% Compute the cost at the boundaries of the trajectory
-if isempty(bndObj)
-    bndCost = 0;
-    bndCostGrad = zeros(1,nDecVar);
-else
-    t0 = t(1);
-    tF = t(end);
-    x0 = x(:,1);
-    xF = x(:,end);
-    [bndCost, bndCostGradRaw] = bndObj(t0,x0,tF,xF);
-    bndCostGrad = grad_reshapeBoundary(bndCostGradRaw,gradInfo);    
-end
-
-% Cost function
-cost = bndCost + integralCost;
-
-% Gradients
-costGrad = bndCostGrad + integralCostGrad;
-
-end
-
-
-
-%%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
-
-
-
-function [c, ceq, cGrad, ceqGrad] = myCstGrad(z,pack,dynFun, pathCst, bndCst,gradInfo)
-%
-% This function unpacks the decision variables, computes the defects along
-% the trajectory, and then evaluates the user-defined constraint functions.
-%
-% INPUTS:
-%   z = column vector of decision variables
-%   pack = details about how to convert decision variables into t,x, and u
-%   dynFun = user-defined dynamics function
-%   pathCst = user-defined constraints along the path
-%   endCst = user-defined constraints at the boundaries
-%
-% OUTPUTS:
-%   c = inequality constraints to be passed to fmincon
-%   ceq = equality constraints to be passed to fmincon
-%
-
-%Unpack the decision variables:
-[t,x,u] = unPackDecVar(z,pack);
-
-% Time step for integration:
-[dt, dtGrad] = grad_timeStep(t,gradInfo);
-
-%%%% Compute defects along the trajectory:
-[dx, dxGradRaw] = dynFun(t,x,u);
-dxGrad = grad_reshapeContinuous(dxGradRaw,gradInfo);
-
-iLow = 1:2:(pack.nTime-1);
-iMid = iLow + 1;
-iUpp = iMid + 1;
-
-xLow = x(:,iLow);
-xMid = x(:,iMid);
-xUpp = x(:,iUpp);
-
-fLow = dx(:,iLow);
-fMid = dx(:,iMid);
-fUpp = dx(:,iUpp);
-
-xLowGrad = gradInfo.xGrad(:,iLow,:);
-xMidGrad = gradInfo.xGrad(:,iMid,:);
-xUppGrad = gradInfo.xGrad(:,iUpp,:);
-
-fLowGrad = dxGrad(:,iLow,:);
-fMidGrad = dxGrad(:,iMid,:);
-fUppGrad = dxGrad(:,iUpp,:);
-
-% Matrix size magic...
-dtGradFull = zeros(size(fUppGrad));
-fLowFull = zeros(size(fLowGrad));
-fMidFull = zeros(size(fMidGrad));
-fUppFull = zeros(size(fUppGrad));
-for i=1:length(dtGrad)
-    dtGradFull(:,:,i) = dtGrad(i);
-    fLowFull(:,:,i) = fLow;
-    fMidFull(:,:,i) = fMid;
-    fUppFull(:,:,i) = fUpp;
-end
-
-%%%% Mid-point constraint (Hermite)
+% Mid-point constraint (Hermite)
 defectMidpoint = xMid - (xUpp+xLow)/2 - dt*(fLow-fUpp)/4;
 
-defectMidpointGrad = xMidGrad - (xUppGrad+xLowGrad)/2 + ...
-    -dtGradFull.*(fLowFull - fUppFull)/4 + ...
-    -dt*(fLowGrad-fUppGrad)/4;
-
-%%%% Interval constraint (Simpson)
+% Interval constraint (Simpson)
 defectInterval = xUpp - xLow - dt*(fUpp + 4*fMid + fLow)/3;
 
-defectIntervalGrad = xUppGrad - xLowGrad + ...
-    -dtGradFull.*(fUppFull + 4*fMidFull + fLowFull)/3 + ...
-    -dt*(fUppGrad + 4*fMidGrad + fLowGrad)/3;
+% Pack up all defects:
+defects = [defectMidpoint, defectInterval];
 
-%%%% Pack up defects:
-defects = [defectMidpoint,defectInterval];
-defectsGrad = cat(2,defectMidpointGrad,defectIntervalGrad);
 
-% Compute gradients of the user-defined constraints and then pack up:
-[c, ceq, cGrad, ceqGrad] = grad_collectConstraints(t,x,u,...
-    defects, defectsGrad, pathCst, bndCst, gradInfo);
+%%%% Gradient Calculations:
+if nargout == 2
+    
+    xLowGrad = xGrad(:,iLow,:);
+    xMidGrad = xGrad(:,iMid,:);
+    xUppGrad = xGrad(:,iUpp,:);
+    
+    fLowGrad = fGrad(:,iLow,:);
+    fMidGrad = fGrad(:,iMid,:);
+    fUppGrad = fGrad(:,iUpp,:);
+    
+    % Mid-point constraint (Hermite)
+    dtGradTerm = zeros(size(xMidGrad));
+    dtGradTerm(:,:,1) = -dtGrad(1)*(fLow-fUpp)/4;
+    dtGradTerm(:,:,2) = -dtGrad(2)*(fLow-fUpp)/4;
+    defectMidpointGrad = xMidGrad - (xUppGrad+xLowGrad)/2 + dtGradTerm + ...
+        - dt*(fLowGrad-fUppGrad)/4;
+    
+    % Interval constraint (Simpson)
+    dtGradTerm = zeros(size(xUppGrad));
+    dtGradTerm(:,:,1) = -dtGrad(1)*(fUpp + 4*fMid + fLow)/3;
+    dtGradTerm(:,:,2) = -dtGrad(2)*(fUpp + 4*fMid + fLow)/3;
+    defectIntervalGrad = xUppGrad - xLowGrad + dtGradTerm + ...
+        - dt*(fUppGrad + 4*fMidGrad + fLowGrad)/3;
+    
+    %Pack up the gradients of the defects:
+    defectsGrad = cat(2,defectMidpointGrad,defectIntervalGrad);
+    
+end
 
 end
 
