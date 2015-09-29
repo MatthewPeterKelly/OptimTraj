@@ -15,7 +15,7 @@ if nargout == 2 %Numerical gradients
     c = cst_footVel(x0,xF,p);
     
     % Step length and height
-    ceq2 = cst_stepLength(xF,p);
+    ceq2 = cst_stepLength(xF,p); 
     
     % Pack up equality constraints:
     ceq = [ceq1;ceq2];

@@ -85,6 +85,7 @@ function soln = trajOpt(problem)
 %           'chebyshev'
 %           'multiCheb'
 %           'rungeKutta'
+%           'gpops'     ( Must have GPOPS2 installed )
 %
 %       .[method] = a struct to pass method-specific parameters. For
 %       example, to pass the number of grid-points to the trapazoid method,
@@ -177,6 +178,8 @@ for iter=1:nIter
             soln(iter) = multiCheb(P);
         case 'rungeKutta'
             soln(iter) = rungeKutta(P);
+        case 'gpops'
+            soln(iter) = gpopsWrapper(P);
         otherwise
             error('Invalid method. Type: ''help trajOpt'' for a valid list.');
     end
