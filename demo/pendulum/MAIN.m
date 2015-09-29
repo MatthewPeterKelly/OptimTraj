@@ -6,21 +6,18 @@
 %
 
 % Physical parameters of the pendulum
-p.m = 1;
-p.g = 9.81;
-p.l = 0.4;
-p.c = 0.1;
+p.k = 1;  % Normalized gravity constant
+p.c = 0.1;  % Normalized damping constant
 
 % User-defined dynamics and objective functions
-problem.func.dynamics = @(t,x,u)( dynamics(t,x,u,p) );
-problem.func.pathObj = @(t,x,u)( objective(t,x,u,p) );
-problem.func.pathCst = @(t,x,u)( pathConstraint(t,x,u,p) );
+problem.func.dynamics = @(t,x,u)( dynamics(x,u,p) );
+problem.func.pathObj = @(t,x,u)( objective(u) );
 
 % Problem bounds
 problem.bounds.initialTime.low = 0;
 problem.bounds.initialTime.upp = 0;
 problem.bounds.finalTime.low = 0.5;
-problem.bounds.finalTime.upp = 1.5;
+problem.bounds.finalTime.upp = 2.5;
 
 problem.bounds.state.low = [-2*pi; -inf];
 problem.bounds.state.upp = [2*pi; inf];
@@ -29,8 +26,8 @@ problem.bounds.initialState.upp = [0;0];
 problem.bounds.finalState.low = [pi;0];
 problem.bounds.finalState.upp = [pi;0];
 
-problem.bounds.control.low = -inf;
-problem.bounds.control.upp = inf;
+problem.bounds.control.low = -5; %-inf;
+problem.bounds.control.upp = 5; %inf;
 
 % Guess at the initial trajectory
 problem.guess.time = [0,1];
@@ -40,12 +37,11 @@ problem.guess.control = [0, 0];
 % Options for fmincon
 problem.options.nlpOpt = optimset(...
     'Display','iter',...
-    'MaxFunEvals',1e5,...
     'GradObj','on',...
-    'GradConstr','off',...
-    'DerivativeCheck','on');
+    'GradConstr','on',...
+    'DerivativeCheck','on');   %Fmincon automatically checks
 
-problem.options.method = 'trapazoid';
+problem.options.method = 'hermiteSimpson';
 problem.options.defaultAccuracy = 'medium';
 
 % Solve the problem

@@ -1,16 +1,18 @@
-function [obj, objGrad] = objective(t,x,u,p)
+function [obj, objGrad] = objective(u)
 % [obj, objGrad] = objective(t,x,u,p)
 %
 % Computes the objective function (and gradients) for the simple pendulum
 %
 
-q = x(1,:);
-dq = x(2,:);
+obj = u.^2;
 
-if nargout == 1   %Numerical gradients
-    obj = autoGen_objective(t,q,dq,u,p.m,p.g,p.l,p.c,zeros(size(q)));
-else % Analytic gradients
-    [obj,objGrad] = autoGen_objective(t,q,dq,u,p.m,p.g,p.l,p.c,zeros(size(q)));
+if nargout == 2  % Analytic gradients
+    nTime = length(u);
+    
+    objGrad = zeros(4,nTime); %4 = [time + angle + rate + torque];
+    
+    objGrad(4,:) = 2*u;  %gradient obj wrt u
+    
 end
 
 end
