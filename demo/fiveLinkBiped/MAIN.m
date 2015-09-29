@@ -157,13 +157,13 @@ switch method
     case 'hermiteSimpsonGrad'  %hermite simpson with analytic gradients
         
         problem.options(1).method = 'hermiteSimpson'; % Select the transcription method
-        problem.options(1).trapazoid.nGrid = 6;  %method-specific options
+        problem.options(1).hermiteSimpson.nSegment = 6;  %method-specific options
         problem.options(1).nlpOpt.GradConstr = 'on';
         problem.options(1).nlpOpt.GradObj = 'on';
         problem.options(1).nlpOpt.DerivativeCheck = 'off';
         
         problem.options(2).method = 'hermiteSimpson'; % Select the transcription method
-        problem.options(2).trapazoid.nGrid = 15;  %method-specific options
+        problem.options(2).hermiteSimpson.nSegment = 15;  %method-specific options
         problem.options(2).nlpOpt.GradConstr = 'on';
         problem.options(2).nlpOpt.GradObj = 'on';
         
