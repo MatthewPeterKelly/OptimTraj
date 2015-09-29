@@ -74,10 +74,11 @@ problem.guess.control = [0, 0];
 %   almost all defaults for you if they are ommitted.
 
 % method = 'trapazoid';
-% method = 'hermiteSimpson';
+method = 'hermiteSimpson';
 % method = 'chebyshev';
 % method = 'multiCheb';
-method = 'rungeKutta';
+% method = 'rungeKutta';
+% method = 'gpops';
 
 switch method
     case 'trapazoid'
@@ -172,6 +173,10 @@ switch method
         problem.options(1).defaultAccuracy = 'low';
         problem.options(2).method = 'rungeKutta'; % Select the transcription method
         problem.options(2).defaultAccuracy = 'medium';
+        
+    case 'gpops'
+        problem.options.method = 'gpops';
+        problem.options.defaultAccuracy = 'medium';
         
     otherwise
         error('Invalid method!');

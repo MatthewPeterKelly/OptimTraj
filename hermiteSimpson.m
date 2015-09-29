@@ -71,9 +71,12 @@ problem.func.defectCst = @computeDefects;
 %%%% The key line - solve the problem by direct collocation:
 soln = directCollocation(problem);
 
-% Use quadratic interpolation for each trajectory segment
-soln.interp.state = @(t)( interp1(tSoln,xSoln,t,'pchip') );
-soln.interp.control = @(t)( interp1(tSoln,uSoln,t,'pchip') );
+% Use piecewise cubic interpolation for each trajectory segment
+tSoln = soln.grid.time';
+xSoln = soln.grid.state';
+uSoln = soln.grid.control';
+soln.interp.state = @(t)( interp1(tSoln,xSoln,t,'pchip')' );
+soln.interp.control = @(t)( interp1(tSoln,uSoln,t,'pchip')' );
 
 end
 

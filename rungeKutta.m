@@ -83,7 +83,7 @@ soln.grid.control = uGrid;
 
 % Quadratic interpolation over each sub-step for the control:
 tSoln = linspace(tSpan(1),tSpan(2),nGridControl);
-soln.interp.control = @(t)( pwPoly2(tSoln, uSoln, t) );
+soln.interp.control = @(t)( interp1(tSoln', uSoln', t','pchip')' );
 
 % Cubic spline representation of the state over each substep:
 dxGrid = F.dynamics(tGrid,xGrid,uGrid);
