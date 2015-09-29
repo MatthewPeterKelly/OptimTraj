@@ -105,11 +105,11 @@ problem.guess.control = zeros(5,2);  %Start with passive trajectory
 % method = 'trapazoid';
 % method = 'trapGrad';
 % method = 'hermiteSimpson';
-% method = 'hermiteSimpsonGrad';
+method = 'hermiteSimpsonGrad';
 % method = 'chebyshev';
 % method = 'multiCheb';
 % method = 'rungeKutta';
-method = 'gpops';
+% method = 'gpops';
 
 %%%% Method-independent options:
 problem.options(1).nlpOpt = optimset(...
@@ -199,7 +199,7 @@ switch method
     case 'gpops'
         problem.options = [];
         problem.options.method = 'gpops';
-        problem.options.defaultAccuracy = 'medium';
+        problem.options.defaultAccuracy = 'high';
         problem.options.gpops.nlp.solver = 'snopt';  %Set to 'ipopt' if you have GPOPS but not SNOPT
         
     otherwise
@@ -226,11 +226,24 @@ u = soln(end).grid.control;
 %                     Plot the solution                                   %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
-Anim.figNum = 2;
+Anim.figNum = 1;
 Anim.speed = 0.25;
 Anim.plotFunc = @(t,q)( drawRobot(q,param) );
 Anim.verbose = true;
 animate(t,q,Anim);
+
+figure(3); clf;
+subplot(1,2,1);
+plot(t,q);
+legend('q1','q2','q3','q4','q5');
+xlabel('time')
+ylabel('link angles')
+subplot(1,2,2);
+plot(t,u);
+legend('u1','u2','u3','u4','u5');
+xlabel('time')
+ylabel('joint torques')
+
 
 
 
