@@ -292,14 +292,49 @@ disp('Done!');
 
     function objectiveFunctions()
         
-        % Torque-squared objective function
-       F = u1*u1 + u2*u2 + u3*u3 + u4*u4 + u5*u5; 
-       [f, ~, fz, fzi, ~]  = computeGradients(F,z,empty);
+        %%%% Torque-squared objective function
+        F = u1*u1 + u2*u2 + u3*u3 + u4*u4 + u5*u5;
+        [f, ~, fz, fzi, ~]  = computeGradients(F,z,empty);
         
-       matlabFunction(f,fz,fzi,...
-           'file','autoGen_obj_torqueSquared.m',...
-           'vars',{'u1','u2','u3','u4','u5'});
+        matlabFunction(f,fz,fzi,...
+            'file','autoGen_obj_torqueSquared.m',...
+            'vars',{'u1','u2','u3','u4','u5'});
         
+        %%%%% Cost of Transport:
+        v1 = dq1;   % joint rate 1
+        v2 = dq2-dq1;   % joint rate 2
+        v3 = dq3-dq2; % joint rate 3
+        v4 = dq4-dq3;  % joint rate 4
+        v5 = dq5-dq4;  % joint rate 5
+        alpha = sym('alpha','real');  %smoothing parameter
+        stepLength = sym('stepLength','real');
+        smoothAbs = @(x)( sqrt(alpha^2 + x^2) );
+        absPower = smoothAbs(v1*u1) + smoothAbs(v2*u2) + smoothAbs(v3*u3) + ...
+            smoothAbs(v4*u4) + smoothAbs(v5*u5);
+        weight = (m1+m2+m3+m4+m5)*g;
+        F = absPower/(weight*stepLength);
+        
+        [f, ~, fz, fzi, ~]  = computeGradients(F,z,empty);
+        
+        matlabFunction(f,fz,fzi,...
+            'file','autoGen_obj_costOfTransport.m',...
+            'vars',{...
+            'dq1','dq2','dq3','dq4','dq5',...
+            'u1','u2','u3','u4','u5'...
+            'm1','m2','m3','m4','m5','g',...
+            'alpha','stepLength'});
+        
+        %%%% Power Squared
+        F = (v1*u1)^2 + (v2*u2)^2 + (v3*u3)^2 + ...
+            (v4*u4)^2 + (v5*u5)^2;
+        
+        [f, ~, fz, fzi, ~]  = computeGradients(F,z,empty);
+        
+        matlabFunction(f,fz,fzi,...
+            'file','autoGen_obj_powerSquared.m',...
+            'vars',{...
+            'dq1','dq2','dq3','dq4','dq5',...
+            'u1','u2','u3','u4','u5'});
         
     end
 

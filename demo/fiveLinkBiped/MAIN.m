@@ -16,6 +16,7 @@ clc; clear;
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 param = getPhysicalParameters();
 
+param.alpha = 0.1;   % Smoothing parameter for cost of transport integral
 param.stepLength = 0.4;
 param.stepTime = 0.6;
 
@@ -26,6 +27,8 @@ param.stepTime = 0.6;
 problem.func.dynamics =  @(t,x,u)( dynamics(t,x,u,param) );
 
 problem.func.pathObj = @(t,x,u)( obj_torqueSquared(u) );
+% problem.func.pathObj = @(t,x,u)( obj_powerSquared(x,u) );
+% problem.func.pathObj = @(t,x,u)( obj_costOfTransport(x,u,param) );
 
 problem.func.bndCst = @(t0,x0,tF,xF)( stepConstraint(x0,xF,param) );
 
@@ -102,11 +105,11 @@ problem.guess.control = zeros(5,2);  %Start with passive trajectory
 % method = 'trapazoid';
 % method = 'trapGrad';
 % method = 'hermiteSimpson';
-% method = 'hermiteSimpsonGrad';
+method = 'hermiteSimpsonGrad';
 % method = 'chebyshev';
 % method = 'multiCheb';
 % method = 'rungeKutta';
-method = 'gpops';
+% method = 'gpops';
 
 %%%% Method-independent options:
 problem.options(1).nlpOpt = optimset(...
