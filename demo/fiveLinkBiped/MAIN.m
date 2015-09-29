@@ -105,11 +105,11 @@ problem.guess.control = zeros(5,2);  %Start with passive trajectory
 % method = 'trapazoid';
 % method = 'trapGrad';
 % method = 'hermiteSimpson';
-method = 'hermiteSimpsonGrad';
+% method = 'hermiteSimpsonGrad';
 % method = 'chebyshev';
 % method = 'multiCheb';
 % method = 'rungeKutta';
-% method = 'gpops';
+method = 'gpops';
 
 %%%% Method-independent options:
 problem.options(1).nlpOpt = optimset(...
@@ -199,7 +199,8 @@ switch method
     case 'gpops'
         problem.options = [];
         problem.options.method = 'gpops';
-        problem.options.defaultAccuracy = 'high';
+        problem.options.defaultAccuracy = 'medium';
+        problem.options.gpops.nlp.solver = 'snopt';  %Set to 'ipopt' if you have GPOPS but not SNOPT
         
     otherwise
         error('Invalid method!');

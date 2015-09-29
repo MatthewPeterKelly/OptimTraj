@@ -7,9 +7,8 @@ function soln = gpopsWrapper(problem)
 %
 % GPOPS2 implements an adaptive transcription method - it adjusts both the
 % number of trajectory segments and the order of the interpolating
-% polynomial in each segment. Most GPOPS features are available through
-% this interface, with the exception of multiple phase problems and
-% gradients using adigator.
+% polynomial in each segment. Many GPOPS features are available in TrajOpt,
+% but not all. Notably, TrajOpt cannot solve multi-phase problems.
 %
 % Set any special GPOPS options by storing the 'setup' sturuct in the 
 % problem.options.gpops struct.
@@ -117,6 +116,10 @@ end
 
 
 function output = gpops_endpoint(input,bndObj,bndCst)
+%
+%  The endpoint function contains the boundary constraints and objective
+%  functions for the trajectory optimization problem.
+%
 
 t0 = input.phase.initialtime;
 tF = input.phase.finaltime;
@@ -139,6 +142,10 @@ end
 
 
 function output = gpops_continuous(input,dynamics,pathObj,pathCst)
+%
+% The continuous function contains the path objective, dynamics, and path
+% constraint functions.
+%
 
 t = input.phase.time';
 x = input.phase.state';

@@ -236,28 +236,26 @@ OPT_gpops.guess.phase.integral = 0;
 
 OPT_gpops.name = 'TrajOpt_GPOPS';
 OPT_gpops.auxdata = [];
-OPT_gpops.nlp.solver = 'snopt'; % {'ipopt','snopt'}
+OPT_gpops.nlp.solver = 'ipopt'; % {'ipopt','snopt'}
 OPT_gpops.derivatives.dependencies = 'full';  %’full’, ’sparse’ or ’sparseNaN’
 OPT_gpops.derivatives.supplier = 'sparseCD'; %'sparseCD';  %'adigator'
 OPT_gpops.derivatives.derivativelevel = 'first'; %'second';
 OPT_gpops.mesh.method = 'hp-PattersonRao';
 OPT_gpops.method = 'RPM-Integration';
-OPT_gpops.mesh.colpointsmin = 4;
-OPT_gpops.mesh.colpointsmax = 10;
-OPT_gpops.mesh.colpoints = 10;
+OPT_gpops.mesh.phase.colpoints = 10*ones(1,10);
 OPT_gpops.mesh.phase.fraction = ones(1,10)/10;
 
 switch accuracy
     case 'low'
         OPT_gpops.mesh.tolerance = 1e-2;
-        OPT_gpops.mesh.maxiteration = 0;
+        OPT_gpops.mesh.maxiterations = 0;
     case 'medium'
-        OPT_gpops.mesh.tolerance = 1e-6;
-        OPT_gpops.mesh.maxiteration = 1;
+        OPT_gpops.mesh.tolerance = 1e-3;
+        OPT_gpops.mesh.maxiterations = 1;
         
     case 'high'
-        OPT_gpops.mesh.tolerance = 1e-8;
-        OPT_gpops.mesh.maxiteration = 4;
+        OPT_gpops.mesh.tolerance = 1e-4;
+        OPT_gpops.mesh.maxiterations = 3;
     otherwise
         error('Invalid value for options.defaultAccuracy')
 end
