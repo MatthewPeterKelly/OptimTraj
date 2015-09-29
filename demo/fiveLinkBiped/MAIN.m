@@ -196,7 +196,7 @@ switch method
     case 'gpops'
         problem.options = [];
         problem.options.method = 'gpops';
-        problem.options.defaultAccuracy = 'low';
+        problem.options.defaultAccuracy = 'high';
         
     otherwise
         error('Invalid method!');

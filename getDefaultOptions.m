@@ -230,9 +230,14 @@ end
 
 function OPT_gpops = defaults_gpops(accuracy)
 
+OPT_gpops.bounds.phase.integral.lower = -inf;
+OPT_gpops.bounds.phase.integral.upper = inf;
+OPT_gpops.guess.phase.integral = 0;
+
 OPT_gpops.name = 'TrajOpt_GPOPS';
 OPT_gpops.auxdata = [];
-OPT_gpops.nlp.solver = 'ipopt'; % {'ipopt','snopt'}
+OPT_gpops.nlp.solver = 'snopt'; % {'ipopt','snopt'}
+OPT_gpops.derivatives.dependencies = 'full';  %’full’, ’sparse’ or ’sparseNaN’
 OPT_gpops.derivatives.supplier = 'sparseCD'; %'sparseCD';  %'adigator'
 OPT_gpops.derivatives.derivativelevel = 'first'; %'second';
 OPT_gpops.mesh.method = 'hp-PattersonRao';
