@@ -17,8 +17,8 @@ clc; clear;
 param = getPhysicalParameters();
 
 param.alpha = 0.1;   % Smoothing parameter for cost of transport integral
-param.stepLength = 0.4;
-param.stepTime = 0.6;
+param.stepLength = 0.5;
+param.stepTime = 0.7;
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                       Set up function handles                           %
@@ -31,6 +31,8 @@ problem.func.pathObj = @(t,x,u)( obj_torqueSquared(u) );
 % problem.func.pathObj = @(t,x,u)( obj_costOfTransport(x,u,param) );
 
 problem.func.bndCst = @(t0,x0,tF,xF)( stepConstraint(x0,xF,param) );
+
+problem.func.pathCst = @(t,x,u)( pathConstraint(x) );
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -232,7 +234,7 @@ Anim.plotFunc = @(t,q)( drawRobot(q,param) );
 Anim.verbose = true;
 animate(t,q,Anim);
 
-figure(3); clf;
+figure(2); clf;
 subplot(1,2,1);
 plot(t,q);
 legend('q1','q2','q3','q4','q5');
@@ -243,7 +245,6 @@ plot(t,u);
 legend('u1','u2','u3','u4','u5');
 xlabel('time')
 ylabel('joint torques')
-
 
 
 

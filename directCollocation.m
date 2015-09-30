@@ -354,7 +354,9 @@ if isempty(pathCst)
     c_pathGrad = [];
     ceq_pathGrad = [];
 else
-    [c_path, ceq_path, c_pathGradRaw, ceq_pathGradRaw] = pathCst(t,x,u);
+    [c_pathRaw, ceq_pathRaw, c_pathGradRaw, ceq_pathGradRaw] = pathCst(t,x,u);
+    c_path = reshape(c_pathRaw,numel(c_pathRaw),1);
+    ceq_path = reshape(ceq_pathRaw,numel(ceq_pathRaw),1);
     c_pathGrad = grad_flattenPathCst(grad_reshapeContinuous(c_pathGradRaw,gradInfo));
     ceq_pathGrad = grad_flattenPathCst(grad_reshapeContinuous(ceq_pathGradRaw,gradInfo));
 end

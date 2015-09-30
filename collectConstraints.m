@@ -26,7 +26,9 @@ if isempty(pathCst)
     c_path = [];
     ceq_path = [];
 else
-    [c_path, ceq_path] = pathCst(t,x,u);
+    [c_pathRaw, ceq_pathRaw] = pathCst(t,x,u);
+    c_path = reshape(c_pathRaw,numel(c_pathRaw),1);
+    ceq_path = reshape(ceq_pathRaw,numel(ceq_pathRaw),1);
 end
 if isempty(bndCst)
     c_bnd = [];
@@ -44,3 +46,5 @@ c = [c_path;c_bnd];
 ceq = [ceq_dyn; ceq_path; ceq_bnd];
 
 end
+
+
