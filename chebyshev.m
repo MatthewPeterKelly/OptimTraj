@@ -50,7 +50,8 @@ nColPts = Opt.chebyshev.nColPts;  %Number of grid points for transcription
 % Print out some solver info if desired:
 if Opt.verbose > 0
     disp('  -> Transcription via Chebyshev orthogonal collocation');
-    disp('    ');
+    fprintf('        nColPts = %d \n', nColPts);
+    
 end
 
 % Chebyshev points and weights on the default domain
