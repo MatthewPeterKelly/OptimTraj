@@ -1,0 +1,19 @@
+# Point-Mass Trajector Optimization Example
+
+This simple example is shown primarily to illustrate the effect that the choice of objective function can have on performance of the optimization as well as the final result.
+
+## Torque-Squared
+
+One of the most popular cost functions for trajectory optimization is the "torque-squared" cost function, at least for the robotics applications that I mostly deal with. The reason for this is that, in the absence of constraints, the resulting trajectories will be smooth. This is important because smooth functions are easily represented with the piece-wise polynomial form used by nearly all transcription methods.
+
+## Minimal-Work
+
+Another popular cost function is the minimum work trajectory, which typically features an `abs(power)` term in the integrand. This is a useful cost function because of it's connection to reducing actuator work on a real system, but it renders the problem difficult to solve. Why?
+
+0. The most obvious problem with this cost funcion is the `abs(power)` term. If handled poorly, this will cause poor convergence at best, and in some cases might cause a complete failure to converge. This is because it violates the consistency and smoothness assumptions that are made by the non-linear programming solver (KKT necessary conditions do not apply - John T. Betts, 2010). There are two common methods for handling such discontinuities:
+
+	-  __Smoothing__ - The easiest method to implement is to directly smooth the nonlinearity. This is often done with exponential smoothing (`abs(x) ~ x*tanh(x/alpha)`). The problem is that with heavy smoothing the behavior of the solution is dramatically changed, and with light smoothing then you run into convergence problems again. Analytic gradients are particularily useful if there is light smoothing. Aside - The problem with `abs(x)` is that the derivative is discontinuous at x == 0.
+
+	- __Slack Variables__ - The *correct* way to deal with an `abs(x)` in the objective function is to introduce two slack variables and a path constraint. This is tricky to program, but it is mathematically identical to the desired cost function, but the resulting NLP behaves nicely. See Betts textbook, chapter 1 (example 1.13) for the precise definitions.
+
+0. The more subtle problem that happens with such cost functions is that the optimal trajectory is itself discontinuous! In the example shown here, moving a point-mass from A to B with minimal work, the optimal solution is impulsive! The "true" solution is a positive impulse to start the block moving, and a negative impulse to stop it. If the actuator effort is bounded, then the optimal solution is: max force - zero force - min force, with discontinuities whe the actuator value changes. This is hugely problematic, because nearly all transcription methods for trajectory optimization assume that the trajectory is well-approximated by piece-wise polynomials. Unfortunately, all polynomial approximations perform poorly when approximating a discontinuity. Google " Gibbs phenomenon" if you're curious. The (bad) solution to this is to just use a dense grid, and accept that the solution will be poorly modeled in the segment of the trajectory that contains the discontinuity. If you're using orthogonal collocation with a single segment, then all hope is lost (just try running one of the examples in the `chebyshev` mode if you're curious). The more elegant solution, employed by GPOPS II (google Anil Rao, hp-adaptive meshing), is to adaptively move the knot points in the trajectory such that they coincide with such discontinuities. In theory this works well, but I've found that the adaptive meshing occasionally fails.
