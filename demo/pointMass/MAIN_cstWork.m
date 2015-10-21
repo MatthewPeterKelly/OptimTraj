@@ -8,7 +8,7 @@
 %   1) The objective function is non-smooth. This is addressed here by
 %   introducing a pair of slack variables and a path constraint. An
 %   alternative method is shown in MAIN_smoothWork.m, that directly smooths
-%   the objective function.
+%   
 %
 %   2) The second problem is that the solution itself is non-smooth. This
 %   means that the piece-wise polynomial representation will fail to
@@ -18,7 +18,6 @@
 %   integral of the input rate squared.
 %
 %
-
 clc; clear;
 
 % User-defined dynamics and objective functions
@@ -32,10 +31,10 @@ problem.bounds.initialTime.upp = 0;
 problem.bounds.finalTime.low = 1.0;
 problem.bounds.finalTime.upp = 1.0;
 
-problem.bounds.state.low = [-1; -inf];
+problem.bounds.state.low = [0; -inf];
 problem.bounds.state.upp = [1; inf];
-problem.bounds.initialState.low = [-1;0];
-problem.bounds.initialState.upp = [-1;0];
+problem.bounds.initialState.low = [0;0];
+problem.bounds.initialState.upp = [0;0];
 problem.bounds.finalState.low = [1;0]; 
 problem.bounds.finalState.upp = [1;0];
 
@@ -45,7 +44,7 @@ problem.bounds.control.upp = [uMax;inf(2,1)];
 
 % Guess at the initial trajectory
 problem.guess.time = [0,1];
-problem.guess.state = [-1, 2; 1, 2];
+problem.guess.state = [0, 0; 1, 0];
 problem.guess.control = [0, 0;zeros(2,2)]; %Two slack variables
 
 % Options for fmincon
