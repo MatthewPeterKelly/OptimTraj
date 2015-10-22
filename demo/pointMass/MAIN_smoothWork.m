@@ -22,6 +22,7 @@
 %
 
 clc; clear;
+addpath ../../
 
 alpha = 1e0;  %abs() smoothing parameter   1e5 = heavy smoothing,  ~no smoothing 1e-5
 beta = 0;   %torque-squared smoothing.

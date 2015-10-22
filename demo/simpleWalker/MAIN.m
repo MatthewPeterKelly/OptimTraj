@@ -7,7 +7,9 @@
 % function is minimize integral of torque-squared.
 %
 %
+
 clc; clear;
+addpath ../../
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                  Parameters for the dynamics function                   %

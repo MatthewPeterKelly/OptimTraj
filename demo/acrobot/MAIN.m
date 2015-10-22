@@ -4,7 +4,9 @@
 % acrobot robot: a double pendulum with a motor between the links
 %
 %
+
 clc; clear;
+addpath ../../
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                  Parameters for the dynamics function                   %

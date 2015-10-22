@@ -7,6 +7,7 @@
 %
 
 clc; clear;
+addpath ../../
 
 % User-defined dynamics and objective functions
 problem.func.dynamics = @(t,x,u)( dynamics(x,u) );

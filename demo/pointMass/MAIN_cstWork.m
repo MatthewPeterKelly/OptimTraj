@@ -18,7 +18,9 @@
 %   integral of the input rate squared.
 %
 %
+
 clc; clear;
+addpath ../../
 
 % User-defined dynamics and objective functions
 problem.func.dynamics = @(t,x,u)( cstDyn(x,u) );

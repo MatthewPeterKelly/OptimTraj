@@ -9,6 +9,7 @@
 %
 
 clc; clear;
+addpath ../../
 
 %%%% Assumptions:
 % SpaceX Falcon 9 rocket:

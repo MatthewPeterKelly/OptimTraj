@@ -10,6 +10,7 @@
 %
 
 clc; clear;
+addpath ../../
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                       Set up parameters and options                     %
@@ -27,8 +28,6 @@ param.stepTime = 0.7;
 problem.func.dynamics =  @(t,x,u)( dynamics(t,x,u,param) );
 
 problem.func.pathObj = @(t,x,u)( obj_torqueSquared(u) );
-% problem.func.pathObj = @(t,x,u)( obj_powerSquared(x,u) );
-% problem.func.pathObj = @(t,x,u)( obj_costOfTransport(x,u,param) );
 
 problem.func.bndCst = @(t0,x0,tF,xF)( stepConstraint(x0,xF,param) );
 

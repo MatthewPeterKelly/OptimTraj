@@ -5,6 +5,9 @@
 % gradients with trajOpt.
 %
 
+clc; clear;
+addpath ../../
+
 % Physical parameters of the pendulum
 p.k = 1;  % Normalized gravity constant
 p.c = 0.1;  % Normalized damping constant
