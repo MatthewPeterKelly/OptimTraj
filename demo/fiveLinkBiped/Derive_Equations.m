@@ -306,11 +306,9 @@ disp('Done!');
         v3 = dq3-dq2; % joint rate 3
         v4 = dq4-dq3;  % joint rate 4
         v5 = dq5-dq4;  % joint rate 5
-        alpha = sym('alpha','real');  %smoothing parameter
-        stepLength = sym('stepLength','real');
-        smoothAbs = @(x)( sqrt(alpha^2 + x^2) );
-        absPower = smoothAbs(v1*u1) + smoothAbs(v2*u2) + smoothAbs(v3*u3) + ...
-            smoothAbs(v4*u4) + smoothAbs(v5*u5);
+        syms sn1 sn2 sn3 sn4 sn5 'real'  %Slack variables for negative part
+        syms sp1 sp2 sp3 sp4 sp5 'real'  %Slack variables for positive part
+        absPower = sn1 + sn2 + sn3 + sn4 + sn5 + sp1 + sp2 + sp3 + sp4 + sp5;  
         weight = (m1+m2+m3+m4+m5)*g;
         F = absPower/(weight*stepLength);
         
@@ -321,12 +319,38 @@ disp('Done!');
             'vars',{...
             'dq1','dq2','dq3','dq4','dq5',...
             'u1','u2','u3','u4','u5'...
+            'sn1','sn2','sn3','sn4','sn5'...
+            'sp1','sp2','sp3','sp4','sp5'...
             'm1','m2','m3','m4','m5','g',...
             'alpha','stepLength'});
         
+        % Now compute the constraint functions for the slack variables:
+        pow1 = v1*u1;  %Power used by joint 1
+        pow2 = v2*u2;  %Power used by joint 2
+        pow3 = v3*u3;  %Power used by joint 3
+        pow4 = v4*u4;  %Power used by joint 4
+        pow5 = v5*u5;  %Power used by joint 5
+        slackCst = [...
+            pow1 - (sp1 - sn1);
+            pow2 - (sp2 - sn2);
+            pow3 - (sp3 - sn3);
+            pow4 - (sp4 - sn4);
+            pow5 - (sp5 - sn5)];
+        [f, fi, fz, fzi, fzd] = computeGradients(slackCst,z,empty);
+        
+        
+        %%%% TODO %%%%
+        % Figure out how to do these gradients nicely. Probably need a new
+        % script, since the input vector is changed. Maybe just make two
+        % versions of the five-link-biped problem?
+        %%%%
+        
+        
+        
+        
+        
         %%%% Power Squared
-        F = (v1*u1)^2 + (v2*u2)^2 + (v3*u3)^2 + ...
-            (v4*u4)^2 + (v5*u5)^2;
+        F = pow1^2 + pow2^2 + pow3^2 + pow4^2 + pow5^2;
         
         [f, ~, fz, fzi, ~]  = computeGradients(F,z,empty);
         
