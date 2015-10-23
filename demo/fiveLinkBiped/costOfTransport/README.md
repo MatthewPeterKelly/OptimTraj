@@ -7,5 +7,3 @@ The dynamics are derived here in the file `Derive_Equations.m` using the matlab 
 The entry-point script for this example is `MAIN.m` which can be used to run the trajectory optimization using a variety of techniques.
 
 The default objective function is a simple sum of the integral of torque-squared at each joint. This produces nice smooth trajectories. I've also included two other objective functions, which can be used instead by simply commenting out the correct line in MAIN.m. They produce trajectories that are not as nice, tending to drag the swing foot along the ground. These can be fixed by adding more constraints to the solution.
-
-The top level files all use the simple torque-squared cost function. The solution for the more complicated Cost of Transport objective function is included in a sub-directory.

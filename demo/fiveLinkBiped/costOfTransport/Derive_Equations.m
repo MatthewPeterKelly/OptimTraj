@@ -60,6 +60,20 @@ u3 = sym('u3','real');   %Stance hip
 u4 = sym('u4','real');   %Swing hip
 u5 = sym('u5','real');   %Swing knee
 
+%%%% Slack variables -- negative component of power 
+sn1 = sym('sn1','real');  %Stance foot
+sn2 = sym('sn2','real');   %Stance knee
+sn3 = sym('sn3','real');   %Stance hip
+sn4 = sym('sn4','real');   %Swing hip
+sn5 = sym('sn5','real');   %Swing knee
+
+%%%% Slack variables -- positive component of power 
+sp1 = sym('sp1','real');  %Stance foot
+sp2 = sym('sp2','real');   %Stance knee
+sp3 = sym('sp3','real');   %Stance hip
+sp4 = sym('sp4','real');   %Swing hip
+sp5 = sym('sp5','real');   %Swing knee
+
 %%%% Mass of each link
 m1 = sym('m1','real');
 m2 = sym('m2','real');
@@ -139,7 +153,9 @@ q = [q1;q2;q3;q4;q5];
 dq = [dq1;dq2;dq3;dq4;dq5];
 ddq = [ddq1;ddq2;ddq3;ddq4;ddq5];
 u = [u1;u2;u3;u4;u5];
-z = [t;q;dq;u];   % time-varying vector of inputs
+sn = [sn1;sn2;sn3;sn4;sn5];
+sp = [sp1;sp2;sp3;sp4;sp5];
+z = [t;q;dq;u;sn;sp];   % time-varying vector of inputs
 
 % Neat trick to compute derivatives using the chain rule
 derivative = @(in)( jacobian(in,[q;dq])*[dq;ddq] );
@@ -292,13 +308,57 @@ disp('Done!');
 
     function objectiveFunctions()
         
-        %%%% Torque-squared objective function
-        F = u1*u1 + u2*u2 + u3*u3 + u4*u4 + u5*u5;
+        % Joint rates:
+                v1 = dq1;   % joint rate 1
+        v2 = dq2-dq1;   % joint rate 2
+        v3 = dq3-dq2; % joint rate 3
+        v4 = dq4-dq3;  % joint rate 4
+        v5 = dq5-dq4;  % joint rate 5
+        
+        % Compute the power used by each joint
+        pow1 = v1*u1;  %Power used by joint 1
+        pow2 = v2*u2;  %Power used by joint 2
+        pow3 = v3*u3;  %Power used by joint 3
+        pow4 = v4*u4;  %Power used by joint 4
+        pow5 = v5*u5;  %Power used by joint 5
+        
+        % Constraint on the slack variables:
+        slackCst = [...
+            pow1 - (sp1 - sn1);
+            pow2 - (sp2 - sn2);
+            pow3 - (sp3 - sn3);
+            pow4 - (sp4 - sn4);
+            pow5 - (sp5 - sn5)];
+        
+        % Gradients of the constraint on slack variables:
+        [c, ~, cz, czi, ~] = computeGradients(slackCst,z,empty);
+        
+                matlabFunction(c,cz,czi,...
+            'file','autoGen_cst_costOfTransport.m',...
+            'vars',{...
+            'dq1','dq2','dq3','dq4','dq5',...
+            'u1','u2','u3','u4','u5',...
+            'sn1','sn2','sn3','sn4','sn5',...
+            'sp1','sp2','sp3','sp4','sp5','empty'});
+        
+        % abs(power) using slack variables:
+        absPower = sn1 + sn2 + sn3 + sn4 + sn5 + sp1 + sp2 + sp3 + sp4 + sp5;
+        
+        % Cost of Transport:
+        weight = (m1+m2+m3+m4+m5)*g;
+        stepLength = sym('stepLength','real');
+        F = absPower/(weight*stepLength);
         [f, ~, fz, fzi, ~]  = computeGradients(F,z,empty);
         
         matlabFunction(f,fz,fzi,...
-            'file','autoGen_obj_torqueSquared.m',...
-            'vars',{'u1','u2','u3','u4','u5'});        
+            'file','autoGen_obj_costOfTransport.m',...
+            'vars',{...
+            'm1','m2','m3','m4','m5',...
+            'sn1','sn2','sn3','sn4','sn5', ...
+            'sp1','sp2','sp3','sp4','sp5',...
+            'g','stepLength','empty'});
+        
+        
     end
 
 
