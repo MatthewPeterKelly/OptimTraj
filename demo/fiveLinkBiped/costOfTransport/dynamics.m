@@ -6,7 +6,7 @@ function [dx, dxGrad] = dynamics(t,x,u,p)
 %
 % INPUTS:
 %   z = [10,n] = first-order state = [q; dq];
-%   u = [5, 1] = input torque vector
+%   u = [5+10, 1] = input torque vector and slack variables
 %   p = parameter struct
 
 nt = length(t);
@@ -39,7 +39,7 @@ else  % Using analytic gradients
     
     M = zeros(5,5);  %Mass matrix
     F = zeros(5,1);
-    nz = 16;   %Number of dimensions for gradients [t;q;dq;u]
+    nz = 26;   %Number of dimensions for gradients [t;q;dq;u;sn;sp]
     ddqGrad = zeros(5,nz,nt);
     Mz = zeros(mzd); 
     Fz = zeros(fzd);

@@ -1,5 +1,5 @@
-function [c, ceq, cGrad, ceqGrad] = pathConstraint(x)
-% [c, ceq, cGrad, ceqGrad] = pathConstraint(x)
+function [c, ceq, cGrad, ceqGrad] = pathConstraint(x,u)
+% [c, ceq, cGrad, ceqGrad] = pathConstraint(x,u)
 %
 % This function implements a simple path constraint to keep the knee joint
 % of the robot from hyer-extending.
@@ -10,12 +10,23 @@ q2 = x(2,:);
 q4 = x(4,:);
 q5 = x(5,:);
 
+dq = x(6:10,:);
+sn = u(6:10,:);
+sp = u(11:15,:);
+empty = zeros(size(q1));
 
 if nargout == 2 % numerical gradients
     
     c = [...
         q1-q2;    %Stance knee joint limit
         q5-q4];   %Swing knee joint limit
+    
+     ceq = autoGen_cst_costOfTransport(...
+        dq(1,:),dq(2,:),dq(3,:),dq(4,:),dq(5,:),...
+        u(1,:),u(2,:),u(3,:),u(4,:),u(5,:),...
+        sn(1,:),sn(2,:),sn(3,:),sn(4,:),sn(5,:),...
+        sp(1,:),sp(2,:),sp(3,:),sp(4,:),sp(5,:),...
+        empty);
     
 else %Analytic gradients
     
@@ -28,7 +39,7 @@ else %Analytic gradients
     % Gradients with respect to:
     % [t,q1,q2,q3,q4,q5,dq1,dq2,dq3,dq4,dq5,u1,u2,u3,u4,u5] = 1+5+5+5
     nCst = 2;   %stance leg ; swing leg
-    nGrad = 16;  %time, angles, rates, torques
+    nGrad = 26;  %time, angles, rates, torques, slack
     nTime = size(x,2);
     cGrad = zeros(nCst,nGrad,nTime);
     cGrad(1,3,:) = -1;  % cst stance wrt q2
@@ -37,16 +48,20 @@ else %Analytic gradients
     cGrad(2,6,:) = 1; % cst swing wrt q5
     
     %%%% Slack Variables
-    dq = x(6:10<
     [ceq, ceqZ, ceqZi] = autoGen_cst_costOfTransport(...
-        dq1,dq2,dq3,dq4,dq5,...
-        u1,u2,u3,u4,u5,....
-        sn1,sn2,sn3,sn4,sn5,...
-        sp1,sp2,sp3,sp4,sp5,...
+        dq(1,:),dq(2,:),dq(3,:),dq(4,:),dq(5,:),...
+        u(1,:),u(2,:),u(3,:),u(4,:),u(5,:),...
+        sn(1,:),sn(2,:),sn(3,:),sn(4,:),sn(5,:),...
+        sp(1,:),sp(2,:),sp(3,:),sp(4,:),sp(5,:),...
         empty);
     
-    
-    ceqGrad = [];
+    ceqGrad = zeros(5,nGrad,nTime);  % 5 = number of slack constraints
+    tmp = zeros(5,1,nGrad);
+    for i=1:nTime
+        tmp(ceqZi) = ceqZ(:,i);
+        ceqGrad(:,:,i) = tmp(:,1,:);    
+    end
+     
 end
 
 end

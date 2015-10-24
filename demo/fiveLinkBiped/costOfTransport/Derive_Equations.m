@@ -60,14 +60,14 @@ u3 = sym('u3','real');   %Stance hip
 u4 = sym('u4','real');   %Swing hip
 u5 = sym('u5','real');   %Swing knee
 
-%%%% Slack variables -- negative component of power 
+%%%% Slack variables -- negative component of power
 sn1 = sym('sn1','real');  %Stance foot
 sn2 = sym('sn2','real');   %Stance knee
 sn3 = sym('sn3','real');   %Stance hip
 sn4 = sym('sn4','real');   %Swing hip
 sn5 = sym('sn5','real');   %Swing knee
 
-%%%% Slack variables -- positive component of power 
+%%%% Slack variables -- positive component of power
 sp1 = sym('sp1','real');  %Stance foot
 sp2 = sym('sp2','real');   %Stance knee
 sp3 = sym('sp3','real');   %Stance hip
@@ -309,7 +309,7 @@ disp('Done!');
     function objectiveFunctions()
         
         % Joint rates:
-                v1 = dq1;   % joint rate 1
+        v1 = dq1;   % joint rate 1
         v2 = dq2-dq1;   % joint rate 2
         v3 = dq3-dq2; % joint rate 3
         v4 = dq4-dq3;  % joint rate 4
@@ -333,7 +333,7 @@ disp('Done!');
         % Gradients of the constraint on slack variables:
         [c, ~, cz, czi, ~] = computeGradients(slackCst,z,empty);
         
-                matlabFunction(c,cz,czi,...
+        matlabFunction(c,cz,czi,...
             'file','autoGen_cst_costOfTransport.m',...
             'vars',{...
             'dq1','dq2','dq3','dq4','dq5',...
@@ -666,9 +666,9 @@ function [m, mi, mz, mzi, dim] = computeGradients(M,z,empty)
 %
 % OUTPUTS:
 %   m = [nd, 1] = symbolic vector of non-zero elements in M
-%   i = [nd, 1] = linear indicies to map m --> [na,nb] matrix
+%   mi = [nd, 1] = linear indicies to map m --> [na,nb] matrix
 %   mz = [ne, 1] = symbolic vector of non-zero elements in Mz
-%   iz = [ne, 1] = linear indicies to map mz --> [na,nb,nc] array
+%   mzi = [ne, 1] = linear indicies to map mz --> [na,nb,nc] array
 %   dim = [3,1] = [na,nb,nc] = dimensions of 3d version of mz
 %
 
