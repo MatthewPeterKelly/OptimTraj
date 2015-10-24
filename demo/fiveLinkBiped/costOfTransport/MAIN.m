@@ -22,6 +22,8 @@ param = getPhysicalParameters();
 param.stepLength = 0.5;
 param.stepTime = 0.7;
 
+param.alpha = 1e-1;   %Torque-squared smoothing parameter;
+
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                       Set up function handles                           %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -104,8 +106,8 @@ problem.guess.control = zeros(5+10,2);  %Start with passive trajectory
 %   explicitly written out many options below, but the solver will fill in
 %   almost all defaults for you if they are ommitted.
 
-method = 'test';
-% method = 'trapazoid';
+% method = 'test';
+method = 'trapazoid';
 % method = 'hermiteSimpson';
 
 switch method
@@ -116,12 +118,13 @@ switch method
         problem.options(1).trapazoid.nGrid = 20;  %method-specific options
         problem.options(1).nlpOpt.GradConstr = 'on';
         problem.options(1).nlpOpt.GradObj = 'on';
-        problem.options(1).nlpOpt.DerivativeCheck = 'on';
+        problem.options(1).nlpOpt.DerivativeCheck = 'off';
+        problem.options(1).nlpOpt.MaxIter = 5000;
         
     case 'trapazoid'
         
         problem.options(1).method = 'trapazoid'; % Select the transcription method
-        problem.options(1).trapazoid.nGrid = 10;  %method-specific options
+        problem.options(1).trapazoid.nGrid = 15;  %method-specific options
         problem.options(1).nlpOpt.GradConstr = 'on';
         problem.options(1).nlpOpt.GradObj = 'on';
         problem.options(1).nlpOpt.DerivativeCheck = 'off';
