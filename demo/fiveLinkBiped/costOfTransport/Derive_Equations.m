@@ -356,7 +356,10 @@ disp('Done!');
             'sp1','sp2','sp3','sp4','sp5','empty'});
         
         % abs(power) using slack variables:
-        absPower = sn1 + sn2 + sn3 + sn4 + sn5 + sp1 + sp2 + sp3 + sp4 + sp5;
+        gammaNeg = sym('gammaNeg','real');  %Torque-squared smoothing parameter
+        gammaPos = sym('gammaPos','real');  %Torque-squared smoothing parameter
+        absPower = gammaNeg*(sn1 + sn2 + sn3 + sn4 + sn5) + ...
+            gammaPos*(sp1 + sp2 + sp3 + sp4 + sp5);
         
         % Cost of Transport:
         weight = (m1+m2+m3+m4+m5)*g;
@@ -376,9 +379,21 @@ disp('Done!');
             'du1','du2','du3','du4','du5',...
             'sn1','sn2','sn3','sn4','sn5', ...
             'sp1','sp2','sp3','sp4','sp5',...
-            'g','stepLength','alpha','beta','empty'});
+            'g','stepLength','gammaNeg','gammaPos','alpha','beta','empty'});
         
-        
+        % Swing foot height:
+        stepHeight = sym('stepHeight','real');
+        yFoot = P5(2);
+        xFoot = P5(1);
+        yMin = stepHeight*(1 - (xFoot/stepLength)^2);
+        yCst = yMin - yFoot;  %Must be negative
+        [y, ~, yz, yzi, ~]  = computeGradients(yCst,z,empty);
+        matlabFunction(y,yz,yzi,...
+                    'file','autoGen_cst_swingFootHeight.m',...
+            'vars',{...
+            'q1','q2','q4','q5',...
+            'l1','l2','l4','l5'...
+            'stepLength','stepHeight'});
     end
 
 

@@ -1,5 +1,5 @@
-function [c, ceq, cGrad, ceqGrad] = pathConstraint(state,control)
-% [c, ceq, cGrad, ceqGrad] = pathConstraint(state,control)
+function [c, ceq, cGrad, ceqGrad] = pathConstraint(state,control,param)
+% [c, ceq, cGrad, ceqGrad] = pathConstraint(state,control,param)
 %
 % This function implements a simple path constraint to keep the knee joint
 % of the robot from hyper-extending.
@@ -18,10 +18,15 @@ empty = zeros(size(q1));
 
 if nargout == 2 % numerical gradients
     
+    y = autoGen_cst_swingFootHeight(...
+        q1,q2,q4,q5,...
+        param.l1,param.l2,param.l4,param.l5,param.stepLength,param.stepHeight);
+    
     c = [...
         q1-q2;    %Stance knee joint limit
-        q5-q4];   %Swing knee joint limit
-    
+        q5-q4;   %Swing knee joint limit
+        y];   %Swing foot height
+        
      ceq = autoGen_cst_costOfTransport(...
         dq(1,:),dq(2,:),dq(3,:),dq(4,:),dq(5,:),...
         u(1,:),u(2,:),u(3,:),u(4,:),u(5,:),...
@@ -31,15 +36,20 @@ if nargout == 2 % numerical gradients
     
 else %Analytic gradients
     
+    %%%% Swing foot clearance:
+     [y,yz,yzi] = autoGen_cst_swingFootHeight(...
+        q1,q2,q4,q5,...
+        param.l1,param.l2,param.l4,param.l5,param.stepLength,param.stepHeight);
     
     %%%% Joint Limits
     c = [...
         q1-q2;    %Stance knee joint limit
-        q5-q4];   %Swing knee joint limit
-       
+        q5-q4;   %Swing knee joint limit
+        y];   % Swing foot height
+        
     % Gradients with respect to:
     % [t,q1,q2,q3,q4,q5,dq1,dq2,dq3,dq4,dq5,u1,u2,u3,u4,u5] = 1+5+5+5
-    nCst = 2;   %stance leg ; swing leg
+    nCst = 3;   %stance leg ; swing leg
     nGrad = 31;  %time, angles, rates, torques, torqueRate, slack
     nTime = size(state,2);
     cGrad = zeros(nCst,nGrad,nTime);
@@ -47,7 +57,7 @@ else %Analytic gradients
     cGrad(1,2,:) = 1; % cst stance wrt q1
     cGrad(2,5,:) = -1;  % cst swing wrt q4
     cGrad(2,6,:) = 1; % cst swing wrt q5
-    
+        
     %%%% Slack Variables
     [ceq, ceqZ, ceqZi] = autoGen_cst_costOfTransport(...
         dq(1,:),dq(2,:),dq(3,:),dq(4,:),dq(5,:),...
@@ -57,10 +67,14 @@ else %Analytic gradients
         empty);
     
     ceqGrad = zeros(5,nGrad,nTime);  % 5 = number of slack constraints
-    tmp = zeros(5,1,nGrad);
+    tmpHeight = zeros(1,1,nGrad);   %foot height
+    tmpSlack = zeros(5,1,nGrad);  % Slack variables
     for i=1:nTime
-        tmp(ceqZi) = ceqZ(:,i);
-        ceqGrad(:,:,i) = tmp(:,1,:);    
+        tmpHeight(yzi) = yz(:,i);
+        cGrad(3,:,i) = tmpHeight(:,1,:);
+        
+        tmpSlack(ceqZi) = ceqZ(:,i);
+        ceqGrad(:,:,i) = tmpSlack(:,1,:);         
     end
      
 end

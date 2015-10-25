@@ -27,9 +27,12 @@ param = getPhysicalParameters();
 
 param.stepLength = 0.5;
 param.stepTime = 0.7;
+param.stepHeight = 0.001;  %Foot must clear this height at mid-stance
 
-param.alpha = 1e-4;   %Torque-squared smoothing parameter;
-param.beta = 1e-4;   %TorqueRate-squared smoothing parameter;
+param.gammaNeg = 1;   %Cost for negative work
+param.gammaPos = 1;  %Cost for positive work
+param.alpha = 1e-3;   %Torque-squared smoothing parameter;
+param.beta = 1e-6;   %TorqueRate-squared smoothing parameter;
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                       Set up function handles                           %
@@ -41,7 +44,7 @@ problem.func.pathObj = @(t,x,u)( obj_costOfTransport(x,u,param) );
 
 problem.func.bndCst = @(t0,x0,tF,xF)( stepConstraint(x0,xF,param) );
 
-problem.func.pathCst = @(t,x,u)( pathConstraint(x,u) );
+problem.func.pathCst = @(t,x,u)( pathConstraint(x,u,param) );
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -142,15 +145,15 @@ switch method
         problem.options(1).nlpOpt.GradConstr = 'on';
         problem.options(1).nlpOpt.GradObj = 'on';
         problem.options(1).nlpOpt.DerivativeCheck = 'off';
-        problem.options(1).nlpOpt.MaxIter = 2000;
+        problem.options(1).nlpOpt.MaxIter = 1e3;
         problem.options(1).nlpOpt.TolFun = 1e-4;
         
         problem.options(2).method = 'trapazoid'; % Select the transcription method
         problem.options(2).trapazoid.nGrid = 30;  %method-specific options
         problem.options(2).nlpOpt.GradConstr = 'on';
         problem.options(2).nlpOpt.GradObj = 'on';
-        problem.options(2).nlpOpt.MaxIter = 5000;
-        problem.options(1).nlpOpt.TolFun = 1e-6;
+        problem.options(2).nlpOpt.MaxIter = 1e4;
+        problem.options(1).nlpOpt.TolFun = 1e-4;
         
     case 'hermiteSimpson'
         
