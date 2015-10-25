@@ -55,7 +55,7 @@ else %Analytic gradients
     Mz(mzi) = mz;
     Fz(fzi) = fz;
     
-    nz = 22;   %Number of dimensions for gradients [t0;x0;tF;xF]
+    nz = fzd(3);   %Number of dimensions for gradients [t0;x0;u0;tF;xF;uF]
     dqpDynGrad = zeros(5,nz);
     for j=1:nz
         dqpDynGrad(:,j) = M\( -Mz(:,:,j)*dqpDyn + Fz(:,:,j) );  % Derivative of a matrix inverse http://www.atmos.washington.edu/~dennis/MatrixCalculus.pdf
@@ -67,7 +67,7 @@ else %Analytic gradients
     for i=1:5
         qpGrad(i,1+i) = 1;
         dqpGrad(i,6+i) = 1;
-        qmGrad(i,12+i) = 1;
+        qmGrad(i,12+5+i) = 1;
     end
     
     ceqPos = qp - qm([5;4;3;2;1]);

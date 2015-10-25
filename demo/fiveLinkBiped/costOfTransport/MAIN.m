@@ -5,7 +5,13 @@
 % phases of motion connected by impulsive heel-strike (no double-stance or
 % flight phases).
 %
-% Optimize for minimum cost of transport
+% Optimize for minimum cost of transport. This code is far more complicated
+% to understand than the torque-squared problem, and some aspects of the
+% indexing are not as well documented. For example, to get
+% torque-rate-squared regularization, the torque is actually included
+% inside of the state vector. Additionally, the abs(power) cost function is
+% computed using slack variables to prevent discontinuous a discontinuity
+% in the objective function.
 %
 % The equations of motion and gradients are all derived by:
 %   --> Derive_Equations.m
@@ -22,7 +28,8 @@ param = getPhysicalParameters();
 param.stepLength = 0.5;
 param.stepTime = 0.7;
 
-param.alpha = 1e-1;   %Torque-squared smoothing parameter;
+param.alpha = 1e-4;   %Torque-squared smoothing parameter;
+param.beta = 1e-4;   %TorqueRate-squared smoothing parameter;
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                       Set up function handles                           %
@@ -30,7 +37,7 @@ param.alpha = 1e-1;   %Torque-squared smoothing parameter;
 
 problem.func.dynamics =  @(t,x,u)( dynamics(t,x,u,param) );
 
-problem.func.pathObj = @(t,x,u)( obj_costOfTransport(u,param) );
+problem.func.pathObj = @(t,x,u)( obj_costOfTransport(x,u,param) );
 
 problem.func.bndCst = @(t0,x0,tF,xF)( stepConstraint(x0,xF,param) );
 
@@ -56,21 +63,26 @@ qLow = (-pi/2)*ones(5,1);
 qUpp = (pi/2)*ones(5,1);
 dqLow = -10*ones(5,1);
 dqUpp = 10*ones(5,1);
-problem.bounds.state.low = [qLow; dqLow];
-problem.bounds.state.upp = [qUpp; dqUpp];
-problem.bounds.initialstate.low = [qLow; dqLow];
-problem.bounds.initialstate.upp = [qUpp; dqUpp];
-problem.bounds.finalstate.low = [qLow; dqLow];
-problem.bounds.finalstate.upp = [qUpp; dqUpp];
-
 uMax = 100;  %Nm
-problem.bounds.control.low = [-uMax*ones(5,1); zeros(10,1)];   % [control; slack]
-problem.bounds.control.upp = [uMax*ones(5,1); inf(10,1)];
+uLow = -uMax*ones(5,1);
+uUpp = uMax*ones(5,1);
+problem.bounds.state.low = [qLow; dqLow; uLow];
+problem.bounds.state.upp = [qUpp; dqUpp; uUpp];
+problem.bounds.initialState.low = [qLow; dqLow; uLow];
+problem.bounds.initialState.upp = [qUpp; dqUpp; uUpp];
+problem.bounds.finalState.low = [qLow; dqLow; uLow];
+problem.bounds.finalState.upp = [qUpp; dqUpp; uUpp];
+
+problem.bounds.control.low = [-inf(5,1); zeros(10,1)];   % [torque rate; slack]
+problem.bounds.control.upp = [inf(5,1); inf(10,1)];
 
 % Disable the stance ankle motor:
-problem.bounds.control.low(1) = 0;
-problem.bounds.control.upp(1) = 0;
-
+problem.bounds.state.low(5+5+1) = 0;
+problem.bounds.state.upp(5+5+1) = 0;
+problem.bounds.initialState.low(5+5+1) = 0;
+problem.bounds.initialState.upp(5+5+1) = 0;
+problem.bounds.finalState.low(5+5+1) = 0;
+problem.bounds.finalState.upp(5+5+1) = 0;
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %              Create an initial guess for the trajectory                 %
@@ -91,9 +103,10 @@ qF = q0([5;4;3;2;1]);   %Flip left-right
 dq0 = (qF-q0)/param.stepTime;
 dqF = dq0;
 
-problem.guess.state = [q0, qF; dq0, dqF];
+u0 = zeros(5,1); uF = zeros(5,1); %Start with passive trajectory
 
-problem.guess.control = zeros(5+10,2);  %Start with passive trajectory
+problem.guess.state = [q0, qF; dq0, dqF; u0, uF];
+problem.guess.control = zeros(5+10,2);  
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -118,8 +131,9 @@ switch method
         problem.options(1).trapazoid.nGrid = 20;  %method-specific options
         problem.options(1).nlpOpt.GradConstr = 'on';
         problem.options(1).nlpOpt.GradObj = 'on';
-        problem.options(1).nlpOpt.DerivativeCheck = 'off';
-        problem.options(1).nlpOpt.MaxIter = 5000;
+        problem.options(1).nlpOpt.DerivativeCheck = 'on';
+        problem.options(1).nlpOpt.MaxIter = 1000;
+        problem.options(1).nlpOpt.TolFun = 1e-4;
         
     case 'trapazoid'
         
@@ -128,11 +142,15 @@ switch method
         problem.options(1).nlpOpt.GradConstr = 'on';
         problem.options(1).nlpOpt.GradObj = 'on';
         problem.options(1).nlpOpt.DerivativeCheck = 'off';
+        problem.options(1).nlpOpt.MaxIter = 2000;
+        problem.options(1).nlpOpt.TolFun = 1e-4;
         
         problem.options(2).method = 'trapazoid'; % Select the transcription method
         problem.options(2).trapazoid.nGrid = 30;  %method-specific options
         problem.options(2).nlpOpt.GradConstr = 'on';
         problem.options(2).nlpOpt.GradObj = 'on';
+        problem.options(2).nlpOpt.MaxIter = 5000;
+        problem.options(1).nlpOpt.TolFun = 1e-6;
         
     case 'hermiteSimpson'
         
@@ -164,7 +182,8 @@ soln = trajOpt(problem);
 t = soln(end).grid.time;
 q = soln(end).grid.state(1:5,:);
 dq = soln(end).grid.state(6:10,:);
-u = soln(end).grid.control(1:5,:);
+u = soln(end).grid.state(11:15,:);
+du = soln(end).grid.control(1:5,:);
 sn = soln(end).grid.control(6:10,:);   %Slack variable for negative power
 sp = soln(end).grid.control(11:15,:);   % Slack variable for positive power
 

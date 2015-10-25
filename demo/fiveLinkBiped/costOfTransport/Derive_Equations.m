@@ -5,6 +5,12 @@ function Derive_Equations()
 % equations (kinematics, contact forces, ...) for the five-link biped
 % model.
 %
+% This version of the code includes a few more complicated features for
+% dealing with difficult cost functions. In particular, it adds 10 slack
+% variables to compute the abs(power) term in the cost function, and the
+% primary control is the derivative of torque, rather than torque itself.
+% This allows for regularization by the derivative of the input.
+%
 %
 % Nomenclature:
 %
@@ -59,6 +65,13 @@ u2 = sym('u2','real');   %Stance knee
 u3 = sym('u3','real');   %Stance hip
 u4 = sym('u4','real');   %Swing hip
 u5 = sym('u5','real');   %Swing knee
+
+%%%% Torques rate at each joint
+du1 = sym('du1','real');  %Stance foot
+du2 = sym('du2','real');   %Stance knee
+du3 = sym('du3','real');   %Stance hip
+du4 = sym('du4','real');   %Swing hip
+du5 = sym('du5','real');   %Swing knee
 
 %%%% Slack variables -- negative component of power
 sn1 = sym('sn1','real');  %Stance foot
@@ -153,12 +166,13 @@ q = [q1;q2;q3;q4;q5];
 dq = [dq1;dq2;dq3;dq4;dq5];
 ddq = [ddq1;ddq2;ddq3;ddq4;ddq5];
 u = [u1;u2;u3;u4;u5];
+du = [du1;du2;du3;du4;du5];
 sn = [sn1;sn2;sn3;sn4;sn5];
 sp = [sp1;sp2;sp3;sp4;sp5];
-z = [t;q;dq;u;sn;sp];   % time-varying vector of inputs
+z = [t;q;dq;u;du;sn;sp];   % time-varying vector of inputs
 
 % Neat trick to compute derivatives using the chain rule
-derivative = @(in)( jacobian(in,[q;dq])*[dq;ddq] );
+derivative = @(in)( jacobian(in,[q;dq;u])*[dq;ddq;du] );
 
 % Velocity of the swing foot (used for step constraints)
 dP5 = derivative(P5);
@@ -348,8 +362,10 @@ disp('Done!');
         weight = (m1+m2+m3+m4+m5)*g;
         stepLength = sym('stepLength','real');
         alpha = sym('alpha','real');  %Torque-squared smoothing parameter
+        beta = sym('beta','real');  %Torque-rate squared smoothing
         F = absPower/(weight*stepLength) + ...
-            alpha*(u1^2 + u2^2 + u3^2 + u4^2 + u5^2);
+            alpha*(u1^2 + u2^2 + u3^2 + u4^2 + u5^2) + ...
+            beta*(du1^2 + du2^2 + du3^2 + du4^2 + du5^2);
         [f, ~, fz, fzi, ~]  = computeGradients(F,z,empty);
         
         matlabFunction(f,fz,fzi,...
@@ -357,9 +373,10 @@ disp('Done!');
             'vars',{...
             'm1','m2','m3','m4','m5',...
             'u1','u2','u3','u4','u5',...
+            'du1','du2','du3','du4','du5',...
             'sn1','sn2','sn3','sn4','sn5', ...
             'sp1','sp2','sp3','sp4','sp5',...
-            'g','stepLength','alpha','empty'});
+            'g','stepLength','alpha','beta','empty'});
         
         
     end
@@ -409,6 +426,22 @@ disp('Done!');
         dq4p = sym('dq4p','real');
         dq5p = sym('dq5p','real');
         dqp = [dq1p;dq2p;dq3p;dq4p;dq5p];
+        
+        % torque before heel-strike:
+        u1m = sym('u1m','real');
+        u2m = sym('u2m','real');
+        u3m = sym('u3m','real');
+        u4m = sym('u4m','real');
+        u5m = sym('u5m','real');
+        um = [u1m;u2m;u3m;u4m;u5m];
+        
+        % torque after heel-strike
+        u1p = sym('u1p','real');
+        u2p = sym('u2p','real');
+        u3p = sym('u3p','real');
+        u4p = sym('u4p','real');
+        u5p = sym('u5p','real');
+        up = [u1p;u2p;u3p;u4p;u5p];
         
         % Compute kinematics before heel-strike:
         inVars = {'q1','q2','q3','q4','q5','dq1','dq2','dq3','dq4','dq5'};
@@ -517,7 +550,7 @@ disp('Done!');
         %%%% Compute gradients:
         tp = sym('tp','real');   %Initial trajectory time
         tm = sym('tm','real');   %Final trajectory time
-        zBnd = [tp;qp;dqp;tm;qm;dqm];
+        zBnd = [tp;qp;dqp;up;tm;qm;dqm;um];
         [m, mi, mz, mzi, mzd] = computeGradients(MM,zBnd,empty);
         [f, fi, fz, fzi, fzd] = computeGradients(FF,zBnd,empty);
         

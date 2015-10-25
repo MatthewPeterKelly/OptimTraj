@@ -1,18 +1,21 @@
-function [dx, dxGrad] = dynamics(t,x,u,p)
-% [dx, dxGrad] = dynamics(t,x,u)
+function [dState, dStateGrad] = dynamics(time,state,control,p)
+% [dState, dStateGrad] = dynamics(time,state,control,p)
 %
 % Computes the first-order dynamics of the five-link biped, wrapper for
 % dynSs.
 %
 % INPUTS:
-%   z = [10,n] = first-order state = [q; dq];
-%   u = [5+10, 1] = input torque vector and slack variables
+%   time = 
+%   state = [q; dq; u] = [angles, rates, torques];
+%   control = [du;sn;sp] = [torque rate; slack neg; slack pos];
 %   p = parameter struct
 
-nt = length(t);
+nt = length(time);
 empty = zeros(1,nt);  % For vectorization
-q = x(1:5,:);
-dq = x(6:10,:);
+q = state(1:5,:);
+dq = state(6:10,:);
+u = state(11:15,:);
+du = control(1:5,:);
 ddq = zeros(size(q));
 
 if nargout == 1   % Using numerical gradients
@@ -39,7 +42,7 @@ else  % Using analytic gradients
     
     M = zeros(5,5);  %Mass matrix
     F = zeros(5,1);
-    nz = 26;   %Number of dimensions for gradients [t;q;dq;u;sn;sp]
+    nz = 31;   %Number of dimensions for gradients [t;q;dq;u;du;sn;sp]
     ddqGrad = zeros(5,nz,nt);
     Mz = zeros(mzd); 
     Fz = zeros(fzd);
@@ -55,14 +58,21 @@ else  % Using analytic gradients
     end
     
     dqGrad = zeros(5,nz,nt); 
+    idxBase_dq = 2 + 5 -1; % time + angle - one index
     for i=1:5
-       dqGrad(i,1+5+i,:) = 1; 
+       dqGrad(i,idxBase_dq+i,:) = 1; 
     end
     
-    dxGrad = cat(1,dqGrad,ddqGrad);
+    duGrad = zeros(5,nz,nt);
+    idxBase_du = 2 + (5 + 5 + 5) -1; % time + angle + rate + torque - one index
+    for i=1:5
+       duGrad(i,  idxBase_du + i,:) = 1; 
+    end
+    
+    dStateGrad = cat(1,dqGrad,ddqGrad,duGrad);
     
 end
 
-dx = [dq;ddq];
+dState= [dq;ddq;du];
 
 end
