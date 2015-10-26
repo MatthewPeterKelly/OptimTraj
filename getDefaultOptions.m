@@ -144,9 +144,9 @@ switch accuracy
     case 'low'
         OPT_trapazoid.nGrid = 15;
     case 'medium'
-        OPT_trapazoid.nGrid = 25;
+        OPT_trapazoid.nGrid = 30;
     case 'high'
-        OPT_trapazoid.nGrid = 50;
+        OPT_trapazoid.nGrid = 60;
     otherwise
         error('Invalid value for options.defaultAccuracy')
 end
@@ -159,11 +159,11 @@ function OPT_hermiteSimpson = defaults_hermiteSimpson(accuracy)
 
 switch accuracy
     case 'low'
-        OPT_hermiteSimpson.nSegment = 15;
+        OPT_hermiteSimpson.nSegment = 10;
     case 'medium'
-        OPT_hermiteSimpson.nSegment = 25;
+        OPT_hermiteSimpson.nSegment = 20;
     case 'high'
-        OPT_hermiteSimpson.nSegment = 50;
+        OPT_hermiteSimpson.nSegment = 40;
     otherwise
         error('Invalid value for options.defaultAccuracy')
 end
@@ -214,8 +214,8 @@ switch accuracy
         OPT_rungeKutta.nSegment = 10;
         OPT_rungeKutta.nSubStep = 2;
     case 'medium'
-        OPT_rungeKutta.nSegment = 10;
-        OPT_rungeKutta.nSubStep = 3;
+        OPT_rungeKutta.nSegment = 20;
+        OPT_rungeKutta.nSubStep = 2;
     case 'high'
         OPT_rungeKutta.nSegment = 20;
         OPT_rungeKutta.nSubStep = 4;
@@ -237,7 +237,7 @@ OPT_gpops.guess.phase.integral = 0;
 OPT_gpops.name = 'TrajOpt_GPOPS';
 OPT_gpops.auxdata = [];
 OPT_gpops.nlp.solver = 'ipopt'; % {'ipopt','snopt'}
-OPT_gpops.derivatives.dependencies = 'full';  %’full’, ’sparse’ or ’sparseNaN’
+OPT_gpops.derivatives.dependencies = 'full';  %ï¿½fullï¿½, ï¿½sparseï¿½ or ï¿½sparseNaNï¿½
 OPT_gpops.derivatives.supplier = 'sparseCD'; %'sparseCD';  %'adigator'
 OPT_gpops.derivatives.derivativelevel = 'first'; %'second';
 OPT_gpops.mesh.method = 'hp-PattersonRao';

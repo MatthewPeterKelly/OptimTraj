@@ -30,7 +30,7 @@ problem.func.pathObj = @(t,x,u)( u.^2 );  %Simple torque-squared
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %               Set up bounds on time, state, and control                 %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
-t0 = 0;  tF = 2;  %For now, force it to take exactly this much time.
+t0 = 0;  tF = 2.5;  %For now, force it to take exactly this much time.
 problem.bounds.initialTime.low = t0;
 problem.bounds.initialTime.upp = t0;
 problem.bounds.finalTime.low = tF;
@@ -139,5 +139,7 @@ animate(t,z,A)
 % Plot the results:
 figure(1337); clf; plotAcrobot(t,z,u,dyn);
 
+% Draw a stop-action animation:
+figure(1338); clf; drawStopActionAcrobot(soln(end),dyn);
 
 
