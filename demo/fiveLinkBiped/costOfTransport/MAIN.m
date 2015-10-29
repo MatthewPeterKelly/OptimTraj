@@ -17,6 +17,15 @@
 %   --> Derive_Equations.m
 %
 
+%%%% NOTE %%%%
+%
+% This example - at least for the cost of transport optimization - should
+% be considered experimental. This code does not pass strict convergence
+% tests - The optimization completes successfully with loose tolerances,
+% but fails to converge to a unique solution with more tight tolerances.
+%
+% 
+
 clc; clear;
 addpath ../../../
 
@@ -31,8 +40,8 @@ param.stepHeight = 0.001;  %Foot must clear this height at mid-stance
 
 param.gammaNeg = 1;   %Cost for negative work
 param.gammaPos = 1;  %Cost for positive work
-param.alpha = 1e-3;   %Torque-squared smoothing parameter;
-param.beta = 1e-6;   %TorqueRate-squared smoothing parameter;
+param.alpha = 0;   %Torque-squared smoothing parameter;
+param.beta = 1e-3;   %TorqueRate-squared smoothing parameter;
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                       Set up function handles                           %
@@ -122,22 +131,35 @@ problem.guess.control = zeros(5+10,2);
 %   explicitly written out many options below, but the solver will fill in
 %   almost all defaults for you if they are ommitted.
 
-% method = 'test';
-method = 'trapazoid';
+% method = 'test1';
+method = 'test4';
+% method = 'trapazoid';
 % method = 'hermiteSimpson';
 
 switch method
     
-    case 'test'
+    case 'test1'
         
         problem.options(1).method = 'trapazoid'; % Select the transcription method
         problem.options(1).trapazoid.nGrid = 20;  %method-specific options
         problem.options(1).nlpOpt.GradConstr = 'on';
         problem.options(1).nlpOpt.GradObj = 'on';
-        problem.options(1).nlpOpt.DerivativeCheck = 'on';
-        problem.options(1).nlpOpt.MaxIter = 1000;
-        problem.options(1).nlpOpt.TolFun = 1e-4;
+        problem.options(1).nlpOpt.DerivativeCheck = 'off';
+        problem.options(1).nlpOpt.MaxIter = 500;
+        problem.options(1).nlpOpt.TolFun = 1e-3;
+%         problem.options(1).nlpOpt.TolX = 1e-6;
         
+    case 'test4'
+        
+        problem.options(1).method = 'hermiteSimpson'; % Select the transcription method
+        problem.options(1).trapazoid.nGrid = 10;  %method-specific options
+        problem.options(1).nlpOpt.GradConstr = 'on';
+        problem.options(1).nlpOpt.GradObj = 'on';
+        problem.options(1).nlpOpt.DerivativeCheck = 'off';
+        problem.options(1).nlpOpt.MaxIter = 500;
+        problem.options(1).nlpOpt.TolFun = 1e-3;
+%         problem.options(1).nlpOpt.TolX = 1e-6;
+
     case 'trapazoid'
         
         problem.options(1).method = 'trapazoid'; % Select the transcription method
