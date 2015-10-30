@@ -54,15 +54,15 @@ if Opt.verbose > 0
     
 end
 
-% Chebyshev points and weights on the default domain
+% Compute the parameters for the ORTHogonal polynomial, in this case the
+% Chebyshev polynomial roots, quadrature weights, interpolation weights,
+% and the differentiation matrix.
 try
-    [xx,ww,vv] = chebpts(nColPts);
+    [orth.xx, orth.ww, orth.vv] = chebpts(nColPts);
 catch ME
     error('Missing dependency:  chebfun  (http://www.chebfun.org/)  ');
 end
-cheb.xx = xx;
-cheb.ww = ww;
-cheb.D = getDifferentiationMatrix(xx,vv);
+orth.D = getDifferentiationMatrix(orth.xx,orth.vv);
 
 % Interpolate the guess at the chebyshev-points for transcription:
 guess.tSpan = G.time([1,end]);
@@ -89,10 +89,10 @@ zUpp = packDecVar(tUpp,xUpp,uUpp);
 %%%% Set up problem for fmincon:
 
 P.objective = @(z)( ...
-    myObjective(z, pack, F.pathObj, F.bndObj, cheb) );
+    myObjective(z, pack, F.pathObj, F.bndObj, orth) );
 
 P.nonlcon = @(z)( ...
-    myConstraint(z, pack, F.dynamics, F.pathCst, F.bndCst, cheb) );
+    myConstraint(z, pack, F.dynamics, F.pathCst, F.bndCst, orth) );
 
 P.x0 = zGuess;
 P.lb = zLow;
@@ -105,7 +105,7 @@ P.solver = 'fmincon';
 %%%% Call fmincon to solve the non-linear program (NLP)
 tic;
 [zSoln, objVal,exitFlag,output] = fmincon(P);
-[tSoln,xSoln,uSoln] = unPackDecVar(zSoln,pack,cheb);
+[tSoln,xSoln,uSoln] = unPackDecVar(zSoln,pack,orth);
 nlpTime = toc;
 
 %%%% Store the results:
@@ -114,9 +114,10 @@ soln.grid.state = xSoln;
 soln.grid.control = uSoln;
 
 %%%% Rescale the points:
-xx = chebyshevScalePoints(xx,ww,tSoln([1,end]));
-soln.interp.state = @(t)( barycentricInterpolate(t', xSoln',xx,vv)' );
-soln.interp.control = @(t)( barycentricInterpolate(t', uSoln',xx,vv)' );
+dSoln = tSoln([1,end]);   %Domain of the final solution
+xxSoln = orthScale(orth,dSoln);
+soln.interp.state = @(t)( barycentricInterpolate(t', xSoln',xxSoln,orth.vv)' );
+soln.interp.control = @(t)( barycentricInterpolate(t', uSoln',xxSoln,orth.vv)' );
 
 soln.info = output;
 soln.info.nlpTime = nlpTime;
@@ -169,7 +170,7 @@ end
 
 %%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
 
-function [t,x,u,w] = unPackDecVar(z,pack,cheb)
+function [t,x,u,w] = unPackDecVar(z,pack,orth)
 %
 % This function unpacks the decision variables for
 % trajectory optimization into the time (t),
@@ -195,7 +196,7 @@ nControl = pack.nControl;
 nx = nState*nTime;
 nu = nControl*nTime;
 
-[t, w] = chebyshevScalePoints(cheb.xx,cheb.ww,[z(1),z(2)]);
+[t, w] = orthScale(orth,[z(1),z(2)]);
 x = reshape(z((2+1):(2+nx)),nState,nTime);
 u = reshape(z((2+nx+1):(2+nx+nu)),nControl,nTime);
 
@@ -246,7 +247,7 @@ end
 
 %%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
 
-function [c, ceq] = myConstraint(z,pack,dynFun, pathCst, bndCst, cheb)
+function [c, ceq] = myConstraint(z,pack,dynFun, pathCst, bndCst, orth)
 %
 % This function unpacks the decision variables, computes the defects along
 % the trajectory, and then evaluates the user-defined constraint functions.
@@ -263,14 +264,15 @@ function [c, ceq] = myConstraint(z,pack,dynFun, pathCst, bndCst, cheb)
 %   ceq = equality constraints to be passed to fmincon
 %
 
-[t,x,u] = unPackDecVar(z,pack,cheb);
+[t,x,u] = unPackDecVar(z,pack,orth);
 
 
 %%%% Enforce the dynamics:
- 
+
 % Analytic differentiation of the trajectory at chebyshev points:
-D = 2*cheb.D/(t(end)-t(1));
-dxFun = (D*(x'))';
+d = t([1,end]);   %Domain of the trajectory
+[~,~,D] = orthScale(orth,d);  %Scale the differentiation matrix
+dxFun = (D*(x'))';   %Differentiate trajectory
 
 % Derivative, according to the dynamics function:
 dxDyn = dynFun(t,x,u);
@@ -289,8 +291,8 @@ end
 
 
 
-function [x,w] = chebyshevScalePoints(xx,ww,d)
-% [x,w] = chebyshevScalePoints(xx,ww,d)
+function [x,w,D] = orthScale(orth,d)
+% [x,w,D] = orthScale(orth,d)
 %
 % This function scales the chebyshev points to an arbitrary interval
 %
@@ -304,8 +306,18 @@ function [x,w] = chebyshevScalePoints(xx,ww,d)
 %   w = chebyshev weights on the new domain d
 %
 
-x = ((d(2)-d(1))*xx + sum(d))/2;
-w = ww*(d(2)-d(1))/2;
+shift = 0.5*(d(1) + d(2));
+scale = 0.5*(d(2) - d(1));
+
+x = scale*orth.xx + shift;
+
+if nargout > 1
+    w = orth.ww*scale;
+end
+
+if nargout > 2
+    D = orth.D/scale;
+end
 
 end
 
@@ -314,7 +326,7 @@ end
 
 function D = getDifferentiationMatrix(x,v,d)
 % D = getDifferentiationMatrix(x,v,d)
-% 
+%
 %
 % INPUTS:
 %   x = [n,1] = vector of roots of the orthogonal polynomial of interest
@@ -327,7 +339,7 @@ function D = getDifferentiationMatrix(x,v,d)
 % NOTES:
 %   Reference:
 %       1) ChebFun  (http://www.chebfun.org/)
-%       2) "Barycentric Lagrange Interpolation"   SIAM Review 2004  
+%       2) "Barycentric Lagrange Interpolation"   SIAM Review 2004
 %           Jean-Paul Berrut and Lloyd N. Trefethen
 %
 %   Inputs: x and v are typically produced by a call to any of:
@@ -378,7 +390,7 @@ nTime = length(x);
 y = zeros(nTime, nOut);
 
 for i=1:nOut
-   y(:,i) = bary(x,yk(:,i),xk,vk); 
+    y(:,i) = bary(x,yk(:,i),xk,vk);
 end
 
 end
