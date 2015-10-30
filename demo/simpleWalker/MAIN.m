@@ -78,7 +78,6 @@ problem.guess.control = [0, 0];
 % method = 'trapazoid';
 method = 'hermiteSimpson';
 % method = 'chebyshev';
-% method = 'multiCheb';
 % method = 'rungeKutta';
 % method = 'gpops';
 
@@ -146,30 +145,7 @@ switch method
         problem.options(2).verbose = 3; % How much to print out?
         problem.options(2).method = 'chebyshev'; % Select the transcription method
         problem.options(2).chebyshev.nColPts = 15;  %method-specific options
-        
-    case 'multiCheb'
-        
-        % First iteration: get a more reasonable guess
-        problem.options(1).nlpOpt = optimset(...
-            'Display','iter',...   % {'iter','final','off'}
-            'TolFun',1e-3,...
-            'MaxFunEvals',1e4);   %options for fmincon
-        problem.options(1).verbose = 3; % How much to print out?
-        problem.options(1).method = 'multiCheb'; % Select the transcription method
-        problem.options(1).multiCheb.nColPts = 6;  %method-specific options
-        problem.options(1).multiCheb.nSegment = 4;  %method-specific options
-        
-        
-        % Second iteration: refine guess to get precise soln
-        problem.options(2).nlpOpt = optimset(...
-            'Display','iter',...   % {'iter','final','off'}
-            'TolFun',1e-8,...
-            'MaxFunEvals',5e4);   %options for fmincon
-        problem.options(2).verbose = 3; % How much to print out?
-        problem.options(2).method = 'multiCheb'; % Select the transcription method
-        problem.options(2).multiCheb.nColPts = 9;  %method-specific options
-        problem.options(2).multiCheb.nSegment = 4;  %method-specific options
-        
+     
     case 'rungeKutta'
         problem.options(1).method = 'rungeKutta'; % Select the transcription method
         problem.options(1).defaultAccuracy = 'low';

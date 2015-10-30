@@ -83,7 +83,6 @@ function soln = trajOpt(problem)
 %           'trapazoid'
 %           'hermiteSimpson'
 %           'chebyshev'
-%           'multiCheb'
 %           'rungeKutta'
 %           'gpops'     ( Must have GPOPS2 installed )
 %

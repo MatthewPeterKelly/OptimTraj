@@ -1,5 +1,16 @@
-function soln = multiCheb(problem,defaultOptions)
+function soln = multiCheb(problem)
 % soln = multiCheb(problem)
+%
+% DEPRICATED
+%
+%
+% *************************************************************************
+% This file is no longer used, and is preserved for reference only. The
+% numerical methods for connecting segments are not the most stable,
+% particularily for low-order polynomials. This file will later be replaced
+% with HP orthogonal collocation, based on Legendre polynomials.
+% *************************************************************************
+%
 %
 % This function transcribes a trajectory optimization problem Chebyshev
 % orthogonal polynomials for basis functions. This is an orthogonal
@@ -35,6 +46,11 @@ function soln = multiCheb(problem,defaultOptions)
 %   problem.options.multiCheb = struct with method parameters:
 %       .nColPts = number of collocation points in each trajectory segment
 %       .nSegment = number of segments to break the trajectory into
+%
+%
+% *************************************************************************
+%       DEPRICATED
+% *************************************************************************
 %
 
 

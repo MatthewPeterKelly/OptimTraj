@@ -1,19 +1,24 @@
 # TrajOpt - Trajectory Optimization for Matlab
 TrajOpt is a matlab library that I developed while working on my PhD at Cornell, studying controller design for walking robots. Some key features of this library:
 
-- __Easy to install -__ no dependencies outside of Matlab
+- __Easy to install -__ no dependencies outside of Matlab (for multiple shooting and direct collocation)
 - __Easy to use -__ check out the examples to see for yourself
 - __Readable source code -__ easy to debug your code and figure out how the software works
 - __Rapidly switch methods -__ choose from a variety of methods:
-    - trapazoid rule (1st-order direct transcription)
-    - hermite-simpson seperated (4th-order direct transcription)
-    - multi-segment chebyshev (high-order orthogonal collocation)
-    - runge-kutta (4th-order multiple shooting)
+    - direct collocation
+        - trapazoid
+        - Hermite-Simpson (seperated)
+    - multiple shooting
+        - 4th-order Runge-Kutta
+    - global (pseudospectral) collocation
+        - Chebyshev
 
 # Installation:
 1. Clone or download the repository
 2. Add the top level folder to your Matlab path
-3. Done!
+3. Clone or download [chebfun](http://www.chebfun.org/) (not needed for direct collocation or multiple shooting)
+4. Done!
+
 
 # Usage:
 - Call the function `trajOpt` from inside matlab.
@@ -36,5 +41,3 @@ If you are interested in contributing, here are a few possible things to do:
 - Identify holes in the documentation
 - Report bugs
 - Implement new methods or features
-
-I plan on keeping an active list of things to do under the *issues* section on GitHub.
