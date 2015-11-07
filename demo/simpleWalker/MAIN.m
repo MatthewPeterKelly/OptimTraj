@@ -76,8 +76,8 @@ problem.guess.control = [0, 0];
 %   almost all defaults for you if they are ommitted.
 
 % method = 'trapazoid';
-% method = 'hermiteSimpson';
-method = 'chebyshev';
+method = 'hermiteSimpson';
+% method = 'chebyshev';
 % method = 'rungeKutta';
 % method = 'gpops';
 
