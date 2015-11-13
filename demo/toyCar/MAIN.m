@@ -24,7 +24,7 @@ uMax = 100.0;  %Max steering rate
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
 problem.func.dynamics = @(t,x,u)( dynamics(x,u) );
-problem.func.pathObj = @(t,x,u)( objective(x) );
+problem.func.pathObj = @(t,x,u)( objective(x,u) );
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -75,8 +75,10 @@ problem.options.nlpOpt = optimset(...
 % problem.options.method = 'hermiteSimpson';
 % problem.options.hermiteSimpson.nSegment = 25;
 
+% problem.options.method = 'gpops';
+
 problem.options.method = 'trapazoid';
-problem.options.hermiteSimpson.nGrid = 25;
+problem.options.trapazoid.nGrid = 15;
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                            Solve!                                       %

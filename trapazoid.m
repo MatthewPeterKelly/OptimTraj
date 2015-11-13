@@ -72,8 +72,8 @@ soln = directCollocation(problem);
 tSoln = soln.grid.time';
 xSoln = soln.grid.state';
 uSoln = soln.grid.control';
-soln.interp.state = @(t)( interp1(tSoln,xSoln,t,'pchip')' );
-soln.interp.control = @(t)( interp1(tSoln,uSoln,t,'pchip')' );
+soln.interp.state = @(t)( interp1(tSoln,xSoln,t)' );
+soln.interp.control = @(t)( interp1(tSoln,uSoln,t)' );
 
 end
 

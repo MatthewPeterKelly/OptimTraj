@@ -1,5 +1,5 @@
-function f = objective(z)
-% f = objective(z)
+function f = objective(z,u)
+% f = objective(z,u)
 %
 % This function computes the integrand of the objective function for the
 % toy car problem. The car does not like driving on steep slopes, so it
@@ -27,6 +27,6 @@ dy = sin(th);
 slope = dx.*fx + dy.*fy;
 
 % Want slopes near zero, so minimize slope squared:
-f = slope.^2;
+f = slope.^2 + u.^2;
 
 end
