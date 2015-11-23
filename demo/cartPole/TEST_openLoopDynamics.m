@@ -13,11 +13,11 @@ clc; clear;
 %%%% Set up the simulation
 z0 = [
     0.0;   %horizontal position
-    (pi/180)*120;  %pendulum angle (wrt gravity)
-    0.0;   %horizontal velocity
-    0.0];  %pendulum angular rate
+    (pi/180)*80;  %pendulum angle (wrt gravity)
+    0.3;   %horizontal velocity
+    0.5];  %pendulum angular rate
 
-tSpan = [0,2];
+tSpan = [0,1.5];
 
 p.m1 = 1.0;  % (kg) Cart mass
 p.m2 = 0.3;  % (kg) pole mass
@@ -37,45 +37,20 @@ sol = ode45(dynFun, tSpan, z0, options);
 %%%% Unpack the simulation
 t = linspace(tSpan(1), tSpan(2), 200);
 z = deval(sol,t);
-
-x = z(1,:);
-q = z(2,:);
-dx = z(3,:);
-dq = z(4,:);
-
 u = ctrlFun(z);
 
-[energy, potential, kinetic] = cartPoleEnergy(z,p);
-
 %%%% Plots:
-figure(2); clf;
+figure(1); clf;
+plotPendulumCart(t,z,u,p);
 
-subplot(3,2,1);
-plot(t,x)
-ylabel('x')
 
-subplot(3,2,2);
-plot(t,q)
-ylabel('q')
+%%%% Draw Trajectory:
+[p1,p2] = cartPoleKinematics(z,p);
 
-subplot(3,2,3);
-plot(t,dx)
-ylabel('dx')
+figure(2); clf; 
+nFrame = 5;  %Number of frames to draw
+drawCartPoleTraj(t,p1,p2,nFrame);
 
-subplot(3,2,4);
-plot(t,dq)
-ylabel('dq')
 
-subplot(3,2,5)
-plot(t,u)
-ylabel('u')
-xlabel('t')
 
-subplot(3,2,6); hold on;
-plot(t,potential,'b-','LineWidth',1)
-plot(t,kinetic,'r-','LineWidth',1)
-plot(t,energy,'k-','LineWidth',2)
-ylabel('energy')
-xlabel('t')
-legend('potential','kinetic','total');
 
