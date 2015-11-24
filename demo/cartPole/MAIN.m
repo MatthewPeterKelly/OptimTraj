@@ -11,7 +11,7 @@ p.l = 0.5;   % (m) pendulum (pole) length
 
 dist = 1.0;  %How far must the cart translate during its swing-up
 maxForce = 100;  %Maximum actuator forces
-duration = 3;
+duration = 2;
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                     Set up function handles                             %
@@ -72,7 +72,7 @@ soln = trajOpt(problem);
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
 %%%% Unpack the simulation
-t = linspace(soln.grid.time(1), soln.grid.time(end), 200);
+t = linspace(soln.grid.time(1), soln.grid.time(end), 75);
 z = soln.interp.state(t);
 u = soln.interp.control(t);
 
