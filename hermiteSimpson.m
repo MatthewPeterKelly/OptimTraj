@@ -177,7 +177,7 @@ function x = pwPoly2(tGrid,xGrid,t)
 %
 % INPUTS:
 %   tGrid = [1, 2*n-1] = time grid, knot idx = 1:2:end
-%   xGrid = [m, 2*n-1] = function at each grid point in time
+%   xGrid = [m, 2*n-1] = function at each grid point in tGrid
 %   t = [1, k] = vector of query times (must be contained within tGrid)
 %
 % OUTPUTS:
@@ -215,6 +215,9 @@ end
 % Replace any out-of-bounds queries with NaN
 outOfBounds = bin==1 | bin==(n+2);
 x(:,outOfBounds) = nan;
+
+% Check for any points that are exactly on the upper grid point:
+x(:,t==tGrid(end)) = xGrid(:,end);
 
 end
 
