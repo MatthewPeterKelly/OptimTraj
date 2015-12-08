@@ -91,7 +91,7 @@ tMid = 0.5*(tSoln(1:(end-1)) + tSoln(2:end));
 dt = diff(tSoln);
 nx = size(xSoln,1);
 cstErr = soln.interp.collCst(tMid);
-soln.info.error = (2/3)*(ones(nx,1)*dt).*cstErr;
+soln.info.error = abs((2/3)*(ones(nx,1)*dt).*cstErr);
 
 end
 

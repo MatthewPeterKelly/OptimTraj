@@ -145,6 +145,15 @@ function soln = trajOpt(problem)
 %   struct array, with soln(1) being the solution on the first iteration,
 %   and soln(end) being the final solution.
 %
+%   * Both the trapazoid and hermiteSimpson method support additional
+%   features. The first is that they can use analytic gradients, if
+%   provided by the user. ">> help trapazoid" or ">> help hermiteSimpson"
+%   for more information. These methods additionally provide error
+%   estimates in two forms. The continuous collocation constraint error is
+%   provided as an additional function handle (soln.interp.collCst), and
+%   the absolute local error estimate for each segment is provided in
+%   soln.info.error.
+%
 
 problem = inputValidation(problem);   %Check inputs
 problem = getDefaultOptions(problem); % Complete options struct

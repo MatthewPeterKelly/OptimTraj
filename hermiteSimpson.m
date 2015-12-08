@@ -86,6 +86,18 @@ soln.interp.collCst = @(t)( ...
     - pwPoly2(tSoln,fSoln,t) );
 
 
+% Compute an error estimate - approximate integrals of collocation error
+% using simpsone quadrature. This works out to be a very simple formula,
+% since the error at the edge of each segment is zero by definition. Each
+% segment of the trajectory is integrated in two parts: [tLow, tMid] and
+% [tMid, tUpp].
+tMid = 0.5*(tSoln(1:(end-1)) + tSoln(2:end));
+dt = diff(tSoln);
+nx = size(xSoln,1);
+cstErr = soln.interp.collCst(tMid);
+intErr = abs((2/3)*(ones(nx,1)*dt).*cstErr); 
+soln.info.error = intErr(:,1:2:end) + intErr(:,2:2:end); 
+
 end
 
 
@@ -225,8 +237,9 @@ outOfBounds = bin==1 | bin==(n+2);
 x(:,outOfBounds) = nan;
 
 % Check for any points that are exactly on the upper grid point:
-x(:,t==tGrid(end)) = xGrid(:,end);
-
+if sum(t==tGrid(end))>0
+    x(:,t==tGrid(end)) = xGrid(:,end);
+end
 
 end
 
@@ -332,7 +345,9 @@ outOfBounds = bin==1 | bin==(n+2);
 x(:,outOfBounds) = nan;
 
 % Check for any points that are exactly on the upper grid point:
-x(:,t==tGrid(end)) = xGrid(:,end);
+if sum(t==tGrid(end))>0
+    x(:,t==tGrid(end)) = xGrid(:,end);
+end
 
 end
 

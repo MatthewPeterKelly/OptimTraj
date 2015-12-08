@@ -57,8 +57,8 @@ problem.options.nlpOpt = optimset(...
     'Display','iter',...
     'MaxFunEvals',1e5);
 
-problem.options.method = 'trapazoid'; problem.options.trapazoid.nGrid = 10;
-% problem.options.method = 'hermiteSimpson'; problem.options.hermiteSimpson.nSegment = 10;
+% problem.options.method = 'trapazoid'; problem.options.trapazoid.nGrid = 10;
+problem.options.method = 'hermiteSimpson'; problem.options.hermiteSimpson.nSegment = 20;
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -135,27 +135,24 @@ cc = soln.interp.collCst(t);
 
 subplot(2,2,1);
 plot(t,cc(1,:))
-title('Collocation Constraint Path Error:    dx/dt - f(t,x,u)')
-ylabel('coll. err. d/dt cart position')
+title('Collocation Error:   dx/dt - f(t,x,u)')
+ylabel('d/dt cart position')
 
 subplot(2,2,3);
 plot(t,cc(2,:))
 xlabel('time')
-ylabel('coll. err. d/dt pole angle')
+ylabel('d/dt pole angle')
 
-if strcmp(problem.options.method,'trapazoid')
-    idx = 1:(problem.options.trapazoid.nGrid-1);
-    subplot(2,2,2); hold on;
-    plot(idx([1,end]),[0,0],'k-','LineWidth',1);
-    plot(idx,soln.info.error(1,:),'ko');
-    title('State Error, integral over each segment')
-    ylabel('cart position')
-    
-    subplot(2,2,4); hold on;
-    plot(idx([1,end]),[0,0],'k-','LineWidth',1);
-    plot(idx,soln.info.error(2,:),'ko');
-    xlabel('segment index')
-    ylabel('pole angle');
-end
+idx = 1:length(soln.info.error);
+subplot(2,2,2); hold on;
+plot(idx,soln.info.error(1,:),'ko');
+title('State Error')
+ylabel('cart position')
+
+subplot(2,2,4); hold on;
+plot(idx,soln.info.error(2,:),'ko');
+xlabel('segment index')
+ylabel('pole angle');
+
 
 
