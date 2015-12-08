@@ -4,12 +4,12 @@
 
 clc; clear;
 
-p.m1 = 1.0;  % (kg) Cart mass
-p.m2 = 0.3;  % (kg) pole mass
+p.m1 = 2.0;  % (kg) Cart mass
+p.m2 = 0.5;  % (kg) pole mass
 p.g = 9.81;  % (m/s^2) gravity 
 p.l = 0.5;   % (m) pendulum (pole) length 
 
-dist = 1.0;  %How far must the cart translate during its swing-up
+dist = 0.8;  %How far must the cart translate during its swing-up
 maxForce = 100;  %Maximum actuator forces
 duration = 2;
 
@@ -56,9 +56,11 @@ problem.guess.control = [0,0];
 problem.options.nlpOpt = optimset(...
     'Display','iter',...
     'MaxFunEvals',1e5);
-
+% 
+% problem.options.method = 'trapazoid';
 problem.options.method = 'hermiteSimpson';
-
+% problem.options.method = 'rungeKutta';
+% problem.options.method = 'chebyshev';
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                            Solve!                                  %
