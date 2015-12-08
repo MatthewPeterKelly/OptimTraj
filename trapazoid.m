@@ -78,6 +78,21 @@ soln.interp.control = @(t)( interp1(tSoln',uSoln',t')' );
 fSoln = problem.func.dynamics(tSoln,xSoln,uSoln);
 soln.interp.state = @(t)( bSpline2(tSoln,xSoln,fSoln,t) );
 
+% Interpolation for checking collocation constraint along trajectory:
+%  collocation constraint = (dynamics) - (derivative of state trajectory)
+soln.interp.collCst = @(t)( ...
+    problem.func.dynamics(t, soln.interp.state(t), soln.interp.control(t))...
+    - interp1(tSoln',fSoln',t')' );
+
+% Compute an error estimate - approximate integrals of collocation error
+% using simpsone quadrature. This works out to be a very simple formula,
+% since the error at the edge of each segment is zero by definition.
+tMid = 0.5*(tSoln(1:(end-1)) + tSoln(2:end));
+dt = diff(tSoln);
+nx = size(xSoln,1);
+cstErr = soln.interp.collCst(tMid);
+soln.info.error = (2/3)*(ones(nx,1)*dt).*cstErr;
+
 end
 
 
@@ -198,7 +213,9 @@ outOfBounds = bin==0 | bin==(n+1);
 x(:,outOfBounds) = nan;
 
 % Check for any points that are exactly on the upper grid point:
-x(:,t==tGrid(end)) = xGrid(:,end);
+if sum(t==tGrid(end))>0
+    x(:,t==tGrid(end)) = xGrid(:,end);
+end
 
 end
 

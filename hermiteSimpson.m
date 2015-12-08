@@ -79,6 +79,13 @@ fSoln = problem.func.dynamics(tSoln,xSoln,uSoln);
 soln.interp.state = @(t)( pwPoly3(tSoln,xSoln,fSoln,t) );
 soln.interp.control = @(t)(pwPoly2(tSoln,uSoln,t));
 
+% Interpolation for checking collocation constraint along trajectory:
+%  collocation constraint = (dynamics) - (derivative of state trajectory)
+soln.interp.collCst = @(t)( ...
+    problem.func.dynamics(t, soln.interp.state(t), soln.interp.control(t))...
+    - pwPoly2(tSoln,fSoln,t) );
+
+
 end
 
 

@@ -1,4 +1,4 @@
-% MAIN.m 
+% MAIN.m
 %
 % Solve the cart-pole swing-up problem
 
@@ -6,8 +6,8 @@ clc; clear;
 
 p.m1 = 1.0;  % (kg) Cart mass
 p.m2 = 0.3;  % (kg) pole mass
-p.g = 9.81;  % (m/s^2) gravity 
-p.l = 0.5;   % (m) pendulum (pole) length 
+p.g = 9.81;  % (m/s^2) gravity
+p.l = 0.5;   % (m) pendulum (pole) length
 
 dist = 1.0;  %How far must the cart translate during its swing-up
 maxForce = 20;  %Maximum actuator forces
@@ -57,8 +57,8 @@ problem.options.nlpOpt = optimset(...
     'Display','iter',...
     'MaxFunEvals',1e5);
 
-problem.options.method = 'trapazoid';
-problem.options.trapazoid.nGrid = 10;
+problem.options.method = 'trapazoid'; problem.options.trapazoid.nGrid = 10;
+% problem.options.method = 'hermiteSimpson'; problem.options.hermiteSimpson.nSegment = 10;
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -73,8 +73,8 @@ soln = trajOpt(problem);
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
 %%%% Unpack the simulation
-n = problem.options.trapazoid.nGrid;
-t = linspace(soln.grid.time(1), soln.grid.time(end), 8*(n-1)+1);
+n = length(soln.grid.time);
+t = linspace(soln.grid.time(1), soln.grid.time(end), 15*(n-1)+1);
 z = soln.interp.state(t);
 u = soln.interp.control(t);
 
@@ -86,7 +86,7 @@ plotPendulumCart(t,z,u,p);
 %%%% Draw Trajectory:
 [p1,p2] = cartPoleKinematics(z,p);
 
-figure(2); clf; 
+figure(2); clf;
 nFrame = 9;  %Number of frames to draw
 drawCartPoleTraj(t,p1,p2,nFrame);
 
@@ -128,5 +128,34 @@ plot(t,u,'Color',colorControl)
 plot(tGrid,uGrid,'ko')
 
 
+%%%% Show the error in the collocation constraint between grid points:
+figure(4); clf;
+
+cc = soln.interp.collCst(t);
+
+subplot(2,2,1);
+plot(t,cc(1,:))
+title('Collocation Constraint Path Error:    dx/dt - f(t,x,u)')
+ylabel('coll. err. d/dt cart position')
+
+subplot(2,2,3);
+plot(t,cc(2,:))
+xlabel('time')
+ylabel('coll. err. d/dt pole angle')
+
+if strcmp(problem.options.method,'trapazoid')
+    idx = 1:(problem.options.trapazoid.nGrid-1);
+    subplot(2,2,2); hold on;
+    plot(idx([1,end]),[0,0],'k-','LineWidth',1);
+    plot(idx,soln.info.error(1,:),'ko');
+    title('State Error, integral over each segment')
+    ylabel('cart position')
+    
+    subplot(2,2,4); hold on;
+    plot(idx([1,end]),[0,0],'k-','LineWidth',1);
+    plot(idx,soln.info.error(2,:),'ko');
+    xlabel('segment index')
+    ylabel('pole angle');
+end
 
 
