@@ -9,7 +9,7 @@
 %   --> Derive_Equations.m 
 %
 
-clc; clear;
+clc; clear; 
 addpath ../../
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -227,7 +227,7 @@ u = soln(end).grid.control;
 %                     Plot the solution                                   %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
-Anim.figNum = 1;
+Anim.figNum = 1; clf(Anim.figNum);
 Anim.speed = 0.25;
 Anim.plotFunc = @(t,q)( drawRobot(q,param) );
 Anim.verbose = true;

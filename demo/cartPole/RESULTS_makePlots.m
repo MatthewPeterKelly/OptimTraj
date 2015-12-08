@@ -10,7 +10,7 @@ p.g = 9.81;  % (m/s^2) gravity
 p.l = 0.5;   % (m) pendulum (pole) length 
 
 dist = 1.0;  %How far must the cart translate during its swing-up
-maxForce = 100;  %Maximum actuator forces
+maxForce = 20;  %Maximum actuator forces
 duration = 2;
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -57,8 +57,8 @@ problem.options.nlpOpt = optimset(...
     'Display','iter',...
     'MaxFunEvals',1e5);
 
-problem.options.method = 'trapazoid';  
-% problem.options.method = 'hermiteSimpson';
+problem.options.method = 'trapazoid';
+problem.options.trapazoid.nGrid = 10;
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -73,7 +73,7 @@ soln = trajOpt(problem);
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
 %%%% Unpack the simulation
-t = linspace(soln.grid.time(1), soln.grid.time(end), 150);
+t = linspace(soln.grid.time(1), soln.grid.time(end), 75);
 z = soln.interp.state(t);
 u = soln.interp.control(t);
 
@@ -88,3 +88,19 @@ plotPendulumCart(t,z,u,p);
 figure(2); clf; 
 nFrame = 9;  %Number of frames to draw
 drawCartPoleTraj(t,p1,p2,nFrame);
+
+
+%%%% Show only solution grid:
+figure(3); clf;
+tGrid = soln.grid.time;
+zGrid = soln.grid.state;
+uGrid = soln.grid.control;
+
+subplot(3,1,1);
+plot(tGrid,zGrid(1,:),'ko')
+
+subplot(3,1,2);
+plot(tGrid,zGrid(2,:),'ko')
+
+subplot(3,1,3);
+plot(tGrid,uGrid,'ko')
