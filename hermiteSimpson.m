@@ -76,8 +76,7 @@ tSoln = soln.grid.time;
 xSoln = soln.grid.state;
 uSoln = soln.grid.control;
 fSoln = problem.func.dynamics(tSoln,xSoln,uSoln);
-pp = pwch(tSoln, xSoln, fSoln);  %Construct hermite spline
-soln.interp.state = @(t)( ppval(pp,t) );
+soln.interp.state = @(t)( pwPoly3(tSoln,xSoln,fSoln,t) );
 soln.interp.control = @(t)(pwPoly2(tSoln,uSoln,t));
 
 end
@@ -166,7 +165,9 @@ end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+%
+% Functions for interpolation of the control solution
+%
 
 function x = pwPoly2(tGrid,xGrid,t)
 % x = pwPoly2(tGrid,xGrid,t)
@@ -219,6 +220,7 @@ x(:,outOfBounds) = nan;
 % Check for any points that are exactly on the upper grid point:
 x(:,t==tGrid(end)) = xGrid(:,end);
 
+
 end
 
 
@@ -258,7 +260,9 @@ end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+%
+%  Functions for interpolation of the state solution
+%
 
 
 
@@ -303,8 +307,16 @@ edges = [-inf, tGrid(1:2:end), inf];
 for i=1:n
     idx = bin==(i+1);
     if sum(idx) > 0
-        gridIdx = 2*(i-1) + [1,2,3];
-        x(:,idx) = quadInterp(tGrid(gridIdx),xGrid(:,gridIdx),t(idx));
+        kLow = 2*(i-1) + 1;
+        kMid = kLow + 1;
+        kUpp = kLow + 2;
+        h = tGrid(kUpp)-tGrid(kLow);
+        xLow = xGrid(:,kLow);
+        fLow = fGrid(:,kLow);
+        fMid = fGrid(:,kMid);
+        fUpp = fGrid(:,kUpp);
+        alpha = t(idx) - tGrid(kLow);
+        x(:,idx) = cubicInterp(h,xLow, fLow, fMid, fUpp,alpha);
     end
 end
 
@@ -312,38 +324,43 @@ end
 outOfBounds = bin==1 | bin==(n+2);
 x(:,outOfBounds) = nan;
 
+% Check for any points that are exactly on the upper grid point:
+x(:,t==tGrid(end)) = xGrid(:,end);
+
 end
 
 
-function x = quadInterp(tGrid,xGrid,t)
+function x = cubicInterp(h,xLow, fLow, fMid, fUpp,del)
 %
 % This function computes the interpolant over a single interval
 %
 % INPUTS:
-%   tGrid = [1, 3] = time grid
-%   xGrid = [m, 3] = function grid
-%   t = [1, p] = query times, spanned by tGrid
+%   h = time step (tUpp-tLow)
+%   xLow = function value at tLow
+%   fLow = derivative at tLow
+%   fMid = derivative at tMid
+%   fUpp = derivative at tUpp
+%   del = query points on domain [0, h]
 %
 % OUTPUTS:
 %   x = [m, p] = function at query times
 %
 
-% Rescale the query points to be on the domain [-1,1]
-t = 2*(t-tGrid(1))/(tGrid(3)-tGrid(1)) - 1; 
+%%% Fix matrix dimensions for vectorized calculations
+nx = length(xLow);
+nt = length(del);
+xLow = xLow*ones(1,nt);
+fLow = fLow*ones(1,nt);
+fMid = fMid*ones(1,nt);
+fUpp = fUpp*ones(1,nt);
+del = ones(nx,1)*del;
 
-% Compute the coefficients:
-a = 0.5*(xGrid(:,3) + xGrid(:,1)) - xGrid(:,2);
-b = 0.5*(xGrid(:,3)-xGrid(:,1));
-c = xGrid(:,2);
+a = (2.*(fLow - 2.*fMid + fUpp))./(3.*h.^2);
+b = -(3.*fLow - 4.*fMid + fUpp)./(2.*h);
+c = fLow;
+d = xLow;
 
-% Evaluate the polynomial for each dimension of the function:
-p = length(t);
-m = size(xGrid,1);
-x = zeros(m,p);
-tt = t.^2;
-for i=1:m
-    x(i,:) = a(i)*tt + b(i)*t + c(i);
-end
+x = d + del.*(c + del.*(b + del.*a));
 
 end
 

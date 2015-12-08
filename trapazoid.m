@@ -76,7 +76,7 @@ soln.interp.control = @(t)( interp1(tSoln',uSoln',t')' );
 
 % Use piecewise quadratic interpolation for the state:
 fSoln = problem.func.dynamics(tSoln,xSoln,uSoln);
-soln.interp.state = @(t)( pwPoly2(tSoln,xSoln,fSoln,t) );
+soln.interp.state = @(t)( bSpline2(tSoln,xSoln,fSoln,t) );
 
 end
 
@@ -150,8 +150,8 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-function x = pwPoly2(tGrid,xGrid,fGrid,t)
-% x = pwPoly2(tGrid,xGrid,fGrid,t)
+function x = bSpline2(tGrid,xGrid,fGrid,t)
+% x = bSpline2(tGrid,xGrid,fGrid,t)
 %
 % This function does piece-wise quadratic interpolation of a set of data.
 % The quadratic interpolant is constructed such that the slope matches on
@@ -189,7 +189,7 @@ for i=1:(n-1)
             fLow = fGrid(:,i);
             fUpp = fGrid(:,i+1);
             delta = t(idx) - tGrid(i);
-            x(:,idx) = quadInterp(h,delta,xLow,fLow,fUpp);
+            x(:,idx) = bSpline2Core(h,delta,xLow,fLow,fUpp);
     end
 end
 
@@ -203,7 +203,7 @@ x(:,t==tGrid(end)) = xGrid(:,end);
 end
 
 
-function x = quadInterp(h,delta,xLow,fLow,fUpp)
+function x = bSpline2Core(h,delta,xLow,fLow,fUpp)
 %
 % This function computes the interpolant over a single interval
 %
