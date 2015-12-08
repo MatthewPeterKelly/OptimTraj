@@ -57,7 +57,7 @@ problem.options.nlpOpt = optimset(...
     'Display','iter',...
     'MaxFunEvals',1e5);
 
-problem.options.method = 'trapazoid';  
+problem.options.method = 'trapazoid';  problem.options.trapazoid.nGrid = 10;
 % problem.options.method = 'hermiteSimpson';
 
 

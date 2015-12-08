@@ -73,7 +73,8 @@ soln = trajOpt(problem);
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
 %%%% Unpack the simulation
-t = linspace(soln.grid.time(1), soln.grid.time(end), 75);
+n = problem.options.trapazoid.nGrid;
+t = linspace(soln.grid.time(1), soln.grid.time(end), 8*(n-1)+1);
 z = soln.interp.state(t);
 u = soln.interp.control(t);
 
@@ -104,3 +105,28 @@ plot(tGrid,zGrid(2,:),'ko')
 
 subplot(3,1,3);
 plot(tGrid,uGrid,'ko')
+
+%%%% Show both grids:
+figure(4); clf;
+tGrid = soln.grid.time;
+zGrid = soln.grid.state;
+uGrid = soln.grid.control;
+
+colorState = [0.2,0.2,0.8];
+colorControl = [0.6, 0.1, 0.7];
+
+subplot(3,1,1); hold on
+plot(t,z(1,:),'Color',colorState)
+plot(tGrid,zGrid(1,:),'ko')
+
+subplot(3,1,2); hold on
+plot(t,z(2,:),'Color',colorState)
+plot(tGrid,zGrid(2,:),'ko')
+
+subplot(3,1,3); hold on
+plot(t,u,'Color',colorControl)
+plot(tGrid,uGrid,'ko')
+
+
+
+
