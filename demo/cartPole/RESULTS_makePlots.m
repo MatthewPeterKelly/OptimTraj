@@ -57,12 +57,12 @@ problem.options.nlpOpt = optimset(...
     'Display','iter',...
     'MaxFunEvals',1e5);
 
-% problem.options.method = 'trapazoid'; problem.options.trapazoid.nGrid = 10;
-problem.options.method = 'hermiteSimpson'; problem.options.hermiteSimpson.nSegment = 20;
+problem.options.method = 'trapazoid'; problem.options.trapazoid.nGrid = 10;
+% problem.options.method = 'hermiteSimpson'; problem.options.hermiteSimpson.nSegment = 40;
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
-%                            Solve!                                  %
+%                            Solve!                                       %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
 soln = trajOpt(problem);
@@ -129,7 +129,7 @@ plot(tGrid,uGrid,'ko')
 
 
 %%%% Show the error in the collocation constraint between grid points:
-figure(4); clf;
+figure(5); clf;
 
 cc = soln.interp.collCst(t);
 
