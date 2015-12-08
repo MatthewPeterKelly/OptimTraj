@@ -186,10 +186,10 @@ for i=1:(n-1)
     if sum(idx) > 0
             h = (tGrid(i+1)-tGrid(i));
             xLow = xGrid(:,i);
-            fLow = h*fGrid(:,i);
-            fUpp = h*fGrid(:,i+1);
-            alpha = (t(idx) - tGrid(i))/h;
-            x(:,idx) = quadInterp(alpha,xLow,fLow,fUpp);
+            fLow = fGrid(:,i);
+            fUpp = fGrid(:,i+1);
+            delta = t(idx) - tGrid(i);
+            x(:,idx) = quadInterp(h,delta,xLow,fLow,fUpp);
     end
 end
 
@@ -203,7 +203,7 @@ x(:,t==tGrid(end)) = xGrid(:,end);
 end
 
 
-function x = quadInterp(alpha,xLow,fLow,fUpp)
+function x = quadInterp(h,delta,xLow,fLow,fUpp)
 %
 % This function computes the interpolant over a single interval
 %
@@ -218,15 +218,15 @@ function x = quadInterp(alpha,xLow,fLow,fUpp)
 %
 
 %Fix dimensions for matrix operations...
-col = ones(size(alpha));
+col = ones(size(delta));
 row = ones(size(xLow));
-alpha = row*alpha;
+delta = row*delta;
 xLow = xLow*col;
 fLow = fLow*col;
 fUpp = fUpp*col;
 
-fDel = 0.5*(fUpp-fLow);
-x = alpha.*(alpha.*fDel + fLow) + xLow;
+fDel = (0.5/h)*(fUpp-fLow);
+x = delta.*(delta.*fDel + fLow) + xLow;
 
 end
 
