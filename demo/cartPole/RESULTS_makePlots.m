@@ -10,7 +10,7 @@ p.g = 9.81;  % (m/s^2) gravity
 p.l = 0.5;   % (m) pendulum (pole) length
 
 dist = 1.0;  %How far must the cart translate during its swing-up
-maxForce = 20;  %Maximum actuator forces
+maxForce = 20;  %Maximum actuator forces    
 duration = 2;
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -57,8 +57,8 @@ problem.options.nlpOpt = optimset(...
     'Display','iter',...
     'MaxFunEvals',1e5);
 
-problem.options.method = 'trapazoid'; problem.options.trapazoid.nGrid = 10;
-% problem.options.method = 'hermiteSimpson'; problem.options.hermiteSimpson.nSegment = 40;
+problem.options.method = 'trapazoid'; problem.options.trapazoid.nGrid = 20;
+% problem.options.method = 'hermiteSimpson'; problem.options.hermiteSimpson.nSegment = 15;
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%

@@ -50,7 +50,7 @@ function soln = hermiteSimpson(problem)
 %
 
 % Each segment needs an additional data point in the middle, thus:
-nGrid = 2*problem.options.hermiteSimpson.nSegment-1;
+nGrid = 2*problem.options.hermiteSimpson.nSegment+1;
 
 % Print out some solver info if desired:
 if problem.options.verbose > 0
@@ -85,18 +85,17 @@ soln.interp.collCst = @(t)( ...
     problem.func.dynamics(t, soln.interp.state(t), soln.interp.control(t))...
     - pwPoly2(tSoln,fSoln,t) );
 
-
-% Compute an error estimate - approximate integrals of collocation error
-% using simpsone quadrature. This works out to be a very simple formula,
-% since the error at the edge of each segment is zero by definition. Each
-% segment of the trajectory is integrated in two parts: [tLow, tMid] and
-% [tMid, tUpp].
-tMid = 0.5*(tSoln(1:(end-1)) + tSoln(2:end));
-dt = diff(tSoln);
-nx = size(xSoln,1);
-cstErr = soln.interp.collCst(tMid);
-intErr = abs((2/3)*(ones(nx,1)*dt).*cstErr); 
-soln.info.error = intErr(:,1:2:end) + intErr(:,2:2:end); 
+% Use multi-segment simpson quadrature to estimate the absolute local error
+% along the trajectory.
+absColErr = @(t)(abs(soln.interp.collCst(t)));
+nSegment = problem.options.hermiteSimpson.nSegment;
+nState = size(xSoln,1);
+nQuadSegment = 5;   %Divide each segment into this many sub-segments  
+soln.info.error = zeros(nState,nSegment);
+for i=1:nSegment
+    idx = 2*i + [-1,1];
+    soln.info.error(:,i) = simpsonQuadrature(absColErr,tSoln(idx(1)),tSoln(idx(2)),nQuadSegment);
+end
 
 end
 
