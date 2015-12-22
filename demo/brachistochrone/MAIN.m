@@ -20,8 +20,8 @@
 
 clc; clear;
 
-xDatum = 0.5;  % 1;
-xFinal = -0.1;  % -0.5;
+xDatum = 0.5;   %Must be positive -- sets initial speed  (energy)
+xFinal = -0.2;   %Must be negative --  height of final point
 
 %%%% Objective Function
 %
@@ -72,10 +72,10 @@ problem.guess.control = xFinal*[1,1];
 %%%% Parameters:
 
 % problem.options.method = 'chebyshev';
-% problem.options.chebyshev.nColPts = 6;
-
+% problem.options.chebyshev.nColPts = 9;
+% 
 problem.options.method = 'hermiteSimpson';
-problem.options.hermiteSimpson.nSegment = 6;
+problem.options.hermiteSimpson.nSegment = 9;
 
 
 
