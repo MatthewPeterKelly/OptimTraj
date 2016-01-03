@@ -57,7 +57,7 @@ START_TIME = t(1);
 SIM_TIME = START_TIME;
 
 % Set up the figure, and attach keyboard events.
-fig = figure(P.figNum);
+fig = figure(P.figNum); clf(fig);
 set(fig,'KeyPressFcn',@keyDownListener)
 
 tic;    %Start a timer

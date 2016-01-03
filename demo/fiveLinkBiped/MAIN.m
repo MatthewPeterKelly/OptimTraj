@@ -17,7 +17,6 @@ addpath ../../
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 param = getPhysicalParameters();
 
-param.alpha = 0.1;   % Smoothing parameter for cost of transport integral
 param.stepLength = 0.5;
 param.stepTime = 0.7;
 
@@ -178,19 +177,7 @@ switch method
         % Second iteration: refine guess to get precise soln
         problem.options(2).method = 'chebyshev'; % Select the transcription method
         problem.options(2).chebyshev.nColPts = 15;  %method-specific options
-        
-    case 'multiCheb'
-        
-        % First iteration: get a more reasonable guess
-        problem.options(1).method = 'multiCheb'; % Select the transcription method
-        problem.options(1).multiCheb.nColPts = 6;  %method-specific options
-        problem.options(1).multiCheb.nSegment = 4;  %method-specific options
-        
-        % Second iteration: refine guess to get precise soln
-        problem.options(2).method = 'multiCheb'; % Select the transcription method
-        problem.options(2).multiCheb.nColPts = 9;  %method-specific options
-        problem.options(2).multiCheb.nSegment = 4;  %method-specific options
-        
+
     case 'rungeKutta'
         problem.options(1).method = 'rungeKutta'; % Select the transcription method
         problem.options(1).defaultAccuracy = 'low';
@@ -227,7 +214,7 @@ u = soln(end).grid.control;
 %                     Plot the solution                                   %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
-Anim.figNum = 1; clf(Anim.figNum);
+Anim.figNum = 1; 
 Anim.speed = 0.25;
 Anim.plotFunc = @(t,q)( drawRobot(q,param) );
 Anim.verbose = true;

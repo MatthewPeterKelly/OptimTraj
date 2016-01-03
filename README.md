@@ -12,7 +12,7 @@ TrajOpt is a matlab library that I developed while working on my PhD at Cornell,
     - multiple shooting
         - 4th-order Runge-Kutta
     - global (pseudospectral) collocation
-        - Chebyshev
+        - Chebyshev (Lobatto)
 
 # Installation:
 1. Clone or download the repository
