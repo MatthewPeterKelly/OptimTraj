@@ -58,7 +58,7 @@ problem.options.nlpOpt = optimset(...
     'MaxFunEvals',1e5);
 
 % problem.options.method = 'trapazoid'; problem.options.trapazoid.nGrid = 20;
-problem.options.method = 'hermiteSimpson'; problem.options.hermiteSimpson.nSegment = 19;
+problem.options.method = 'hermiteSimpson'; problem.options.hermiteSimpson.nSegment = 25;
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -112,47 +112,65 @@ tGrid = soln.grid.time;
 zGrid = soln.grid.state;
 uGrid = soln.grid.control;
 
+idx = 1:2:length(tGrid);  %Only plot knot points
+
 colorState = [0.2,0.2,0.8];
 colorControl = [0.6, 0.1, 0.7];
 
 subplot(3,1,1); hold on
-plot(t,z(1,:),'Color',colorState)
-plot(tGrid,zGrid(1,:),'ko')
+plot(t,z(1,:),'Color',colorState,'LineWidth',3)
+plot(tGrid(idx),zGrid(1,idx),'ko','MarkerSize',10,'LineWidth',2)
 
 subplot(3,1,2); hold on
-plot(t,z(2,:),'Color',colorState)
-plot(tGrid,zGrid(2,:),'ko')
+plot(t,z(2,:),'Color',colorState,'LineWidth',3)
+plot(tGrid(idx),zGrid(2,idx),'ko','MarkerSize',10,'LineWidth',2)
 
 subplot(3,1,3); hold on
-plot(t,u,'Color',colorControl)
-plot(tGrid,uGrid,'ko')
+plot(t,u,'Color',colorControl,'LineWidth',3)
+plot(tGrid(idx),uGrid(idx),'ko','MarkerSize',10,'LineWidth',2)
 
 
 %%%% Show the error in the collocation constraint between grid points:
 figure(5); clf;
 
+idx = 1:2:length(tGrid);  %Only plot knot points
 cc = soln.interp.collCst(t);
+ccIdx = soln.interp.collCst(tGrid(idx));
 
-subplot(2,2,1);
+subplot(2,2,1); hold on;
+plot(tGrid(idx),ccIdx(1,:),'ko','MarkerSize',7,'LineWidth',2);
 plot(t,cc(1,:))
-title('Collocation Error:   dx/dt - f(t,x,u)')
-ylabel('d/dt cart position')
+title('Collocation Error:   dx/dt - f(t,x,u)');
+ylabel('d/dt cart position');
 
-subplot(2,2,3);
+subplot(2,2,3); hold on;
+plot(tGrid(idx),ccIdx(2,:),'ko','MarkerSize',7,'LineWidth',2);
 plot(t,cc(2,:))
 xlabel('time')
 ylabel('d/dt pole angle')
 
 idx = 1:length(soln.info.error);
 subplot(2,2,2); hold on;
-plot(idx,soln.info.error(1,:),'ko');
+plot(idx,soln.info.error(1,:),'ko','MarkerSize',8,'LineWidth',3);
 title('State Error')
 ylabel('cart position')
 
 subplot(2,2,4); hold on;
-plot(idx,soln.info.error(2,:),'ko');
+plot(idx,soln.info.error(2,:),'ko','MarkerSize',8,'LineWidth',3);
 xlabel('segment index')
 ylabel('pole angle');
+
+
+
+%%%% Save script for paper:
+% save2pdf('cartPole_drawSoln_25.pdf',figure(2));
+% save2pdf('cartPole_plotSoln_25.pdf',figure(4));
+% save2pdf('cartPole_error_25.pdf',figure(5));
+
+
+
+
+
 
 
 

@@ -157,13 +157,13 @@ switch method
     case 'hermiteSimpsonGrad'  %hermite simpson with analytic gradients
         
         problem.options(1).method = 'hermiteSimpson'; % Select the transcription method
-        problem.options(1).hermiteSimpson.nSegment = 6;  %method-specific options
+        problem.options(1).hermiteSimpson.nSegment = 5;  %method-specific options
         problem.options(1).nlpOpt.GradConstr = 'on';
         problem.options(1).nlpOpt.GradObj = 'on';
         problem.options(1).nlpOpt.DerivativeCheck = 'off';
-        
+          
         problem.options(2).method = 'hermiteSimpson'; % Select the transcription method
-        problem.options(2).hermiteSimpson.nSegment = 15;  %method-specific options
+        problem.options(2).hermiteSimpson.nSegment = 25;  %method-specific options
         problem.options(2).nlpOpt.GradConstr = 'on';
         problem.options(2).nlpOpt.GradObj = 'on';
         
@@ -216,35 +216,68 @@ end
 soln = trajOpt(problem);
 
 % Transcription Grid points:
-t = soln(end).grid.time;
-q = soln(end).grid.state(1:5,:);
-dq = soln(end).grid.state(6:10,:);
-u = soln(end).grid.control;
+tGrid = soln(end).grid.time;
+qGrid = soln(end).grid.state(1:5,:);
+dqGrid = soln(end).grid.state(6:10,:);
+uGrid = soln(end).grid.control;
+
+% Interpolation solution:
+t = linspace(tGrid(1), tGrid(end), 250);
+z = soln(end).interp.state(t);
+q = z(1:5,:);
+u = soln(end).interp.control(t);
+e = soln(end).interp.collCst(t);
+
+E = soln(end).info.error;
+idx = 1:size(E,2);
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                     Plot the solution                                   %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
-Anim.figNum = 1; clf(Anim.figNum);
-Anim.speed = 0.25;
-Anim.plotFunc = @(t,q)( drawRobot(q,param) );
-Anim.verbose = true;
-animate(t,q,Anim);
+% Anim.figNum = 1; clf(Anim.figNum);
+% Anim.speed = 0.25;
+% Anim.plotFunc = @(t,q)( drawRobot(q,param) );
+% Anim.verbose = true;
+% animate(tGrid,qGrid,Anim);
 
 figure(2); clf;
 subplot(1,2,1);
-plot(t,q);
+plot(tGrid,qGrid);
 legend('q1','q2','q3','q4','q5');
 xlabel('time')
 ylabel('link angles')
 subplot(1,2,2);
-plot(t,u);
+plot(tGrid,uGrid);
 legend('u1','u2','u3','u4','u5');
 xlabel('time')
 ylabel('joint torques')
 
+figure(3); clf;
+Color = getDefaultPlotColors();
+for i=1:5
+    iLeft = 2*i-1;
+    iRight = iLeft + 1;
+   subplot(5,2,iLeft);
+   plot(t,e(i,:),'LineWidth',2,'Color',Color(i,:));
+   
+   yMax = max(e(i,:));
+   yMin = min(e(i,:));
+   axis([t(1),t(end),yMin,yMax]);
+   
+   subplot(5,2,iRight);
+   plot(idx,E(i,:),'o','MarkerSize',8,'LineWidth',2,'Color',Color(i,:));
+   
+      yMax = max(E(i,:));
+   yMin = min(E(i,:));
+   axis([idx(1),idx(end),yMin,yMax]);
+   
+end
 
+
+
+%save2pdf('biped_errorSoln25.pdf',figure(3));
 
 
 
