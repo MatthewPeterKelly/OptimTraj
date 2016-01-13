@@ -91,6 +91,20 @@ nFrame = 9;  %Number of frames to draw
 drawCartPoleTraj(t,p1,p2,nFrame);
 
 
+%%%% Save an animation:
+% % val = [p1,p2];
+% % xLow = min(val(1,:));
+% % xUpp = max(val(1,:));
+% % yLow = min(val(2,:));
+% % yUpp = max(val(2,:));
+% % drawFun = @(t,p)( drawCartPoleAnim(t,p,xLow, xUpp, yLow, yUpp) );
+% % P.plotFunc = drawFun;
+% % P.figNum = 7;
+% % P.frameRate = 24;
+% % P.fileName = 'cartPoleAnimation';
+% % saveAnimation(t,[p1;p2],P);
+
+
 %%%% Show only solution grid:
 figure(3); clf;
 tGrid = soln.grid.time;
@@ -161,16 +175,7 @@ xlabel('segment index')
 ylabel('pole angle');
 
 
-
 %%%% Save script for paper:
 % save2pdf('cartPole_drawSoln_25.pdf',figure(2));
 % save2pdf('cartPole_plotSoln_25.pdf',figure(4));
 % save2pdf('cartPole_error_25.pdf',figure(5));
-
-
-
-
-
-
-
-

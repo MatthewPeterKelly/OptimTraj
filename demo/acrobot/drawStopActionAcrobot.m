@@ -5,7 +5,7 @@ clf; hold on;
 length = p.l1+p.l2;
 axis equal; axis(length*[-1,1,-1,1]); axis off;
 
-nFrame = 20;
+nFrame = 10;
 t = linspace(soln.grid.time(1), soln.grid.time(end), nFrame);
 Z = soln.interp.state(t);
 
@@ -15,7 +15,7 @@ for i=1:nFrame
     [p1,p2] = acrobotKinematics(z,p);
     pos = [[0;0],p1,p2];
     
-    val = 0.2 + 0.6*(i-1)/(nFrame-1);
+    val = 0.1 + 0.8*(i-1)/(nFrame-1);
     color = hsv2rgb([0.3333, 0.875, val]);
     
     plot(0,0,'ks','MarkerSize',25,'LineWidth',4)

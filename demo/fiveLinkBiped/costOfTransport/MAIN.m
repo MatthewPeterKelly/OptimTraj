@@ -132,8 +132,8 @@ problem.guess.control = zeros(5+10,2);
 %   almost all defaults for you if they are ommitted.
 
 % method = 'test1';
-method = 'test4';
-% method = 'trapazoid';
+% method = 'test4';
+method = 'trapazoid';
 % method = 'hermiteSimpson';
 
 switch method

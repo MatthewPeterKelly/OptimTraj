@@ -58,7 +58,7 @@ problem.options.nlpOpt = optimset(...
     'MaxFunEvals',1e5);
 
 % problem.options.method = 'trapazoid'; 
-problem.options.method = 'hermiteSimpsotn';  
+problem.options.method = 'hermiteSimpson';  
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                            Solve!                                       %
@@ -87,3 +87,42 @@ plotPendulumCart(t,z,u,p);
 figure(2); clf; 
 nFrame = 9;  %Number of frames to draw
 drawCartPoleTraj(t,p1,p2,nFrame);
+
+
+%%%% Show the error in the collocation constraint between grid points:
+%
+figure(5); clf;
+
+% NOTE: the following commands have only been implemented for the direct
+% collocation(trapezoid, hermiteSimpson) methods, and will not work for
+% chebyshev or rungeKutta methods.
+cc = soln.interp.collCst(t);
+
+subplot(2,2,1);
+plot(t,cc(1,:))
+title('Collocation Error:   dx/dt - f(t,x,u)')
+ylabel('d/dt cart position')
+
+subplot(2,2,3);
+plot(t,cc(2,:))
+xlabel('time')
+ylabel('d/dt pole angle')
+
+idx = 1:length(soln.info.error);
+subplot(2,2,2); hold on;
+plot(idx,soln.info.error(1,:),'ko');
+title('State Error')
+ylabel('cart position')
+
+subplot(2,2,4); hold on;
+plot(idx,soln.info.error(2,:),'ko');
+xlabel('segment index')
+ylabel('pole angle');
+
+
+
+
+
+
+
+
