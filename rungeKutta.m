@@ -56,10 +56,30 @@ zUpp = packDecVar(tUpp,xUpp,uUpp);
 
 %%%% Set up problem for fmincon:
 
-P.objective = @(z)( ...
-    myObjective(z, pack, F.dynamics, F.pathObj, F.bndObj) );
+flagGradObj = strcmp(Opt.nlpOpt.GradObj,'on');
+flagGradCst = strcmp(Opt.nlpOpt.GradConstr,'on');
 
-P.nonlcon = @(z)( myConstraint(z, pack, F.dynamics, F.pathObj, F.pathCst, F.bndCst) );
+% gradient info for use in calculating analytic gradients of objective and
+% constraints
+if flagGradCst || flagGradObj
+    gradInfo = grad_computeInfo(pack);
+end
+  
+if flagGradObj
+    P.objective = @(z)( ...
+        myObjGrad(z, pack, F.dynamics, F.pathObj, F.bndObj, gradInfo) );   %Analytic gradients
+else
+    P.objective = @(z)( ...
+        myObjective(z, pack, F.dynamics, F.pathObj, F.bndObj) );   %Numerical gradients
+end
+
+if flagGradCst
+    P.nonlcon = @(z)( ...
+      myCstGrad(z, pack, F.dynamics, F.pathObj, F.pathCst, F.bndCst, gradInfo) ); %Analytic gradients
+else
+    P.nonlcon = @(z)( ...
+      myConstraint(z, pack, F.dynamics, F.pathObj, F.pathCst, F.bndCst) ); %Numerical gradients
+end
 
 P.x0 = zGuess;
 P.lb = zLow;
@@ -76,7 +96,7 @@ tic;
 nlpTime = toc;
 
 %%%% Store the results:
-[tGrid,xGrid,uGrid] = simulateSystem(zSoln, pack, F.dynamics, F.pathObj);
+[tGrid,xGrid,uGrid] = simulateSystem(zSoln, pack, F.dynamics, F.pathObj, []);
 soln.grid.time = tGrid;
 soln.grid.state = xGrid;
 soln.grid.control = uGrid;
@@ -198,7 +218,7 @@ function cost = myObjective(decVars, pack,dynamics, pathObj, bndObj)
 %
 
 % All of the real work happens inside this function:
-[t,x,~,~,pathCost] = simulateSystem(decVars, pack, dynamics, pathObj);
+[t,x,~,~,pathCost] = simulateSystem(decVars, pack, dynamics, pathObj, []);
 
 % Compute the cost at the boundaries of the trajectory
 if isempty(bndObj)
@@ -239,7 +259,7 @@ function [c, ceq] = myConstraint(decVars, pack, dynamics, pathObj, pathCst, bndC
 %
 
 
-[t,x,u,defects] = simulateSystem(decVars, pack, dynamics, pathObj);
+[t,x,u,defects] = simulateSystem(decVars, pack, dynamics, pathObj, []);
 
 %%%% Call user-defined constraints and pack up:
 [c, ceq] = collectConstraints(t,x,u,...
@@ -248,11 +268,395 @@ function [c, ceq] = myConstraint(decVars, pack, dynamics, pathObj, pathCst, bndC
 
 end
 
+function gradInfo = grad_computeInfo(pack)
+%
+% This function computes the matrix dimensions and indicies that are used
+% to map the gradients from the user functions to the gradients needed by
+% fmincon. The key difference is that the gradients in the user functions
+% are with respect to their input (t,x,u) or (t0,x0,tF,xF), while the
+% gradients for fmincon are with respect to all decision variables.
+%
+% INPUTS:
+%   nDeVar = number of decision variables
+%   pack = details about packing and unpacking the decision variables
+%       .nTime
+%       .nState
+%       .nControl
+%
+% OUTPUTS:
+%   gradInfo = details about how to transform gradients
+%
+
+
+%nTime = pack.nTime;
+nState = pack.nState;
+nGridState = pack.nGridState;
+nControl = pack.nControl;
+nGridControl = pack.nGridControl;
+
+nDecVar = 2 + nState*nGridState + nControl*nGridControl;
+
+zIdx = 1:nDecVar;
+gradInfo.nDecVar = nDecVar;
+[tIdx, xIdx, uIdx] = unPackDecVar(zIdx,pack);
+gradInfo.tIdx = tIdx([1,end]);
+%gradInfo.xuIdx = [xIdx;uIdx];
+gradInfo.xIdx = [xIdx];
+gradInfo.uIdx = [uIdx];
+
+nSegment = pack.nSegment;
+nSubStep = pack.nSubStep;
+
+% indices of decVars associated with u
+indu = 1:2:(1+2*nSegment*nSubStep);
+gradInfo.indu = uIdx(:,indu);
+% indices of decVars associated with uMid
+indumid = 2:2:(1+2*nSegment*nSubStep);
+gradInfo.indumid = uIdx(:,indumid);
+
+%%%% Compute gradients of time:
+%%%% alpha = (0..N-1)/(N-1)
+%%%% t = alpha*tUpp + (1-alpha)*tLow
+% alpha = (0:(nTime-1))/(nTime-1);
+% gradInfo.alpha = [1-alpha; alpha];
+% 
+% if (gradInfo.tIdx(1)~=1 || gradInfo.tIdx(end)~=2)
+%     error('The first two decision variables must be the initial and final time')
+% end
+% gradInfo.dtGrad = [-1; 1]/(nTime-1);
+
+%%%% Compute gradients of state (What is this for)?
+% gradInfo.xGrad = zeros(nState,nTime,nDecVar);
+% for iTime=1:nTime
+%     for iState=1:nState
+%         gradInfo.xGrad(iState,iTime,xIdx(iState,iTime)) = 1;
+%     end
+% end
+
+%%%% For unpacking the boundary constraints and objective:
+gradInfo.bndIdxMap = [tIdx(1); xIdx(:,1); tIdx(end); xIdx(:,end)];
+
+
+end
+
+function [cost, dcost] = myObjGrad(decVars, pack,dynamics, pathObj, bndObj, gradInfo)
+%
+% This function unpacks the decision variables, sends them to the
+% user-defined objective functions, and then returns the final cost
+%
+% INPUTS:
+%   decVars = column vector of decision variables
+%   pack = details about how to convert decision variables into t,x, and u
+%   dynamics = user-defined dynamics function handle
+%   pathObj = user-defined path-objective function
+%   bndObj = user-defined boundary objective function
+%   gradInfo = 
+%
+% OUTPUTS:
+%   cost = scalar cost for this set of decision variables
+%   dcost = gradient of cost
+%     NOTE: gradients are only available for pathCost that depends only on
+%     input parameters not states.
+% 
+%
+
+% All of the real work happens inside this function:
+[t,x,~,~,pathCost,dzdalpha] = simulateSystem(decVars, pack, dynamics, pathObj, gradInfo);
+  % dzdalpha is included in outputs to make sure subsequent calls to
+  % simulateSystem without change a to decVars have access to the correct value
+  % of dzdalpha - see simulateSystem in which dzdalpha is not calculated unless
+  % nargout > 5
+
+% Compute the cost at the boundaries of the trajectory
+if isempty(bndObj)
+    bndCost = 0;
+else
+    t0 = t(1);
+    tF = t(end);
+    x0 = x(:,1);
+    xF = x(:,end);
+    bndCost = bndObj(t0,x0,tF,xF);
+end
+
+cost = pathCost + bndCost;
+
+% calculate gradient of cost function
+if nargout > 1
+  
+  nState = pack.nState;
+  nControl = pack.nControl;
+  nSegment = pack.nSegment;
+  nSubStep = pack.nSubStep;
+  nDecVar = 2+nState*(1+nSegment)+nControl*(1+nSegment*nSubStep*2);
+  
+  [~, ~, control] = unPackDecVar(decVars,pack);
+  
+  % allocate gradient of cost
+  dcost_pth = zeros(nDecVar,1);
+  dcost_bnd = zeros(nDecVar,1);
+  
+  % gradient assocated with bound objective
+  if ~isempty(bndObj)
+
+    % bound costs and gradients w.r.t. t0, x0, tF, xF
+    [~, d_bnd] = bndObj(t0,x0,tF,xF);
+
+    % gradients of t0, x0, tF, xF w.r.t. decision parameters (labeled alpha)
+    dt0_dalpha = zeros(1,nDecVar);
+    dt0_dalpha(1) = 1; % t0 is always the first decVar
+    %
+    dx0_dalpha = zeros(nState,nDecVar);
+    dx0_dalpha(1:nState,gradInfo.xIdx(:,end)) = eye(nState);
+    %
+    dtF_dalpha = zeros(1,nDecVar);
+    dtF_dalpha(2) = 1; % tF is always the second decVar
+    %
+    dxF_dalpha = zeros(nState,nDecVar);
+    dxF_dalpha(1:nState,gradInfo.xIdx(:,end)) = eye(nState);
+
+    % gradient of bound cost
+    dcost_bnd(:) = [dt0_dalpha; dx0_dalpha; dtF_dalpha; dxF_dalpha]' * d_bnd';
+  end
+    
+  % gradient assocated with path objective
+  if ~isempty(pathObj)
+    % dt
+    nTime = 1+nSegment*nSubStep;
+    dt = (t(end)-t(1))/(nTime-1);
+    
+    % partial derivative of cost w.r.t. to g(x,u) assuming 4th order runge-kutta
+    % integration
+    dcost_pth(gradInfo.indu(:,1)) = dt/6;
+    dcost_pth(gradInfo.indu(:,2:end-1)) = dt/6 * 2;
+    dcost_pth(gradInfo.indu(:,end)) = dt/6;
+    dcost_pth(gradInfo.indumid) = dt/6 * 4;
+    
+    % derivative of instantaneous g(x,u) cost w.r.t. to decision parameters
+    [~,dObj] = pathObj([],[],control);
+    
+    % cost w.r.t state decVars
+    %dcost(gradInfo.xIdx') = dcost(gradInfo.xIdx') .* dObj(2:nState+1,:)';
+    
+    % cost w.r.t control decVars 
+    dcost_pth(gradInfo.uIdx') = dcost_pth(gradInfo.uIdx') .* dObj(2+nState:end,:)';
+    %  ( transpose was necessary so that it
+    %   would work for dim(u) = 1 and  dim(u) > 1 )
+
+    % cost w.r.t to time decVars ( J = sum dt/6 (k1+k2+k3+k4) )
+    dcost_pth(1) = -1/(nTime-1) * (pathCost/dt);
+    dcost_pth(2) = 1/(nTime-1) * (pathCost/dt);
+  end
+  
+  dcost = dcost_pth + dcost_bnd;
+
+end
+
+end
+
+function [c, ceq, dc, dceq] = myCstGrad(decVars, pack, dynamics, pathObj, pathCst, bndCst, gradInfo)
+%
+% This function unpacks the decision variables, computes the defects along
+% the trajectory, and then evaluates the user-defined constraint functions.
+%
+% INPUTS:
+%   decVars = column vector of decision variables
+%   pack = details about how to convert decision variables into t,x, and u
+%   dynamics = user-defined dynamics function handle
+%   pathObj = user-defined path-objective function
+%   pathCst = user-defined path-constraint function
+%   bndCst = user-defined boundary constraint function
+%   gradInfo = 
+%
+% OUTPUTS:
+%   c = non-linear inequality constraint
+%   ceq = non-linear equatlity cosntraint
+%   dc = gradient of c w.r.t. decVars
+%   dceq = gradient of ceq w.r.t. decVars
+%
+% NOTE:
+%   - path constraints are  satisfied at the start and end of each sub-step
+%
+
+
+[t,x,u,defects,pathcost,dzdalpha] = simulateSystem(decVars, pack, dynamics, pathObj, gradInfo);
+
+%%%% Call user-defined constraints and pack up:
+if nargout <= 2
+[c, ceq] = collectConstraints(t,x,u,...
+    defects,...
+    pathCst, bndCst);
+
+else
+  
+  [c, ceq, dc, dceq] = collectConstraintsGrad(t,x,u,...
+    defects,...
+    pathCst, bndCst, pack, gradInfo, dzdalpha);
+  
+end
+  
+end
+
+
+function [c, ceq, dc, dceq] = collectConstraintsGrad(t,x,u,defects, pathCst, bndCst, pack, gradInfo, dzdalpha)
+% [c, ceq, dc, dceq] = collectConstraints(t,x,u,defects, pathCst, bndCst, pack, gradInfo, dzdalpha)
+%
+% TrajOpt utility function.
+%
+% Collects the defects, calls user-defined constraints, and then packs
+% everything up into a form that is good for fmincon.
+%
+% INPUTS:
+%   t = time vector (time at each substep) nTime = 1+nSegment*nSubStep
+%   x = state matrix (states at each time in t)
+%   u = control matrix (control at each time in t)
+%   defects = defects matrix
+%   pathCst = user-defined path constraint function
+%   bndCst = user-defined boundary constraint function
+%   pack = 
+%   gradInfo = 
+%   dzdalpha = partial derivative of state at each substep w.r.t. decVars
+%
+% OUTPUTS:
+%   c = inequality constraint for fmincon
+%   ceq = equality constraint for fmincon
+%   dc = gradient of c w.r.t. decVars
+%   dceq = gradient of ceq w.r.t. decVars
+%
+
+% problem dimensions
+nState = pack.nState;
+nControl = pack.nControl;
+nSegment = pack.nSegment;
+nSubStep = pack.nSubStep;
+nTime = 1+nSegment*nSubStep;
+nDecVar = 2+nState*(1+nSegment)+nControl*(1+nSegment*nSubStep*2);
+
+%%%% defect constraints
+ceq_dyn = reshape(defects,numel(defects),1);
+
+dceq_dyn = zeros(nDecVar,length(ceq_dyn));
+Inx = eye(nState);
+for j = 1:nSegment
+  rows = (j-1)*nState+(1:nState);
+  cols = rows;
+  dceq_dyn(:,cols) = dzdalpha{j}(:,:,end)';  % gradient w.r.t. to x_i(+)
+  dceq_dyn(2+nState+rows,cols) = -Inx; % gradient w.r.t. to x_i
+end
+
+
+%%%% Compute the user-defined constraints:
+
+%%%% path constraints
+if isempty(pathCst)
+  c_path = [];
+  ceq_path = [];
+  dc_path = [];
+  dceq_path = [];
+else
+  [c_pathRaw, ceq_pathRaw, c_pathGradRaw, ceq_pathGradRaw] = pathCst(t,x,u);
+  c_path = reshape(c_pathRaw,numel(c_pathRaw),1);
+  ceq_path = reshape(ceq_pathRaw,numel(ceq_pathRaw),1);
+  
+  dc_path = zeros(nDecVar,length(c_path));
+  dceq_path = zeros(nDecVar,length(ceq_path));
+
+  % gradients of path constraints
+  dt_dalpha = zeros(1,nDecVar); % t is never involved in path constraints
+  nc = size(c_pathRaw,1); % number path constraints at each time
+  nceq = size(ceq_pathRaw,1); 
+  for j = 1:(nSegment+1)
+    for i = 1:nSubStep
+      %
+      if j < nSegment+1
+        dxi_dalpha = dzdalpha{j}(:,:,i);
+      else
+        dxi_dalpha = zeros(nState,nDecVar);
+        cols = gradInfo.xIdx(:,j);
+        dxi_dalpha(:,cols) = eye(nState);
+      end
+      
+      %
+      dui_dalpha = zeros(nControl,nDecVar);
+      cols = gradInfo.indu(:,(j-1)*nSubStep+i);
+      dui_dalpha(:,cols) = eye(nControl);
+
+      % inequality path constraints
+      if nc > 0
+        cols = (1:nc) + nc*((j-1)*nSubStep+i-1);
+        dc_path(:,cols) = [dt_dalpha; dxi_dalpha; dui_dalpha]' * c_pathGradRaw(:,:,nSubStep*(j-1)+i)';
+      end
+
+      % equality path constraints
+      if nceq > 0
+        cols = (1:nceq) + nceq*((j-1)*nSubStep+i-1);
+        dceq_path(:,cols) = [dt_dalpha; dxi_dalpha; dui_dalpha]' * ceq_pathGradRaw(:,:,nSubStep*(j-1)+i)';
+      end
+      
+      % no need to continue with inner loop.
+      if j == nSegment+1
+        break;
+      end
+    end
+  end
+
+end
+
+%%%% bound constraints
+if isempty(bndCst)
+  c_bnd = [];
+  ceq_bnd = [];
+  dc_bnd = [];
+  dceq_bnd = [];
+  
+else
+  t0 = t(1);
+  tF = t(end);
+  x0 = x(:,1);
+  xF = x(:,end);
+  
+  % bound constraints and gradients w.r.t. t0, x0, tF, xF
+  [c_bnd, ceq_bnd, d_bnd, deq_bnd] = bndCst(t0,x0,tF,xF);
+  
+  % gradients of t0, x0, tF, xF w.r.t. decision parameters (labeled alpha)
+  dt0_dalpha = zeros(1,nDecVar);
+  dt0_dalpha(1) = 1; % t0 is always the first decVar
+  %
+  dx0_dalpha = zeros(nState,nDecVar);
+  cols = 2+(1:nState);
+  dx0_dalpha(1:nState,cols) = eye(nState);
+  %
+  dtF_dalpha = zeros(1,nDecVar);
+  dtF_dalpha(2) = 1; % tF is always the second decVar
+  %
+  dxF_dalpha = zeros(nState,nDecVar);
+  cols = (1:nState) + 2 + nSegment*nState;
+  dxF_dalpha(1:nState,cols) = eye(nState);
+  
+  
+  % inequality bound constraints
+  dc_bnd = [dt0_dalpha; dx0_dalpha; dtF_dalpha; dxF_dalpha]' * d_bnd';
+
+  % equality bound constraints
+  dceq_bnd = [dt0_dalpha; dx0_dalpha; dtF_dalpha; dxF_dalpha]' * deq_bnd';
+  
+end
+
+%%%% Pack everything up:
+c = [c_path;c_bnd];
+ceq = [ceq_dyn; ceq_path; ceq_bnd];
+
+dc = [dc_path, dc_bnd];
+dceq = [dceq_dyn, dceq_path, dceq_bnd];
+
+
+end
+
+
 
 %%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
 
 
-function [t,x,u,defects,pathCost] = simulateSystem(decVars, pack, dynamics, pathObj)
+function [t,x,u,defects,pathCost,dzdalpha] = simulateSystem(decVars, pack, dynamics, pathObj, gradInfo)
 %
 % This function does the real work of the transcription method. It
 % simulates the system forward in time across each segment of the
@@ -288,7 +692,7 @@ function [t,x,u,defects,pathCost] = simulateSystem(decVars, pack, dynamics, path
 %
 global RUNGE_KUTTA_t RUNGE_KUTTA_x RUNGE_KUTTA_u
 global RUNGE_KUTTA_defects RUNGE_KUTTA_pathCost
-global RUNGE_KUTTA_decVars
+global RUNGE_KUTTA_decVars RUNGE_KUTTA_dzdalpha
 %
 usePreviousValues = false;
 if ~isempty(RUNGE_KUTTA_decVars)
@@ -305,6 +709,7 @@ if usePreviousValues
     u = RUNGE_KUTTA_u;
     defects = RUNGE_KUTTA_defects;
     pathCost = RUNGE_KUTTA_pathCost;
+    dzdalpha = RUNGE_KUTTA_dzdalpha;
 else
 %
 %
@@ -314,6 +719,7 @@ else
     [tSpan, state, control] = unPackDecVar(decVars,pack);
     
     nState = pack.nState;
+    nControl = pack.nControl;
     nSegment = pack.nSegment;
     nSubStep = pack.nSubStep;
     
@@ -338,6 +744,19 @@ else
        
     idx = 1:nSubStep:(nTime-1);   %Indicies for the start of each segment
     x(:,[idx,end]) = state;   %Fill in the states that we already know
+    
+    % VARIABLES for analytic gradient evaluations.
+    % size of decicion parameters (2 for time), nstate*(nSegment+1), ...
+    % dzdalpha = partial derivative of state w.r.t. decVars (alpha)
+    nalpha = 2 + nState*(1+nSegment) + nControl*(1+2*nSubStep*nSegment);
+    dzdalpha = cell(1,nSegment);
+    for i = 1:nSegment
+      dzdalpha{i} = zeros(nState,nalpha,nSubStep+1);
+      cols = 2+(i-1)*nState+(1:nState);
+      dzdalpha{i}(:,cols,1) = eye(nState);
+    end
+    dTdalpha = zeros(1,nalpha); dTdalpha(1:2) = [-1,1];
+    
     for iSubStep = 1:nSubStep
         % March forward Runge-Kutta step
         
@@ -349,6 +768,48 @@ else
         k2 = combinedDynamics(t0+0.5*dt, x0 + 0.5*dt*k1(1:nState,:), uMid(:,idx), dynamics,pathObj);
         k3 = combinedDynamics(t0+dt,     x0 +     dt*k2(1:nState,:), u(:,idx+1), dynamics,pathObj);
         z = (dt/6)*(k0 + 2*k1 + 2*k2 + k3);  %Change over the sub-step
+        
+        %------------------------------------------
+        % Code for calculating dzdalpha (partial derivative of state w.r.t.
+        % the descision parameters): dzdalpha = nstate x nalpha
+        % assume nargout <=5 when using finite difference calculation for
+        % gradients in which case dzdalpha is unnecessary.
+        if nargout > 5
+
+          [~,df0] = dynamics(t0, x0, u(:,idx));
+          [~,df1] = dynamics(t0, x0+.5*dt*k0(1:nState,:), uMid(:,idx));
+          [~,df2] = dynamics(t0, x0+.5*dt*k1(1:nState,:), uMid(:,idx));
+          [~,df3] = dynamics(t0, x0+dt*k2(1:nState,:), u(:,idx+1));
+
+          for j = 1:nSegment
+            % dk0dalpha
+            dudalpha = zeros(nControl,nalpha);
+            cols = gradInfo.indu(:,idx(j));
+            dudalpha(:,cols) = eye(nControl);
+            dk0da = df0(:,2:end,j) * [dzdalpha{j}(:,:,iSubStep); dudalpha];
+
+            % dk1dalpha
+            dudalpha = zeros(nControl,nalpha);
+            cols = gradInfo.indumid(:,idx(j));
+            dudalpha(:,cols) = eye(nControl);
+            dk1da = df1(:,2:end,j) * [dzdalpha{j}(:,:,iSubStep) + 0.5*dt*dk0da + 0.5/(nTime-1)*k0(1:nState,j)*dTdalpha; dudalpha];
+
+            % dk2dalpha
+            dk2da = df2(:,2:end,j) * [dzdalpha{j}(:,:,iSubStep) + 0.5*dt*dk1da + 0.5/(nTime-1)*k1(1:nState,j)*dTdalpha; dudalpha];
+
+            % dk3dalpha
+            dudalpha = zeros(nControl,nalpha);
+            cols = gradInfo.indu(:,idx(j)+1);
+            dudalpha(:,cols) = eye(nControl);
+            dk3da = df3(:,2:end,j) * [dzdalpha{j}(:,:,iSubStep) + dt*dk2da + 1/(nTime-1)*k2(1:nState,j)*dTdalpha; dudalpha]; 
+
+            dzdalpha{j}(:,:,iSubStep+1) = dzdalpha{j}(:,:,iSubStep) + (dt/6)*(dk0da + 2*dk1da + 2*dk2da + dk3da)...
+              + 1/(6*(nTime-1))*(k0(1:nState,j)+2*k1(1:nState,j)+2*k2(1:nState,j)+k3(1:nState,j))*dTdalpha;
+          end
+          
+        end
+        %------------------------------------------
+        
         xNext = x0 + z(1:nState,:);  %Next state
         c(idx) = z(end,:);  %Integral of the cost function over this step
         
