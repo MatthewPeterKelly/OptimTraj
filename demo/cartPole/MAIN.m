@@ -3,6 +3,7 @@
 % Solve the cart-pole swing-up problem
 
 clc; clear;
+addpath ../../
 
 p.m1 = 2.0;  % (kg) Cart mass
 p.m2 = 0.5;  % (kg) pole mass
