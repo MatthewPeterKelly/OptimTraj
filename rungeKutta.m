@@ -15,6 +15,7 @@ function soln = rungeKutta(problem)
 %       .nSegment = number of trajectory segments
 %       .nSubStep = number of sub-steps to use in each segment
 %
+% 
 
 %To make code more readable
 G = problem.guess;
@@ -55,7 +56,6 @@ uUpp = B.control.upp*ones(1,nGridControl);
 zUpp = packDecVar(tUpp,xUpp,uUpp);
 
 %%%% Set up problem for fmincon:
-
 flagGradObj = strcmp(Opt.nlpOpt.GradObj,'on');
 flagGradCst = strcmp(Opt.nlpOpt.GradConstr,'on');
 

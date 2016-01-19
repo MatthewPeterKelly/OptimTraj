@@ -1,13 +1,9 @@
-% MAIN.m  --  Five Link Biped trajectory optimization
+% DEV_rungeKutta_grad.m
 %
-% This script sets up and then solves the optimal trajectory for the five
-% link biped, assuming that the walking gait is compused of single-stance
-% phases of motion connected by impulsive heel-strike (no double-stance or
-% flight phases).
+% Script for testing and development of the runge-kutta option for TrajOpt
+% with analytic gradients.
 %
-% The equations of motion and gradients are all derived by:
-%   --> Derive_Equations.m 
-%
+% 
 
 clc; clear; 
 addpath ../../
@@ -17,7 +13,6 @@ addpath ../../
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 param = getPhysicalParameters();
 
-param.alpha = 0.1;   % Smoothing parameter for cost of transport integral
 param.stepLength = 0.5;
 param.stepTime = 0.7;
 
@@ -94,7 +89,7 @@ problem.guess.control = zeros(5,2);  %Start with passive trajectory
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
-%                           Options:                                      %
+%                   Development / Debugging Scripts                       %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
 
@@ -103,60 +98,16 @@ problem.guess.control = zeros(5,2);  %Start with passive trajectory
 %   explicitly written out many options below, but the solver will fill in
 %   almost all defaults for you if they are ommitted.
 
-% method = 'trapazoid';
-% method = 'trapGrad';
-% method = 'hermiteSimpson';
-% method = 'hermiteSimpsonGrad';
-% method = 'chebyshev';
-% method = 'multiCheb';
-% method = 'rungeKutta';
-method = 'rungeKuttaGrad';
-% method = 'gpops';
+%NOTE:  There are many methods written out below, just to show different
+%   ways to solve the problem.
 
-%%%% Method-independent options:
-problem.options(1).nlpOpt = optimset(...
-    'Display','iter',...   % {'iter','final','off'}
-    'TolFun',1e-3,...
-    'MaxFunEvals',1e4);   %options for fmincon
-problem.options(2).nlpOpt = optimset(...
-    'Display','iter',...   % {'iter','final','off'}
-    'TolFun',1e-6,...
-    'MaxFunEvals',5e4);   %options for fmincon
-
+% method = 'Baseline Solution';
+% method = 'rungeKutta_issue_1';
+method = 'rungeKutta_test_1';
 
 switch method
     
-    case 'trapazoid'
-        problem.options(1).method = 'trapazoid'; % Select the transcription method
-        problem.options(1).trapazoid.nGrid = 10;  %method-specific options
-        
-        problem.options(2).method = 'trapazoid'; % Select the transcription method
-        problem.options(2).trapazoid.nGrid = 25;  %method-specific options
-        
-    case 'trapGrad'  %trapazoid with analytic gradients
-        
-        problem.options(1).method = 'trapazoid'; % Select the transcription method
-        problem.options(1).trapazoid.nGrid = 10;  %method-specific options
-        problem.options(1).nlpOpt.GradConstr = 'on';
-        problem.options(1).nlpOpt.GradObj = 'on';
-        problem.options(1).nlpOpt.DerivativeCheck = 'off';
-        
-        problem.options(2).method = 'trapazoid'; % Select the transcription method
-        problem.options(2).trapazoid.nGrid = 45;  %method-specific options
-        problem.options(2).nlpOpt.GradConstr = 'on';
-        problem.options(2).nlpOpt.GradObj = 'on';
-        
-    case 'hermiteSimpson'
-        
-        % First iteration: get a more reasonable guess
-        problem.options(1).method = 'hermiteSimpson'; % Select the transcription method
-        problem.options(1).hermiteSimpson.nSegment = 6;  %method-specific options
-        
-        % Second iteration: refine guess to get precise soln
-        problem.options(2).method = 'hermiteSimpson'; % Select the transcription method
-        problem.options(2).hermiteSimpson.nSegment = 15;  %method-specific options
-        
-    case 'hermiteSimpsonGrad'  %hermite simpson with analytic gradients
+    case 'Baseline Solution'  %hermite simpson with analytic gradients
         
         problem.options(1).method = 'hermiteSimpson'; % Select the transcription method
         problem.options(1).hermiteSimpson.nSegment = 6;  %method-specific options
@@ -168,38 +119,20 @@ switch method
         problem.options(2).hermiteSimpson.nSegment = 15;  %method-specific options
         problem.options(2).nlpOpt.GradConstr = 'on';
         problem.options(2).nlpOpt.GradObj = 'on';
-        
-        
-    case 'chebyshev'
-        
-        % First iteration: get a more reasonable guess
-        problem.options(1).method = 'chebyshev'; % Select the transcription method
-        problem.options(1).chebyshev.nColPts = 9;  %method-specific options
-        
-        % Second iteration: refine guess to get precise soln
-        problem.options(2).method = 'chebyshev'; % Select the transcription method
-        problem.options(2).chebyshev.nColPts = 15;  %method-specific options
-        
-    case 'multiCheb'
-        
-        % First iteration: get a more reasonable guess
-        problem.options(1).method = 'multiCheb'; % Select the transcription method
-        problem.options(1).multiCheb.nColPts = 6;  %method-specific options
-        problem.options(1).multiCheb.nSegment = 4;  %method-specific options
-        
-        % Second iteration: refine guess to get precise soln
-        problem.options(2).method = 'multiCheb'; % Select the transcription method
-        problem.options(2).multiCheb.nColPts = 9;  %method-specific options
-        problem.options(2).multiCheb.nSegment = 4;  %method-specific options
-        
-    case 'rungeKutta'
-        problem.options(1).method = 'rungeKutta'; % Select the transcription method
-        problem.options(1).defaultAccuracy = 'low';
-        problem.options(2).method = 'rungeKutta'; % Select the transcription method
-        problem.options(2).defaultAccuracy = 'medium';
+
     
-    case 'rungeKuttaGrad'
+    case 'rungeKutta_issue_1'
       
+        % This first iteration runs just fine, but the derivative checks on
+        % the second iteration throw an error. The only difference between
+        % the two calls to rungeKutta.m is in the "guess" struct. 
+        %
+        % The error is caused by a small difference in the numerical and 
+        % analytic gradients in a single element of the objective function.
+        %
+        % Question: Is this error due to a problem with the implementation,
+        % or just some numerical artifact?
+        
         problem.options(1).method = 'rungeKutta'; % Select the transcription method
         problem.options(1).defaultAccuracy = 'low';
         problem.options(1).nlpOpt.GradConstr = 'on';
@@ -207,15 +140,27 @@ switch method
         problem.options(1).nlpOpt.DerivativeCheck = 'on';
         
         problem.options(2).method = 'rungeKutta'; % Select the transcription method
-        problem.options(2).defaultAccuracy = 'medium';
+        problem.options(2).defaultAccuracy = 'low';
         problem.options(2).nlpOpt.GradConstr = 'on';
         problem.options(2).nlpOpt.GradObj = 'on';
+        problem.options(2).nlpOpt.DerivativeCheck = 'on';
+  
+    case 'rungeKutta_test_1'
         
-    case 'gpops'
-        problem.options = [];
-        problem.options.method = 'gpops';
-        problem.options.defaultAccuracy = 'high';
-        problem.options.gpops.nlp.solver = 'snopt';  %Set to 'ipopt' if you have GPOPS but not SNOPT
+        % Let's try putting in some totally random initial guess. 
+        % ...
+        % This seems to throw an error too.
+        
+        nGridGuess = 10;
+        problem.guess.time = linspace(0, 0.5+0.6*rand(1), nGridGuess);
+        problem.guess.state = 0.25*randn(10,nGridGuess);
+        problem.guess.control = 20*randn(5,nGridGuess);
+        
+        problem.options.method = 'rungeKutta'; % Select the transcription method
+        problem.options.defaultAccuracy = 'low';
+        problem.options.nlpOpt.GradConstr = 'on';
+        problem.options.nlpOpt.GradObj = 'on';
+        problem.options.nlpOpt.DerivativeCheck = 'on';
         
     otherwise
         error('Invalid method!');

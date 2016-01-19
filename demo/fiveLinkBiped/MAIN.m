@@ -102,6 +102,9 @@ problem.guess.control = zeros(5,2);  %Start with passive trajectory
 %   explicitly written out many options below, but the solver will fill in
 %   almost all defaults for you if they are ommitted.
 
+%NOTE:  There are many methods written out below, just to show different
+%   ways to solve the problem.
+
 % method = 'trapazoid';
 % method = 'trapGrad';
 % method = 'hermiteSimpson';
@@ -109,6 +112,7 @@ method = 'hermiteSimpsonGrad';
 % method = 'chebyshev';
 % method = 'multiCheb';
 % method = 'rungeKutta';
+% method = 'rungeKuttaGrad';
 % method = 'gpops';
 
 %%%% Method-independent options:
@@ -177,12 +181,37 @@ switch method
         % Second iteration: refine guess to get precise soln
         problem.options(2).method = 'chebyshev'; % Select the transcription method
         problem.options(2).chebyshev.nColPts = 15;  %method-specific options
-
+        
+    case 'multiCheb'
+        
+        % First iteration: get a more reasonable guess
+        problem.options(1).method = 'multiCheb'; % Select the transcription method
+        problem.options(1).multiCheb.nColPts = 6;  %method-specific options
+        problem.options(1).multiCheb.nSegment = 4;  %method-specific options
+        
+        % Second iteration: refine guess to get precise soln
+        problem.options(2).method = 'multiCheb'; % Select the transcription method
+        problem.options(2).multiCheb.nColPts = 9;  %method-specific options
+        problem.options(2).multiCheb.nSegment = 4;  %method-specific options
+        
     case 'rungeKutta'
         problem.options(1).method = 'rungeKutta'; % Select the transcription method
         problem.options(1).defaultAccuracy = 'low';
         problem.options(2).method = 'rungeKutta'; % Select the transcription method
         problem.options(2).defaultAccuracy = 'medium';
+    
+    case 'rungeKuttaGrad'
+      
+        problem.options(1).method = 'rungeKutta'; % Select the transcription method
+        problem.options(1).defaultAccuracy = 'low';
+        problem.options(1).nlpOpt.GradConstr = 'on';
+        problem.options(1).nlpOpt.GradObj = 'on';
+        problem.options(1).nlpOpt.DerivativeCheck = 'on';
+        
+        problem.options(2).method = 'rungeKutta'; % Select the transcription method
+        problem.options(2).defaultAccuracy = 'medium';
+        problem.options(2).nlpOpt.GradConstr = 'on';
+        problem.options(2).nlpOpt.GradObj = 'on';
         
     case 'gpops'
         problem.options = [];
@@ -214,7 +243,7 @@ u = soln(end).grid.control;
 %                     Plot the solution                                   %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
-Anim.figNum = 1; 
+%Anim.figNum = 1; clf(Anim.figNum);
 Anim.speed = 0.25;
 Anim.plotFunc = @(t,q)( drawRobot(q,param) );
 Anim.verbose = true;

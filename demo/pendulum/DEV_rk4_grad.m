@@ -1,4 +1,6 @@
-% MAIN - Pendulum
+% DEV - Pendulum with Gradients
+%
+% Development and testing of analytic gradients
 %
 % Demonstrates simple swing-up for a single pendulum with a torque motor.
 % This is an easy problem, used for demonstrating how to use analytic
@@ -41,25 +43,41 @@ problem.guess.time = [0,1];
 problem.guess.state = [0, 0; pi, 0];
 problem.guess.control = [0, 0];
 
-% Options for fmincon
-problem.options.nlpOpt = optimset(...
+
+
+%%%% HACK %%%%
+% Put in some terrible initial condition
+problem.guess.time = linspace(0,1,10);
+problem.guess.state = randn(2,10);
+problem.guess.control = 2*randn(1,10);
+% Still seems to work
+%%%% DONE %%%%
+
+
+
+%%%% FIRST ITERATION
+problem.options(1).nlpOpt = optimset(...
     'Display','iter',...
     'GradObj','on',...
     'GradConstr','on',...
     'DerivativeCheck','on',...
-    'MaxFunEvals',1e5);   %Fmincon automatically checks
+    'MaxFunEvals',1e5);   %Fmincon automatically checks derivatives
+problem.options(1).method = 'rungeKutta';
+problem.options(1).defaultAccuracy = 'medium';
 
-problem.options.method = 'hermiteSimpson';
-problem.options.method = 'rungeKutta';
-problem.options.defaultAccuracy = 'low';
+%%%% SECOND ITERATION
+problem.options(2) = problem.options(1);
+
 
 % Solve the problem
-tic,soln = trajOpt(problem);toc
+tic;
+soln = trajOpt(problem);
+toc
 
-t = soln.grid.time;
-q = soln.grid.state(1,:);
-dq = soln.grid.state(2,:);
-u = soln.grid.control;
+t = soln(end).grid.time;
+q = soln(end).grid.state(1,:);
+dq = soln(end).grid.state(2,:);
+u = soln(end).grid.control;
 
 % Plot the solution:
 figure(1); clf;
