@@ -4,7 +4,7 @@ function [dObj, dObjGrad] = obj_boundObj(xF,xF_des)
 % This is a sample bound objective for testing analtyic gradients.
 
 % weight on bound cost
-Q = diag([100, 1]);
+Q = 100000*diag([1, 1]);
 
     % add cost for being away from final desired state.
     % NOTE: probably need to angle wrapping

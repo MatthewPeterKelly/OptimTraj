@@ -132,12 +132,15 @@ switch method
         %
         % Question: Is this error due to a problem with the implementation,
         % or just some numerical artifact?
+        % Update: Seems to be a problem with matlab's finite difference 
+        % calculation. Added objective gradient tests with DERIVEST package
+        % to rungeKutta.m
         
         problem.options(1).method = 'rungeKutta'; % Select the transcription method
         problem.options(1).defaultAccuracy = 'low';
         problem.options(1).nlpOpt.GradConstr = 'on';
         problem.options(1).nlpOpt.GradObj = 'on';
-        problem.options(1).nlpOpt.DerivativeCheck = 'on';
+        problem.options(1).nlpOpt.DerivativeCheck = 'off';
         
         problem.options(2).method = 'rungeKutta'; % Select the transcription method
         problem.options(2).defaultAccuracy = 'low';
@@ -150,6 +153,7 @@ switch method
         % Let's try putting in some totally random initial guess. 
         % ...
         % This seems to throw an error too.
+        % Update: With DERIVEST for checking gradients, this test passes.
         
         nGridGuess = 10;
         problem.guess.time = linspace(0, 0.5+0.6*rand(1), nGridGuess);
