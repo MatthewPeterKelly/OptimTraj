@@ -84,18 +84,18 @@ P.func.bndObj = @(t0,x0,tF,xF)( -xF(1)/10000 );  %Maximize final height
 %                  Options and Method selection                           %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
-method = 'trapazoid';
+method = 'trapezoid';
 % method = 'rungeKutta';
 % method = 'chebyshev';
 
 switch method
     
-    case 'trapazoid'
+    case 'trapezoid'
         
-        P.options(1).method = 'trapazoid';
+        P.options(1).method = 'trapezoid';
         P.options(1).defaultAccuracy = 'low';
         
-        P.options(2).method = 'trapazoid';
+        P.options(2).method = 'trapezoid';
         P.options(2).defaultAccuracy = 'medium';
         P.options(2).nlpOpt.MaxFunEvals = 1e6;
         P.options(2).nlpOpt.MaxIter = 1e5;
@@ -125,7 +125,7 @@ end
 % discontinuity in solution of the thrust curve. It still sort of works,
 % but will find a sub-optimal answer, or produce ringing.
 %
-% 2) Why does the 'trapazoid' low resolution version finish so quickly and the medium
+% 2) Why does the 'trapezoid' low resolution version finish so quickly and the medium
 % quality one take forever? Hint: Look at the feasibility printout: it is
 % cyclical. If you were to plot the solution as a function of iteration,
 % you would find that occasionally the discontinuity moves, which causes a

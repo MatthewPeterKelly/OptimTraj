@@ -7,7 +7,7 @@ function problem = getDefaultOptions(problem)
 %
 
 %%%% Top-level default options:
-OPT.method = 'trapazoid';
+OPT.method = 'trapezoid';
 OPT.verbose = 2;
 OPT.defaultAccuracy = 'medium';
 
@@ -98,8 +98,8 @@ end
 for i=1:length(opt)
     OPT_method = opt(i).method;
     switch OPT_method
-        case 'trapazoid'
-            OPT.trapazoid = defaults_trapazoid(opt(i).defaultAccuracy);
+        case 'trapezoid'
+            OPT.trapezoid = defaults_trapezoid(opt(i).defaultAccuracy);
         case 'hermiteSimpson'
             OPT.hermiteSimpson = defaults_hermiteSimpson(opt(i).defaultAccuracy);
         case 'chebyshev'
@@ -138,15 +138,15 @@ end
 
 
 
-function OPT_trapazoid = defaults_trapazoid(accuracy)
+function OPT_trapezoid = defaults_trapezoid(accuracy)
 
 switch accuracy
     case 'low'
-        OPT_trapazoid.nGrid = 15;
+        OPT_trapezoid.nGrid = 15;
     case 'medium'
-        OPT_trapazoid.nGrid = 30;
+        OPT_trapezoid.nGrid = 30;
     case 'high'
-        OPT_trapazoid.nGrid = 60;
+        OPT_trapezoid.nGrid = 60;
     otherwise
         error('Invalid value for options.defaultAccuracy')
 end

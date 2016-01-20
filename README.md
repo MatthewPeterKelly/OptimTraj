@@ -7,7 +7,7 @@ TrajOpt is a matlab library that I developed while working on my PhD at Cornell,
 - __Analytic gradients -__ direct collocation methods support analytic gradients
 - __Rapidly switch methods -__ choose from a variety of methods:
     - direct collocation
-        - trapazoid
+        - trapezoid
         - Hermite-Simpson (seperated)
     - multiple shooting
         - 4th-order Runge-Kutta

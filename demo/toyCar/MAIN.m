@@ -77,8 +77,8 @@ problem.options.nlpOpt = optimset(...
 
 % problem.options.method = 'gpops';
 
-problem.options.method = 'trapazoid';
-problem.options.trapazoid.nGrid = 15;
+problem.options.method = 'trapezoid';
+problem.options.trapezoid.nGrid = 15;
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                            Solve!                                       %

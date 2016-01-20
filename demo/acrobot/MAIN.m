@@ -86,7 +86,7 @@ method = 'direct';
 
 switch method
     case 'direct'
-        problem.options(1).method = 'trapazoid';
+        problem.options(1).method = 'trapezoid';
         problem.options(1).defaultAccuracy = 'low';
         
         problem.options(2).method = 'hermiteSimpson';

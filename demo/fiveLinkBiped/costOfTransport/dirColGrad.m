@@ -4,7 +4,7 @@ function soln = dirColGrad(P, problem)
 % TrajOpt utility function - Direct Collocation with Gradients
 %
 % This function is core function that is called to run the transcription
-% for both the "trapazoid" and the "hermiteSimpson" methods when they are
+% for both the "trapezoid" and the "hermiteSimpson" methods when they are
 % running analytic gradients.
 %
 % 
