@@ -44,7 +44,7 @@ problem.options.nlpOpt = optimset(...
     'GradConstr','on',...
     'DerivativeCheck','on');   %Fmincon automatically checks derivatives
 
-problem.options.method = 'hermiteSimpson';
+problem.options.method = 'trapezoid';
 problem.options.defaultAccuracy = 'medium';
 
 % Solve the problem
