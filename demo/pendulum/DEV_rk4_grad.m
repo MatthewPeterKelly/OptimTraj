@@ -63,7 +63,7 @@ problem.options(1).nlpOpt = optimset(...
     'DerivativeCheck','on',...
     'MaxFunEvals',1e5);   %Fmincon automatically checks derivatives
 problem.options(1).method = 'rungeKutta';
-problem.options(1).defaultAccuracy = 'medium';
+problem.options(1).defaultAccuracy = 'low';
 
 %%%% SECOND ITERATION
 problem.options(2) = problem.options(1);

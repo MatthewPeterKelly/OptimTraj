@@ -89,6 +89,20 @@ P.Aeq = []; P.beq = [];
 P.options = Opt.nlpOpt;
 P.solver = 'fmincon';
 
+% % test gradient with DERIVEST package
+% http://www.mathworks.com/matlabcentral/fileexchange/13490-adaptive-robust-numerical-differentiation
+if strcmp(Opt.nlpOpt.DerivativeCheck,'on')
+  z_test = P.x0;
+
+  addpath /Users/wwehner/Desktop/DERIVESTsuite/DERIVESTsuite
+  runGradientCheck(z_test, pack,F.dynamics, F.pathObj, F.bndObj, F.pathCst, F.bndCst, gradInfo);
+  
+  % turn off gradient check for fmincon since we're running with the check
+  % with runGradientCheck()
+  P.options.DerivativeCheck = [];
+  
+end
+
 %%%% Call fmincon to solve the non-linear program (NLP)
 tic;
 [zSoln, objVal,exitFlag,output] = fmincon(P);
@@ -118,6 +132,68 @@ soln.info.objVal = objVal;
 
 soln.problem = problem;  % Return the fully detailed problem struct
 
+end
+
+
+%%%%  Run objective gradient checks  %%%%
+function [fail] = runGradientCheck(z_test, pack,dynamics, pathObj, bndObj, pathCst, bndCst, gradInfo)
+%
+% This function tests the analytic gradients of the objective and
+% nonlinear constraints with the DERIVEST package. The finite difference
+% calculations in matlab's optimization package were not sufficiently 
+% accurate.
+%
+
+  fail = 0;
+
+  fprintf('\n%s\n','____________________________________________________________')
+  fprintf('%s\n','  DerivativeCheck Information with DERIVEST Package ')
+
+  % analytic gradient
+  [~, dcost] = myObjGrad(z_test, pack, dynamics, pathObj, bndObj, gradInfo);
+  
+  % check gradient with derivest package
+  [deriv,errObj] = gradest(@(z) myObjGrad(z, pack, dynamics, pathObj, bndObj, gradInfo),z_test);
+
+  % print largest difference in numerical and analytic gradients
+  fprintf('\n%s\n','Objective function derivatives:')
+  fprintf('%s\n','Maximum relative difference between user-supplied')
+  fprintf('%s %1.5e \n','and finite-difference derivatives = ',max(abs(dcost-deriv')))
+  if any(abs(dcost-deriv') > 1e-6)
+    error('Objective gradient did not pass')
+  end
+  
+  % analytic nonlinear constraints
+  [c, ceq,dc, dceq] = myCstGrad(z_test, pack, dynamics, pathObj, pathCst, bndCst, gradInfo);
+  
+  % check nonlinear inequality constraints with 'jacobianest'
+  if ~isempty(c)
+    [jac,errNonlinIneq] = jacobianest(@(z) myConstraint(z, pack, dynamics, pathObj, pathCst, bndCst),z_test);
+    
+    % print largest difference in numerical and analytic gradients
+    fprintf('\n%s\n','Nonlinear inequality constraint function derivatives:')
+    fprintf('%s\n','Maximum relative difference between user-supplied')
+    fprintf('%s %1.5e \n','and finite-difference derivatives = ',max(max(abs(dc-jac'))))
+    if any(abs(dc - jac') > 1e-6)
+      error('Nonlinear inequality constraint did not pass')
+    end
+  end
+  
+  % check nonlinear equality constraints with 'jacobianest'
+  if ~isempty(ceq)
+    [jac,errNonlinEq] = jacobianest(@(z) myConstraint_ceq(z, pack, dynamics, pathObj, pathCst, bndCst),z_test);
+    
+    % print largest difference in numerical and analytic gradients
+    fprintf('\n%s\n','Nonlinear equality constraint function derivatives:')
+    fprintf('%s\n','Maximum relative difference between user-supplied')
+    fprintf('%s %1.5e \n','and finite-difference derivatives = ',max(max(abs(dceq-jac'))))
+    if any(abs(dceq - jac') > 1e-6)
+      error('Nonlinear equality constraint did not pass')
+    end
+  end
+    
+  fprintf('\n%s\n','DerivativeCheck successfully passed.')
+  fprintf('%s\n','____________________________________________________________')
 end
 
 
@@ -258,6 +334,19 @@ function [c, ceq] = myConstraint(decVars, pack, dynamics, pathObj, pathCst, bndC
 %   - path constraints are  satisfied at the start and end of each sub-step
 %
 
+
+[t,x,u,defects] = simulateSystem(decVars, pack, dynamics, pathObj, []);
+
+%%%% Call user-defined constraints and pack up:
+[c, ceq] = collectConstraints(t,x,u,...
+    defects,...
+    pathCst, bndCst);
+
+end
+
+function [ceq] = myConstraint_ceq(decVars, pack, dynamics, pathObj, pathCst, bndCst)
+% This function is necessary for runGradientCheck function
+% return only equality constraint (ceq) for use with jacobest.m
 
 [t,x,u,defects] = simulateSystem(decVars, pack, dynamics, pathObj, []);
 
