@@ -16,11 +16,11 @@ p.c = 0.1;  % Normalized damping constant
 
 % User-defined dynamics and objective functions
 problem.func.dynamics = @(t,x,u)( dynamics(x,u,p) );
-problem.func.pathObj = @(t,x,u)( objective(u) );
+problem.func.pathObj = @(t,x,u)( pathObjective(u) );
 
 % bound objective for testing
-xF_des = [pi-.1;.1];
-problem.func.bndObj = @(t0,x0,tF,xF)( obj_boundObj(xF,xF_des) );
+xF_target = [pi;0];
+problem.func.bndObj = @(t0,x0,tF,xF)( boundObjective(xF,xF_target) );
 
 % Problem bounds
 problem.bounds.initialTime.low = 0;
@@ -32,8 +32,6 @@ problem.bounds.state.low = [-2*pi; -inf];
 problem.bounds.state.upp = [2*pi; inf];
 problem.bounds.initialState.low = [0;0];
 problem.bounds.initialState.upp = [0;0];
-problem.bounds.finalState.low = [pi;0];
-problem.bounds.finalState.upp = [pi;0];
 
 problem.bounds.control.low = -5; %-inf;
 problem.bounds.control.upp = 5; %inf;
@@ -42,18 +40,6 @@ problem.bounds.control.upp = 5; %inf;
 problem.guess.time = [0,1];
 problem.guess.state = [0, 0; pi, 0];
 problem.guess.control = [0, 0];
-
-
-
-%%%% HACK %%%%
-% Put in some terrible initial condition
-problem.guess.time = linspace(0,1,10);
-problem.guess.state = randn(2,10);
-problem.guess.control = 2*randn(1,10);
-% Still seems to work
-%%%% DONE %%%%
-
-
 
 %%%% FIRST ITERATION
 problem.options(1).nlpOpt = optimset(...
@@ -64,6 +50,7 @@ problem.options(1).nlpOpt = optimset(...
     'MaxFunEvals',1e5);   %Fmincon automatically checks derivatives
 problem.options(1).method = 'rungeKutta';
 problem.options(1).defaultAccuracy = 'low';
+problem.options(1).rungeKutta.AdaptiveDerivativeCheck = 'on';
 
 %%%% SECOND ITERATION
 problem.options(2) = problem.options(1);

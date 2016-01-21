@@ -3,6 +3,9 @@
 % Script for testing and development of the runge-kutta option for TrajOpt
 % with analytic gradients.
 %
+% WARNING:  This script uses adaptive numerical gradients to check the
+% analytic gradients. These are SLOW, causing this script to take a long
+% time to run. 
 % 
 
 clc; clear; 
@@ -102,8 +105,7 @@ problem.guess.control = zeros(5,2);  %Start with passive trajectory
 %   ways to solve the problem.
 
 % method = 'Baseline Solution';
-% method = 'rungeKutta_issue_1';
-method = 'rungeKutta_test_1';
+method = 'rungeKutta_test';
 
 switch method
     
@@ -121,53 +123,23 @@ switch method
         problem.options(2).nlpOpt.GradObj = 'on';
 
     
-    case 'rungeKutta_issue_1'
-      
-        % This first iteration runs just fine, but the derivative checks on
-        % the second iteration throw an error. The only difference between
-        % the two calls to rungeKutta.m is in the "guess" struct. 
-        %
-        % The error is caused by a small difference in the numerical and 
-        % analytic gradients in a single element of the objective function.
-        %
-        % Question: Is this error due to a problem with the implementation,
-        % or just some numerical artifact?
-        % Update: Seems to be a problem with matlab's finite difference 
-        % calculation. Added objective gradient tests with DERIVEST package
-        % to rungeKutta.m
+    case 'rungeKutta_test'
         
-        problem.options(1).method = 'rungeKutta'; % Select the transcription method
+        problem.options(1).method = 'rungeKutta'; 
         problem.options(1).defaultAccuracy = 'low';
         problem.options(1).nlpOpt.GradConstr = 'on';
         problem.options(1).nlpOpt.GradObj = 'on';
         problem.options(1).nlpOpt.DerivativeCheck = 'off';
         
-        problem.options(2).method = 'rungeKutta'; % Select the transcription method
+        problem.options(2).method = 'rungeKutta'; 
         problem.options(2).defaultAccuracy = 'low';
         problem.options(2).nlpOpt.GradConstr = 'on';
         problem.options(2).nlpOpt.GradObj = 'on';
-        problem.options(2).nlpOpt.DerivativeCheck = 'on';
-  
-    case 'rungeKutta_test_1'
         
-        % Let's try putting in some totally random initial guess. 
-        % ...
-        % This seems to throw an error too.
-        % Update: With DERIVEST for checking gradients, this test passes.
+        % The following option takes a long time, but verifies accuracy of
+        % gradients more robustly than fmincon's internal checks.
+        problem.options(2).rungeKutta.AdaptiveDerivativeCheck = 'on';
         
-        nGridGuess = 10;
-        problem.guess.time = linspace(0, 0.5+0.6*rand(1), nGridGuess);
-        problem.guess.state = 0.25*randn(10,nGridGuess);
-        problem.guess.control = 20*randn(5,nGridGuess);
-        
-        problem.options.method = 'rungeKutta'; % Select the transcription method
-        problem.options.defaultAccuracy = 'low';
-        problem.options.nlpOpt.GradConstr = 'on';
-        problem.options.nlpOpt.GradObj = 'on';
-        problem.options.nlpOpt.DerivativeCheck = 'on';
-        
-    otherwise
-        error('Invalid method!');
 end
 
 

@@ -1,5 +1,5 @@
-function [obj, objGrad] = objective(u)
-% [obj, objGrad] = objective(t,x,u,p)
+function [obj, objGrad] = pathObjective(u)
+% [obj, objGrad] = pathObjective(u)
 %
 % Computes the objective function (and gradients) for the simple pendulum
 %

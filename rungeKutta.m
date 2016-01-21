@@ -14,7 +14,12 @@ function soln = rungeKutta(problem)
 %   problem.options.rungeKutta = struct with method parameters:
 %       .nSegment = number of trajectory segments
 %       .nSubStep = number of sub-steps to use in each segment
-%
+%       .AdaptiveDerivativeCheck = 'off' by default. Set to 'on' to enable
+%           numerical checks on the analytic gradients, computed using the 
+%           derivest package, rather than fmincon's internal checks.
+%           Derivest is slower, but more accurate than fmincon. Derivest
+%           can be downloaded from the Mathworks File Exchange, file id of
+%           13490 - Adaptive Robust Numerical Differentation, John D-Errico
 % 
 
 %To make code more readable
@@ -81,27 +86,26 @@ else
       myConstraint(z, pack, F.dynamics, F.pathObj, F.pathCst, F.bndCst) ); %Numerical gradients
 end
 
+% Check analytic gradients with DERIVEST package
+if strcmp(Opt.rungeKutta.AdaptiveDerivativeCheck,'on')
+    if exist('jacobianest','file')
+        runGradientCheck(zGuess, pack,F.dynamics, F.pathObj, F.bndObj, F.pathCst, F.bndCst, gradInfo);
+        Opt.nlpOpt.DerivativeCheck = [];  %Disable built-in derivative check
+    else
+        Opt.rungeKutta.AdaptiveDerivativeCheck = 'cannot find jacobianest.m';
+        disp('Warning: the derivest package is not on search path.');
+        disp(' --> Using fmincon''s built-in derivative checks.');
+    end
+end
+
+% Build the standard fmincon problem struct
 P.x0 = zGuess;
 P.lb = zLow;
 P.ub = zUpp;
 P.Aineq = []; P.bineq = [];
 P.Aeq = []; P.beq = [];
-P.options = Opt.nlpOpt;
 P.solver = 'fmincon';
-
-% % test gradient with DERIVEST package
-% http://www.mathworks.com/matlabcentral/fileexchange/13490-adaptive-robust-numerical-differentiation
-if strcmp(Opt.nlpOpt.DerivativeCheck,'on')
-  z_test = P.x0;
-
-  addpath /Users/wwehner/Desktop/DERIVESTsuite/DERIVESTsuite
-  runGradientCheck(z_test, pack,F.dynamics, F.pathObj, F.bndObj, F.pathCst, F.bndCst, gradInfo);
-  
-  % turn off gradient check for fmincon since we're running with the check
-  % with runGradientCheck()
-  P.options.DerivativeCheck = [];
-  
-end
+P.options = Opt.nlpOpt;
 
 %%%% Call fmincon to solve the non-linear program (NLP)
 tic;
@@ -135,7 +139,12 @@ soln.problem = problem;  % Return the fully detailed problem struct
 end
 
 
-%%%%  Run objective gradient checks  %%%%
+%%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
+%%%%                   SUB FUNCTIONS                                   %%%%
+%%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
+
+
+
 function [fail] = runGradientCheck(z_test, pack,dynamics, pathObj, bndObj, pathCst, bndCst, gradInfo)
 %
 % This function tests the analytic gradients of the objective and
@@ -143,6 +152,7 @@ function [fail] = runGradientCheck(z_test, pack,dynamics, pathObj, bndObj, pathC
 % calculations in matlab's optimization package were not sufficiently 
 % accurate.
 %
+    GradientCheckTol = 1e-6;  %Analytic gradients must match numerical within this bound
 
   fail = 0;
 
@@ -153,13 +163,13 @@ function [fail] = runGradientCheck(z_test, pack,dynamics, pathObj, bndObj, pathC
   [~, dcost] = myObjGrad(z_test, pack, dynamics, pathObj, bndObj, gradInfo);
   
   % check gradient with derivest package
-  [deriv,errObj] = gradest(@(z) myObjGrad(z, pack, dynamics, pathObj, bndObj, gradInfo),z_test);
+  deriv = gradest(@(z) myObjGrad(z, pack, dynamics, pathObj, bndObj, gradInfo),z_test);
 
   % print largest difference in numerical and analytic gradients
   fprintf('\n%s\n','Objective function derivatives:')
   fprintf('%s\n','Maximum relative difference between user-supplied')
   fprintf('%s %1.5e \n','and finite-difference derivatives = ',max(abs(dcost-deriv')))
-  if any(abs(dcost-deriv') > 1e-6)
+  if any(abs(dcost-deriv') > GradientCheckTol)
     error('Objective gradient did not pass')
   end
   
@@ -168,26 +178,26 @@ function [fail] = runGradientCheck(z_test, pack,dynamics, pathObj, bndObj, pathC
   
   % check nonlinear inequality constraints with 'jacobianest'
   if ~isempty(c)
-    [jac,errNonlinIneq] = jacobianest(@(z) myConstraint(z, pack, dynamics, pathObj, pathCst, bndCst),z_test);
+    jac = jacobianest(@(z) myConstraint(z, pack, dynamics, pathObj, pathCst, bndCst),z_test);
     
     % print largest difference in numerical and analytic gradients
     fprintf('\n%s\n','Nonlinear inequality constraint function derivatives:')
     fprintf('%s\n','Maximum relative difference between user-supplied')
     fprintf('%s %1.5e \n','and finite-difference derivatives = ',max(max(abs(dc-jac'))))
-    if any(abs(dc - jac') > 1e-6)
+    if any(abs(dc - jac') > GradientCheckTol)
       error('Nonlinear inequality constraint did not pass')
     end
   end
   
   % check nonlinear equality constraints with 'jacobianest'
   if ~isempty(ceq)
-    [jac,errNonlinEq] = jacobianest(@(z) myConstraint_ceq(z, pack, dynamics, pathObj, pathCst, bndCst),z_test);
+    jac = jacobianest(@(z) myConstraint_ceq(z, pack, dynamics, pathObj, pathCst, bndCst),z_test);
     
     % print largest difference in numerical and analytic gradients
     fprintf('\n%s\n','Nonlinear equality constraint function derivatives:')
     fprintf('%s\n','Maximum relative difference between user-supplied')
     fprintf('%s %1.5e \n','and finite-difference derivatives = ',max(max(abs(dceq-jac'))))
-    if any(abs(dceq - jac') > 1e-6)
+    if any(abs(dceq - jac') > GradientCheckTol)
       error('Nonlinear equality constraint did not pass')
     end
   end
@@ -197,8 +207,6 @@ function [fail] = runGradientCheck(z_test, pack,dynamics, pathObj, bndObj, pathC
 end
 
 
-%%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
-%%%%                   SUB FUNCTIONS                                   %%%%
 %%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
 
 
@@ -344,14 +352,14 @@ function [c, ceq] = myConstraint(decVars, pack, dynamics, pathObj, pathCst, bndC
 
 end
 
-function [ceq] = myConstraint_ceq(decVars, pack, dynamics, pathObj, pathCst, bndCst)
+function ceq = myConstraint_ceq(decVars, pack, dynamics, pathObj, pathCst, bndCst)
 % This function is necessary for runGradientCheck function
 % return only equality constraint (ceq) for use with jacobest.m
 
 [t,x,u,defects] = simulateSystem(decVars, pack, dynamics, pathObj, []);
 
 %%%% Call user-defined constraints and pack up:
-[c, ceq] = collectConstraints(t,x,u,...
+[~, ceq] = collectConstraints(t,x,u,...
     defects,...
     pathCst, bndCst);
 
@@ -390,8 +398,8 @@ gradInfo.nDecVar = nDecVar;
 [tIdx, xIdx, uIdx] = unPackDecVar(zIdx,pack);
 gradInfo.tIdx = tIdx([1,end]);
 %gradInfo.xuIdx = [xIdx;uIdx];
-gradInfo.xIdx = [xIdx];
-gradInfo.uIdx = [uIdx];
+gradInfo.xIdx = xIdx;
+gradInfo.uIdx = uIdx;
 
 nSegment = pack.nSegment;
 nSubStep = pack.nSubStep;
@@ -450,7 +458,7 @@ function [cost, dcost] = myObjGrad(decVars, pack,dynamics, pathObj, bndObj, grad
 %
 
 % All of the real work happens inside this function:
-[t,x,~,~,pathCost,dzdalpha] = simulateSystem(decVars, pack, dynamics, pathObj, gradInfo);
+[t,x,~,~,pathCost,dzdalpha] = simulateSystem(decVars, pack, dynamics, pathObj, gradInfo); %#ok<ASGLU>
   % dzdalpha is included in outputs to make sure subsequent calls to
   % simulateSystem without change a to decVars have access to the correct value
   % of dzdalpha - see simulateSystem in which dzdalpha is not calculated unless
@@ -521,8 +529,12 @@ if nargout > 1
     dcost_pth(gradInfo.indumid) = dt/6 * 4;
     
     % derivative of instantaneous g(x,u) cost w.r.t. to decision parameters
-    [~,dObj] = pathObj([],[],control);
-    
+    try
+        [~,dObj] = pathObj([],[],control);
+    catch ME
+        error(['Analytic gradients in Runge-Kutta do not currently support',... 
+            ' path objectives that are dependent on time or state.']);
+    end
     % cost w.r.t state decVars
     %dcost(gradInfo.xIdx') = dcost(gradInfo.xIdx') .* dObj(2:nState+1,:)';
     
@@ -567,7 +579,7 @@ function [c, ceq, dc, dceq] = myCstGrad(decVars, pack, dynamics, pathObj, pathCs
 %
 
 
-[t,x,u,defects,pathcost,dzdalpha] = simulateSystem(decVars, pack, dynamics, pathObj, gradInfo);
+[t,x,u,defects,pathcost,dzdalpha] = simulateSystem(decVars, pack, dynamics, pathObj, gradInfo); %#ok<ASGLU>
 
 %%%% Call user-defined constraints and pack up:
 if nargout <= 2
@@ -617,7 +629,6 @@ nState = pack.nState;
 nControl = pack.nControl;
 nSegment = pack.nSegment;
 nSubStep = pack.nSubStep;
-nTime = 1+nSegment*nSubStep;
 nDecVar = 2+nState*(1+nSegment)+nControl*(1+nSegment*nSubStep*2);
 
 %%%% defect constraints
