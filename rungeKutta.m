@@ -184,7 +184,7 @@ function [fail] = runGradientCheck(z_test, pack,dynamics, pathObj, bndObj, pathC
     fprintf('\n%s\n','Nonlinear inequality constraint function derivatives:')
     fprintf('%s\n','Maximum relative difference between user-supplied')
     fprintf('%s %1.5e \n','and finite-difference derivatives = ',max(max(abs(dc-jac'))))
-    if any(abs(dc - jac') > GradientCheckTol)
+    if any(any(abs(dc - jac')) > GradientCheckTol)
       error('Nonlinear inequality constraint did not pass')
     end
   end
@@ -197,7 +197,7 @@ function [fail] = runGradientCheck(z_test, pack,dynamics, pathObj, bndObj, pathC
     fprintf('\n%s\n','Nonlinear equality constraint function derivatives:')
     fprintf('%s\n','Maximum relative difference between user-supplied')
     fprintf('%s %1.5e \n','and finite-difference derivatives = ',max(max(abs(dceq-jac'))))
-    if any(abs(dceq - jac') > GradientCheckTol)
+    if any(any(abs(dceq - jac')) > GradientCheckTol)
       error('Nonlinear equality constraint did not pass')
     end
   end
