@@ -16,7 +16,7 @@ p.c = 0.1;  % Normalized damping constant
 
 % User-defined dynamics and objective functions
 problem.func.dynamics = @(t,x,u)( dynamics(x,u,p) );
-problem.func.pathObj = @(t,x,u)( pathObjective(u) );
+problem.func.pathObj = @(t,x,u)( DEV_pathObjective(x,u) );
 
 % bound objective for testing
 xF_target = [pi;0];
@@ -50,7 +50,7 @@ problem.options(1).nlpOpt = optimset(...
     'MaxFunEvals',1e5);   %Fmincon automatically checks derivatives
 problem.options(1).method = 'rungeKutta';
 problem.options(1).defaultAccuracy = 'low';
-problem.options(1).rungeKutta.AdaptiveDerivativeCheck = 'on';
+problem.options(1).rungeKutta.AdaptiveDerivativeCheck = 'off';
 
 %%%% SECOND ITERATION
 problem.options(2) = problem.options(1);
