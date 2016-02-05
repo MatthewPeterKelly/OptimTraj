@@ -631,13 +631,23 @@ else
   
   dc_path = zeros(nDecVar,length(c_path));
   dceq_path = zeros(nDecVar,length(ceq_path));
-
+  
+  % dt/dalpha : gradient of time w.r.t. decVars
+  dt_dalpha = zeros(1,nDecVar);
+  nTime = 1+nSegment*nSubStep;
+  n_time = 0:nTime-1;
+  
   % gradients of path constraints
-  dt_dalpha = zeros(1,nDecVar); % t is never involved in path constraints
   nc = size(c_pathRaw,1); % number path constraints at each time
   nceq = size(ceq_pathRaw,1); 
   for j = 1:(nSegment+1)
     for i = 1:nSubStep
+      
+      % d(t[n])/dalpha
+      n_time0 = n_time((j-1)*nSubStep+i);
+      dt_dalpha(1) = (1 - n_time0/(nTime-1));
+      dt_dalpha(2) = (n_time0/(nTime-1));
+      
       %
       if j < nSegment+1
         dxi_dalpha = dxdalpha{j}(:,:,i);
@@ -950,7 +960,7 @@ end
 
 %%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
 
-function [dz, dJ] = combinedDynamics(t,x,u,dynamics,pathObj)
+function [dz, J] = combinedDynamics(t,x,u,dynamics,pathObj)
 % [dz, dJ] = combinedDynamics(t,x,u,dynamics,pathObj)
 %
 % This function packages the dynamics and the cost function together so
@@ -971,6 +981,7 @@ function [dz, dJ] = combinedDynamics(t,x,u,dynamics,pathObj)
 %   and objective w.r.t. (t,x,u)
 
 if nargout < 2
+  
   dx = dynamics(t,x,u);
   if isempty(pathObj)
       dc = zeros(size(t));
@@ -985,18 +996,18 @@ else
   nState = size(x,1);
   nControl = size(u,1);
 
-  [dx,dJx] = dynamics(t,x,u);
+  [dx,Jx] = dynamics(t,x,u);
   if isempty(pathObj)
       dc = zeros(size(t));
-      dJc = zeros(1,1+nState+nControl,length(t));
+      Jc = zeros(1,1+nState+nControl,length(t));
   else
-      [dc,dJc] = pathObj(t,x,u);
-      dJc = reshape(dJc,1,1+nState+nControl,length(t));
+      [dc,Jc] = pathObj(t,x,u);
+      Jc = reshape(Jc,1,1+nState+nControl,length(t));
   end
 
   dz = [dx;dc];
 
-  dJ = cat(1,dJx,dJc);
+  J = cat(1,Jx,Jc);
 end
 
 end

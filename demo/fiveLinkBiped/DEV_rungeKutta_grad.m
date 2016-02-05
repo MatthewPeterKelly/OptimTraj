@@ -29,7 +29,7 @@ problem.func.pathObj = @(t,x,u)( obj_torqueSquared(u) );
 
 problem.func.bndCst = @(t0,x0,tF,xF)( stepConstraint(x0,xF,param) );
 
-problem.func.pathCst = @(t,x,u)( pathConstraint(x) );
+problem.func.pathCst = @(t,x,u)( DEV_pathConstraint(t,x) );
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -115,7 +115,7 @@ switch method
         problem.options(1).hermiteSimpson.nSegment = 6;  %method-specific options
         problem.options(1).nlpOpt.GradConstr = 'on';
         problem.options(1).nlpOpt.GradObj = 'on';
-        problem.options(1).nlpOpt.DerivativeCheck = 'off';
+        problem.options(1).nlpOpt.DerivativeCheck = 'on';
         
         problem.options(2).method = 'hermiteSimpson'; % Select the transcription method
         problem.options(2).hermiteSimpson.nSegment = 15;  %method-specific options
@@ -129,12 +129,13 @@ switch method
         problem.options(1).defaultAccuracy = 'low';
         problem.options(1).nlpOpt.GradConstr = 'on';
         problem.options(1).nlpOpt.GradObj = 'on';
-        problem.options(1).nlpOpt.DerivativeCheck = 'off';
+        problem.options(1).nlpOpt.DerivativeCheck = 'on';
         
         problem.options(2).method = 'rungeKutta'; 
         problem.options(2).defaultAccuracy = 'low';
         problem.options(2).nlpOpt.GradConstr = 'on';
         problem.options(2).nlpOpt.GradObj = 'on';
+        problem.options(2).nlpOpt.DerivativeCheck = 'on';
         
         % The following option takes a long time, but verifies accuracy of
         % gradients more robustly than fmincon's internal checks.
