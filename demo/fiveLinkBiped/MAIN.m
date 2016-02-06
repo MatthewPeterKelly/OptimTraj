@@ -102,10 +102,7 @@ problem.guess.control = zeros(5,2);  %Start with passive trajectory
 %   explicitly written out many options below, but the solver will fill in
 %   almost all defaults for you if they are ommitted.
 
-%NOTE:  There are many methods written out below, just to show different
-%   ways to solve the problem.
-
-% method = 'trapazoid';
+% method = 'trapezoid';
 % method = 'trapGrad';
 % method = 'hermiteSimpson';
 method = 'hermiteSimpsonGrad';
@@ -128,23 +125,23 @@ problem.options(2).nlpOpt = optimset(...
 
 switch method
     
-    case 'trapazoid'
-        problem.options(1).method = 'trapazoid'; % Select the transcription method
-        problem.options(1).trapazoid.nGrid = 10;  %method-specific options
+    case 'trapezoid'
+        problem.options(1).method = 'trapezoid'; % Select the transcription method
+        problem.options(1).trapezoid.nGrid = 10;  %method-specific options
         
-        problem.options(2).method = 'trapazoid'; % Select the transcription method
-        problem.options(2).trapazoid.nGrid = 25;  %method-specific options
+        problem.options(2).method = 'trapezoid'; % Select the transcription method
+        problem.options(2).trapezoid.nGrid = 25;  %method-specific options
         
-    case 'trapGrad'  %trapazoid with analytic gradients
+    case 'trapGrad'  %trapezoid with analytic gradients
         
-        problem.options(1).method = 'trapazoid'; % Select the transcription method
-        problem.options(1).trapazoid.nGrid = 10;  %method-specific options
+        problem.options(1).method = 'trapezoid'; % Select the transcription method
+        problem.options(1).trapezoid.nGrid = 10;  %method-specific options
         problem.options(1).nlpOpt.GradConstr = 'on';
         problem.options(1).nlpOpt.GradObj = 'on';
         problem.options(1).nlpOpt.DerivativeCheck = 'off';
         
-        problem.options(2).method = 'trapazoid'; % Select the transcription method
-        problem.options(2).trapazoid.nGrid = 45;  %method-specific options
+        problem.options(2).method = 'trapezoid'; % Select the transcription method
+        problem.options(2).trapezoid.nGrid = 45;  %method-specific options
         problem.options(2).nlpOpt.GradConstr = 'on';
         problem.options(2).nlpOpt.GradObj = 'on';
         

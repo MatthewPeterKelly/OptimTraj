@@ -75,14 +75,14 @@ problem.guess.control = [0, 0];
 %   explicitly written out many options below, but the solver will fill in
 %   almost all defaults for you if they are ommitted.
 
-% method = 'trapazoid';
+% method = 'trapezoid';
 method = 'hermiteSimpson';
 % method = 'chebyshev';
 % method = 'rungeKutta';
 % method = 'gpops';
 
 switch method
-    case 'trapazoid'
+    case 'trapezoid'
         
         % First iteration: get a more reasonable guess
         problem.options(1).nlpOpt = optimset(...
@@ -90,8 +90,8 @@ switch method
             'TolFun',1e-3,...
             'MaxFunEvals',1e4);   %options for fmincon
         problem.options(1).verbose = 3; % How much to print out?
-        problem.options(1).method = 'trapazoid'; % Select the transcription method
-        problem.options(1).trapazoid.nGrid = 10;  %method-specific options
+        problem.options(1).method = 'trapezoid'; % Select the transcription method
+        problem.options(1).trapezoid.nGrid = 10;  %method-specific options
         
         
         % Second iteration: refine guess to get precise soln
@@ -100,8 +100,8 @@ switch method
             'TolFun',1e-6,...
             'MaxFunEvals',5e4);   %options for fmincon
         problem.options(2).verbose = 3; % How much to print out?
-        problem.options(2).method = 'trapazoid'; % Select the transcription method
-        problem.options(2).trapazoid.nGrid = 25;  %method-specific options
+        problem.options(2).method = 'trapezoid'; % Select the transcription method
+        problem.options(2).trapezoid.nGrid = 25;  %method-specific options
         
     case 'hermiteSimpson'
         

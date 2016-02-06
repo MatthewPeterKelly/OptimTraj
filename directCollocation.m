@@ -3,7 +3,7 @@ function soln = directCollocation(problem)
 %
 % TrajOpt utility function
 %
-% This function is designed to be called by either "trapazoid" or
+% This function is designed to be called by either "trapezoid" or
 % "hermiteSimpson". It actually calls FMINCON to solve the trajectory
 % optimization problem. 
 %

@@ -3,6 +3,7 @@
 % Solve the cart-pole swing-up problem
 
 clc; clear;
+addpath ../../
 
 p.m1 = 2.0;  % (kg) Cart mass
 p.m2 = 0.5;  % (kg) pole mass
@@ -57,7 +58,7 @@ problem.options.nlpOpt = optimset(...
     'Display','iter',...
     'MaxFunEvals',1e5);
 
-% problem.options.method = 'trapazoid'; 
+% problem.options.method = 'trapezoid'; 
 problem.options.method = 'hermiteSimpson';  
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%

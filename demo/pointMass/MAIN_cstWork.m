@@ -56,8 +56,8 @@ problem.options.nlpOpt = optimset(...
     'GradConstr','on',...
     'DerivativeCheck','off');   %Fmincon automatic gradient check
 
-problem.options.method = 'trapazoid';
-problem.options.trapazoid.nGrid = 100;
+problem.options.method = 'trapezoid';
+problem.options.trapezoid.nGrid = 100;
 problem.options.defaultAccuracy = 'medium';
 
 % Solve the problem

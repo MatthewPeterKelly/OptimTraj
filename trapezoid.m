@@ -1,8 +1,8 @@
-function soln = trapazoid(problem)
-% soln = trapazoid(problem)
+function soln = trapezoid(problem)
+% soln = trapezoid(problem)
 %
 % This function transcribes a trajectory optimization problem using the
-% trapazoid method for enforcing the dynamics. It can be found in chapter
+% trapezoid method for enforcing the dynamics. It can be found in chapter
 % four of Bett's book:
 %
 %   John T. Betts, 2001
@@ -12,8 +12,8 @@ function soln = trapazoid(problem)
 %
 % Method specific parameters:
 %
-%   problem.options.method = 'trapazoid'
-%   problem.options.trapazoid = struct with method parameters:
+%   problem.options.method = 'trapezoid'
+%   problem.options.trapezoid = struct with method parameters:
 %       .nGrid = number of grid points to use for transcription
 %
 %
@@ -51,14 +51,14 @@ function soln = trapazoid(problem)
 %
 
 % Print out some solver info if desired:
-nGrid = problem.options.trapazoid.nGrid;
+nGrid = problem.options.trapezoid.nGrid;
 if problem.options.verbose > 0
-    fprintf('  -> Transcription via trapazoid method, nGrid = %d\n',nGrid);
+    fprintf('  -> Transcription via trapezoid method, nGrid = %d\n',nGrid);
 end
 
 %%%% Method-specific details to pass along to solver:
 
-% Quadrature weights for trapazoid integration:
+% Quadrature weights for trapezoid integration:
 problem.func.weights = ones(nGrid,1);
 problem.func.weights([1,end]) = 0.5;
 

@@ -133,15 +133,15 @@ problem.guess.control = zeros(5+10,2);
 
 % method = 'test1';
 % method = 'test4';
-method = 'trapazoid';
+method = 'trapezoid';
 % method = 'hermiteSimpson';
 
 switch method
     
     case 'test1'
         
-        problem.options(1).method = 'trapazoid'; % Select the transcription method
-        problem.options(1).trapazoid.nGrid = 20;  %method-specific options
+        problem.options(1).method = 'trapezoid'; % Select the transcription method
+        problem.options(1).trapezoid.nGrid = 20;  %method-specific options
         problem.options(1).nlpOpt.GradConstr = 'on';
         problem.options(1).nlpOpt.GradObj = 'on';
         problem.options(1).nlpOpt.DerivativeCheck = 'off';
@@ -152,7 +152,7 @@ switch method
     case 'test4'
         
         problem.options(1).method = 'hermiteSimpson'; % Select the transcription method
-        problem.options(1).trapazoid.nGrid = 10;  %method-specific options
+        problem.options(1).trapezoid.nGrid = 10;  %method-specific options
         problem.options(1).nlpOpt.GradConstr = 'on';
         problem.options(1).nlpOpt.GradObj = 'on';
         problem.options(1).nlpOpt.DerivativeCheck = 'off';
@@ -160,18 +160,18 @@ switch method
         problem.options(1).nlpOpt.TolFun = 1e-3;
 %         problem.options(1).nlpOpt.TolX = 1e-6;
 
-    case 'trapazoid'
+    case 'trapezoid'
         
-        problem.options(1).method = 'trapazoid'; % Select the transcription method
-        problem.options(1).trapazoid.nGrid = 15;  %method-specific options
+        problem.options(1).method = 'trapezoid'; % Select the transcription method
+        problem.options(1).trapezoid.nGrid = 15;  %method-specific options
         problem.options(1).nlpOpt.GradConstr = 'on';
         problem.options(1).nlpOpt.GradObj = 'on';
         problem.options(1).nlpOpt.DerivativeCheck = 'off';
         problem.options(1).nlpOpt.MaxIter = 1e3;
         problem.options(1).nlpOpt.TolFun = 1e-4;
         
-        problem.options(2).method = 'trapazoid'; % Select the transcription method
-        problem.options(2).trapazoid.nGrid = 30;  %method-specific options
+        problem.options(2).method = 'trapezoid'; % Select the transcription method
+        problem.options(2).trapezoid.nGrid = 30;  %method-specific options
         problem.options(2).nlpOpt.GradConstr = 'on';
         problem.options(2).nlpOpt.GradObj = 'on';
         problem.options(2).nlpOpt.MaxIter = 1e4;

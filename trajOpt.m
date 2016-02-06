@@ -41,8 +41,8 @@ function soln = trajOpt(problem)
 %               problem.func.dynamics = @(t,x,u)( pendulum(t,x,u,p) );
 %
 %       Analytic Gradients:
-%           Both the "trapazoid" and "hermiteSimpson" methods in TrajOpt
-%       support analytic gradients. Type help "trapazoid" or help
+%           Both the "trapezoid" and "hermiteSimpson" methods in TrajOpt
+%       support analytic gradients. Type help "trapezoid" or help
 %       "hermiteSimpson" for details on how to pass gradients to the
 %       transcription method.
 %
@@ -80,15 +80,15 @@ function soln = trajOpt(problem)
 %       .nlpOpt = options to pass through to fmincon
 %
 %       .method = string to pick which method is used for transcription
-%           'trapazoid'
+%           'trapezoid'
 %           'hermiteSimpson'
 %           'chebyshev'
 %           'rungeKutta'
 %           'gpops'     ( Must have GPOPS2 installed )
 %
 %       .[method] = a struct to pass method-specific parameters. For
-%       example, to pass the number of grid-points to the trapazoid method,
-%       create a field .trapazoid.nGrid = [number of grid-points].
+%       example, to pass the number of grid-points to the trapezoid method,
+%       create a field .trapezoid.nGrid = [number of grid-points].
 %
 %       .verbose = integer
 %           0 = no display
@@ -145,9 +145,9 @@ function soln = trajOpt(problem)
 %   struct array, with soln(1) being the solution on the first iteration,
 %   and soln(end) being the final solution.
 %
-%   * Both the trapazoid and hermiteSimpson method support additional
+%   * Both the trapezoid and hermiteSimpson method support additional
 %   features. The first is that they can use analytic gradients, if
-%   provided by the user. ">> help trapazoid" or ">> help hermiteSimpson"
+%   provided by the user. ">> help trapezoid" or ">> help hermiteSimpson"
 %   for more information. These methods additionally provide error
 %   estimates in two forms. The continuous collocation constraint error is
 %   provided as an additional function handle (soln.interp.collCst), and
@@ -176,8 +176,8 @@ for iter=1:nIter
     
     %%%% This is the key part: call the underlying transcription method:
     switch P.options.method
-        case 'trapazoid'
-            soln(iter) = trapazoid(P);
+        case 'trapezoid'
+            soln(iter) = trapezoid(P);
         case 'hermiteSimpson'
             soln(iter) = hermiteSimpson(P);
         case 'chebyshev'
