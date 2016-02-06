@@ -458,10 +458,10 @@ function [cost, dcost] = myObjGrad(decVars, pack,dynamics, pathObj, bndObj, grad
 %
 
 % All of the real work happens inside this function:
-[t,x,~,~,pathCost,dzdalpha,dJdalpha] = simulateSystem(decVars, pack, dynamics, pathObj, gradInfo); %#ok<ASGLU>
-  % dzdalpha is included in outputs to make sure subsequent calls to
+[t,x,~,~,pathCost,dxdalpha,dJdalpha] = simulateSystem(decVars, pack, dynamics, pathObj, gradInfo); %#ok<ASGLU>
+  % dxdalpha is included in outputs to make sure subsequent calls to
   % simulateSystem without change a to decVars have access to the correct value
-  % of dzdalpha - see simulateSystem in which dzdalpha is not calculated unless
+  % of dxdalpha - see simulateSystem in which dxdalpha is not calculated unless
   % nargout > 5
 
 % Compute the cost at the boundaries of the trajectory
@@ -551,7 +551,7 @@ function [c, ceq, dc, dceq] = myCstGrad(decVars, pack, dynamics, pathObj, pathCs
 %
 
 
-[t,x,u,defects,pathcost,dzdalpha] = simulateSystem(decVars, pack, dynamics, pathObj, gradInfo); %#ok<ASGLU>
+[t,x,u,defects,pathcost,dxdalpha] = simulateSystem(decVars, pack, dynamics, pathObj, gradInfo); %#ok<ASGLU>
 
 %%%% Call user-defined constraints and pack up:
 if nargout <= 2
@@ -563,15 +563,15 @@ else
   
   [c, ceq, dc, dceq] = collectConstraintsGrad(t,x,u,...
     defects,...
-    pathCst, bndCst, pack, gradInfo, dzdalpha);
+    pathCst, bndCst, pack, gradInfo, dxdalpha);
   
 end
   
 end
 
 
-function [c, ceq, dc, dceq] = collectConstraintsGrad(t,x,u,defects, pathCst, bndCst, pack, gradInfo, dzdalpha)
-% [c, ceq, dc, dceq] = collectConstraints(t,x,u,defects, pathCst, bndCst, pack, gradInfo, dzdalpha)
+function [c, ceq, dc, dceq] = collectConstraintsGrad(t,x,u,defects, pathCst, bndCst, pack, gradInfo, dxdalpha)
+% [c, ceq, dc, dceq] = collectConstraints(t,x,u,defects, pathCst, bndCst, pack, gradInfo, dxdalpha)
 %
 % TrajOpt utility function.
 %
@@ -587,7 +587,7 @@ function [c, ceq, dc, dceq] = collectConstraintsGrad(t,x,u,defects, pathCst, bnd
 %   bndCst = user-defined boundary constraint function
 %   pack = 
 %   gradInfo = 
-%   dzdalpha = partial derivative of state at each substep w.r.t. decVars
+%   dxdalpha = partial derivative of state at each substep w.r.t. decVars
 %
 % OUTPUTS:
 %   c = inequality constraint for fmincon
@@ -611,7 +611,7 @@ Inx = eye(nState);
 for j = 1:nSegment
   rows = (j-1)*nState+(1:nState);
   cols = rows;
-  dceq_dyn(:,cols) = dzdalpha{j}(:,:,end)';  % gradient w.r.t. to x_i(+)
+  dceq_dyn(:,cols) = dxdalpha{j}(:,:,end)';  % gradient w.r.t. to x_i(+)
   dceq_dyn(2+nState+rows,cols) = -Inx; % gradient w.r.t. to x_i
 end
 
@@ -631,16 +631,26 @@ else
   
   dc_path = zeros(nDecVar,length(c_path));
   dceq_path = zeros(nDecVar,length(ceq_path));
-
+  
+  % dt/dalpha : gradient of time w.r.t. decVars
+  dt_dalpha = zeros(1,nDecVar);
+  nTime = 1+nSegment*nSubStep;
+  n_time = 0:nTime-1;
+  
   % gradients of path constraints
-  dt_dalpha = zeros(1,nDecVar); % t is never involved in path constraints
   nc = size(c_pathRaw,1); % number path constraints at each time
   nceq = size(ceq_pathRaw,1); 
   for j = 1:(nSegment+1)
     for i = 1:nSubStep
+      
+      % d(t[n])/dalpha
+      n_time0 = n_time((j-1)*nSubStep+i);
+      dt_dalpha(1) = (1 - n_time0/(nTime-1));
+      dt_dalpha(2) = (n_time0/(nTime-1));
+      
       %
       if j < nSegment+1
-        dxi_dalpha = dzdalpha{j}(:,:,i);
+        dxi_dalpha = dxdalpha{j}(:,:,i);
       else
         dxi_dalpha = zeros(nState,nDecVar);
         cols = gradInfo.xIdx(:,j);
@@ -728,7 +738,7 @@ end
 %%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
 
 
-function [t,x,u,defects,pathCost,dzdalpha,dJdalpha] = simulateSystem(decVars, pack, dynamics, pathObj, gradInfo)
+function [t,x,u,defects,pathCost,dxdalpha,dJdalpha] = simulateSystem(decVars, pack, dynamics, pathObj, gradInfo)
 %
 % This function does the real work of the transcription method. It
 % simulates the system forward in time across each segment of the
@@ -781,7 +791,7 @@ if usePreviousValues
     u = RUNGE_KUTTA_u;
     defects = RUNGE_KUTTA_defects;
     pathCost = RUNGE_KUTTA_pathCost;
-    dzdalpha = RUNGE_KUTTA_dzdalpha;
+    dxdalpha = RUNGE_KUTTA_dzdalpha;
 else
 %
 %
@@ -819,15 +829,17 @@ else
     
     % VARIABLES for analytic gradient evaluations.
     % size of decicion parameters (2 for time), nstate*(nSegment+1), ...
-    % dzdalpha = partial derivative of state w.r.t. decVars (alpha)
+    % dxdalpha = partial derivative of state w.r.t. decVars (alpha)
     nalpha = 2 + nState*(1+nSegment) + nControl*(1+2*nSubStep*nSegment);
-    dzdalpha = cell(1,nSegment);
+    dxdalpha = cell(1,nSegment);
     for i = 1:nSegment
-      dzdalpha{i} = zeros(nState,nalpha,nSubStep+1);
+      dxdalpha{i} = zeros(nState,nalpha,nSubStep+1);
       cols = 2+(i-1)*nState+(1:nState);
-      dzdalpha{i}(:,cols,1) = eye(nState);
+      dxdalpha{i}(:,cols,1) = eye(nState);
     end
     dTdalpha = zeros(1,nalpha); dTdalpha(1:2) = [-1,1];
+    dt_dalpha = zeros(1,nalpha);
+    n_time = 0:nTime-1;
     
     % gradient of path cost
     dJdalpha = zeros(1,nalpha);
@@ -838,30 +850,49 @@ else
         t0 = t(idx);
         x0 = x(:,idx);
         
-        k0 = combinedDynamics(t0,        x0,                         u(:,idx), dynamics,pathObj);
-        k1 = combinedDynamics(t0+0.5*dt, x0 + 0.5*dt*k0(1:nState,:), uMid(:,idx), dynamics,pathObj);
-        k2 = combinedDynamics(t0+0.5*dt, x0 + 0.5*dt*k1(1:nState,:), uMid(:,idx), dynamics,pathObj);
-        k3 = combinedDynamics(t0+dt,     x0 +     dt*k2(1:nState,:), u(:,idx+1), dynamics,pathObj);
-        z = (dt/6)*(k0 + 2*k1 + 2*k2 + k3);  %Change over the sub-step
-        
-        %------------------------------------------
-        % Code for calculating dzdalpha (partial derivative of state w.r.t.
-        % the descision parameters): dzdalpha = nstate x nalpha
-        % assume nargout <=5 when using finite difference calculation for
-        % gradients in which case dzdalpha is unnecessary.
-        if nargout > 5
+        % No Gradient calculation
+        if nargout < 5
+          
+          k0 = combinedDynamics(t0,        x0,                         u(:,idx), dynamics,pathObj);
+          k1 = combinedDynamics(t0+0.5*dt, x0 + 0.5*dt*k0(1:nState,:), uMid(:,idx), dynamics,pathObj);
+          k2 = combinedDynamics(t0+0.5*dt, x0 + 0.5*dt*k1(1:nState,:), uMid(:,idx), dynamics,pathObj);
+          k3 = combinedDynamics(t0+dt,     x0 +     dt*k2(1:nState,:), u(:,idx+1), dynamics,pathObj);
+          z = (dt/6)*(k0 + 2*k1 + 2*k2 + k3);  %Change over the sub-step
+  
+        % Analytic Gradient Calcuation 
+        else
+          
+          %------------------------------------------
+          % Code for calculating dxdalpha (partial derivative of state w.r.t.
+          % the descision parameters): dxdalpha = nstate x nalpha
+          % assume nargout <=5 when using finite difference calculation for
+          % gradients in which case dxdalpha is unnecessary.
+          
+          % Gradient of time w.r.t. decVars
+          % ------------------------------------------------------------
+          % dt = (tF-t0)/(nTime-1)
+          % t = t0 + n*dt
+          % t = t0 + n*(tF-t0)/(nTime-1)
+          % t = t0*(1-n/(nTime-1)) + tF*(n/(nTime-1))
+          % 
+          % alpha = [t0, tF, x0, x1, ..., xN, u0, uM0, u1, ..., uN]
+          % dt/dalpha = [1 - n/(nTime-1), n/(nTime-1), 0, 0, ... 0]
+          % ------------------------------------------------------------
 
-          [~,df0] = dynamics(t0, x0, u(:,idx));
-          [~,df1] = dynamics(t0, x0+.5*dt*k0(1:nState,:), uMid(:,idx));
-          [~,df2] = dynamics(t0, x0+.5*dt*k1(1:nState,:), uMid(:,idx));
-          [~,df3] = dynamics(t0, x0+dt*k2(1:nState,:), u(:,idx+1));
-    
-          [~,dg0] = pathObj(t0, x0, u(:,idx));
-          [~,dg1] = pathObj(t0, x0+.5*dt*k0(1:nState,:), uMid(:,idx));
-          [~,dg2] = pathObj(t0, x0+.5*dt*k1(1:nState,:), uMid(:,idx));
-          [~,dg3] = pathObj(t0, x0+dt*k2(1:nState,:), u(:,idx+1));
+          n_time0 = n_time(idx);
+
+          [k0, dk0] = combinedDynamics(t0,        x0,                         u(:,idx), dynamics,pathObj);
+          [k1, dk1] = combinedDynamics(t0+0.5*dt, x0 + 0.5*dt*k0(1:nState,:), uMid(:,idx), dynamics,pathObj);
+          [k2, dk2] = combinedDynamics(t0+0.5*dt, x0 + 0.5*dt*k1(1:nState,:), uMid(:,idx), dynamics,pathObj);
+          [k3, dk3] = combinedDynamics(t0+dt,     x0 +     dt*k2(1:nState,:), u(:,idx+1), dynamics,pathObj);
+          z = (dt/6)*(k0 + 2*k1 + 2*k2 + k3);  %Change over the sub-step
 
           for j = 1:nSegment
+            
+            % d(t[n])/dalpha
+            dt_dalpha(1) = (1 - n_time0(j)/(nTime-1));
+            dt_dalpha(2) = (n_time0(j)/(nTime-1));
+            
             % du[n]/dalpha
             du_dalpha = zeros(nControl,nalpha);
             du_dalpha(:,gradInfo.indu(:,idx(j))) = eye(nControl);
@@ -874,30 +905,28 @@ else
             du1_dalpha = zeros(nControl,nalpha);
             du1_dalpha(:,gradInfo.indu(:,idx(j)+1)) = eye(nControl);
             
-            % dk0/dalpha and dg0/dalpha
-            dk0da = df0(:,2:end,j) * [dzdalpha{j}(:,:,iSubStep); du_dalpha];
-            dg0da = dg0(2:end,j)'*[dzdalpha{j}(:,:,iSubStep);du_dalpha];
+            % dk0/dalpha
+            dk0da = dk0(:,:,j) * [dt_dalpha; dxdalpha{j}(:,:,iSubStep); du_dalpha];
 
-            % dk1/dalpha and dg1/dalpha
-            dk1da = df1(:,2:end,j) * [dzdalpha{j}(:,:,iSubStep) + 0.5*dt*dk0da + 0.5/(nTime-1)*k0(1:nState,j)*dTdalpha; duMid_dalpha];
-            dg1da = dg1(2:end,j)'*[dzdalpha{j}(:,:,iSubStep) + 0.5*dt*dk0da + 0.5/(nTime-1)*k0(1:nState,j)*dTdalpha; duMid_dalpha];
+            % dk1/dalpha
+            dk1da = dk1(:,:,j) * [dt_dalpha + 0.5/(nTime-1)*dTdalpha; dxdalpha{j}(:,:,iSubStep) + 0.5*dt*dk0da(1:nState,:) + 0.5/(nTime-1)*k0(1:nState,j)*dTdalpha; duMid_dalpha];
+
+            % dk2/dalpha
+            dk2da = dk2(:,:,j) * [dt_dalpha + 0.5/(nTime-1)*dTdalpha; dxdalpha{j}(:,:,iSubStep) + 0.5*dt*dk1da(1:nState,:) + 0.5/(nTime-1)*k1(1:nState,j)*dTdalpha; duMid_dalpha];
+
+            % dk3/dalpha
+            dk3da = dk3(:,:,j) * [dt_dalpha + 1/(nTime-1)*dTdalpha; dxdalpha{j}(:,:,iSubStep) + dt*dk2da(1:nState,:) + 1/(nTime-1)*k2(1:nState,j)*dTdalpha; du1_dalpha]; 
+
+            dz = (dt/6)*(dk0da + 2*dk1da + 2*dk2da + dk3da)...
+              + 1/(6*(nTime-1))*(k0(:,j)+2*k1(:,j)+2*k2(:,j)+k3(:,j))*dTdalpha;
             
-            % dk2/dalpha and dg2/dalpha
-            dk2da = df2(:,2:end,j) * [dzdalpha{j}(:,:,iSubStep) + 0.5*dt*dk1da + 0.5/(nTime-1)*k1(1:nState,j)*dTdalpha; duMid_dalpha];
-            dg2da = dg2(2:end,j)'*[dzdalpha{j}(:,:,iSubStep) + 0.5*dt*dk1da + 0.5/(nTime-1)*k1(1:nState,j)*dTdalpha; duMid_dalpha];
-
-            % dk3/dalpha and dg3/dalpha
-            dk3da = df3(:,2:end,j) * [dzdalpha{j}(:,:,iSubStep) + dt*dk2da + 1/(nTime-1)*k2(1:nState,j)*dTdalpha; du1_dalpha]; 
-            dg3da = dg3(2:end,j)'*[dzdalpha{j}(:,:,iSubStep) + dt*dk2da + 1/(nTime-1)*k2(1:nState,j)*dTdalpha; du1_dalpha];
-
-            % update dzdalpha
-            dzdalpha{j}(:,:,iSubStep+1) = dzdalpha{j}(:,:,iSubStep) + (dt/6)*(dk0da + 2*dk1da + 2*dk2da + dk3da)...
-              + 1/(6*(nTime-1))*(k0(1:nState,j)+2*k1(1:nState,j)+2*k2(1:nState,j)+k3(1:nState,j))*dTdalpha;
+            % update dxdalpha
+            dxdalpha{j}(:,:,iSubStep+1) = dxdalpha{j}(:,:,iSubStep) + dz(1:nState,:);
             
             % update dJdalpha
-            dJdalpha  = dJdalpha + dt/6 * (dg0da + 2*dg1da + 2*dg2da + dg3da);
+            dJdalpha  = dJdalpha + dz(nState+1,:);
           end
-          
+
         end
         %------------------------------------------
         
@@ -917,10 +946,6 @@ else
     
     pathCost = sum(c);  %Sum up the integral cost over each segment
     
-    % pathCost = sum dt/6 (k0 + 2 k1 + 2 k2 + k3)
-    % gradient w.r.t dt/6
-    dJdalpha = dJdalpha + 1/((nTime-1))*(pathCost/dt)*dTdalpha;
-    
     %%%% Cache results to use on the next call to this function.
     RUNGE_KUTTA_t = t;
     RUNGE_KUTTA_x = x;
@@ -935,9 +960,8 @@ end
 
 %%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
 
-
-function dz = combinedDynamics(t,x,u,dynamics,pathObj)
-% dz = combinedDynamics(t,x,u,dynamics,pathObj)
+function [dz, J] = combinedDynamics(t,x,u,dynamics,pathObj)
+% [dz, dJ] = combinedDynamics(t,x,u,dynamics,pathObj)
 %
 % This function packages the dynamics and the cost function together so
 % that they can be integrated at the same time.
@@ -953,15 +977,37 @@ function dz = combinedDynamics(t,x,u,dynamics,pathObj)
 %
 % OUTPUTS:
 %   dz = [dx; dObj] = combined dynamics of state and cost
-%
+%   dJ = [JAC(dynamics), JAC(objective)] = combined jacobian of dynamics
+%   and objective w.r.t. (t,x,u)
 
-dx = dynamics(t,x,u);
-if isempty(pathObj)
-    dc = zeros(size(t));
+if nargout < 2
+  
+  dx = dynamics(t,x,u);
+  if isempty(pathObj)
+      dc = zeros(size(t));
+  else
+      dc = pathObj(t,x,u);
+  end
+
+  dz = [dx;dc];  %Combine and return
+
 else
-    dc = pathObj(t,x,u);
-end
+  
+  nState = size(x,1);
+  nControl = size(u,1);
 
-dz = [dx;dc];  %Combine and return
+  [dx,Jx] = dynamics(t,x,u);
+  if isempty(pathObj)
+      dc = zeros(size(t));
+      Jc = zeros(1,1+nState+nControl,length(t));
+  else
+      [dc,Jc] = pathObj(t,x,u);
+      Jc = reshape(Jc,1,1+nState+nControl,length(t));
+  end
+
+  dz = [dx;dc];
+
+  J = cat(1,Jx,Jc);
+end
 
 end
