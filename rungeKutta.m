@@ -21,6 +21,13 @@ function soln = rungeKutta(problem)
 %           can be downloaded from the Mathworks File Exchange, file id of
 %           13490 - Adaptive Robust Numerical Differentation, John D-Errico
 % 
+%
+% NOTES:
+%
+%   Code for computing analyic gradients of the Runge Kutta method was
+%   contributed by Will Wehner.
+%
+%
 
 %To make code more readable
 G = problem.guess;

@@ -1,7 +1,9 @@
-function [obj, objGrad] = DEV_pathObjective(t,x,u)
-%  [obj, objGrad] = DEV_pathObjective(t,x,u)
+function [obj, objGrad] = pathObjective_dev(t,x,u)
+%  [obj, objGrad] = pathObjective_dev(t,x,u)
 %
 % Computes the objective function (and gradients) for the simple pendulum
+% with a complicated cost function that has time, state, and control
+% dependency. This is primarily used for checking gradients.
 %
 
 obj = u.^2 + x(2,:).^2 + t;
