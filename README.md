@@ -45,5 +45,4 @@ If you are interested in contributing, here are a few possible things to do:
 
 ## Contributions:
 
-- __Will Wehner__ wrote the code that enables analytic gradients in the multiple shooting method (4th-order Runge-Kutta). 
-
+- [__Will Wehner__](https://github.com/wwehner) wrote the code that enables analytic gradients in the multiple shooting method (4th-order Runge-Kutta).
