@@ -16,7 +16,7 @@ p.c = 0.1;  % Normalized damping constant
 
 % User-defined dynamics and objective functions
 problem.func.dynamics = @(t,x,u)( dynamics(x,u,p) );
-problem.func.pathObj = @(t,x,u)( pathObjective(u) );
+problem.func.pathObj = @(t,x,u)( DEV_pathObjective(t,x,u) );
 
 % bound objective for testing
 xF_target = [pi;0];
