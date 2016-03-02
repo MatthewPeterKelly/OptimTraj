@@ -89,10 +89,10 @@ soln.interp.collCst = @(t)( ...
 absColErr = @(t)(abs(soln.interp.collCst(t)));
 nSegment = nGrid-1;
 nState = size(xSoln,1);
-nQuadSegment = 3;   %Divide each segment into this many sub-segments  
+quadTol = 1e-12;   %Compute quadrature to this tolerance  
 soln.info.error = zeros(nState,nSegment);
 for i=1:nSegment
-    soln.info.error(:,i) = simpsonQuadrature(absColErr,tSoln(i),tSoln(i+1),nQuadSegment);
+    soln.info.error(:,i) = rombergQuadrature(absColErr,tSoln([i,i+1]),quadTol);
 end
 
 end

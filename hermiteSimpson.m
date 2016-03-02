@@ -90,11 +90,11 @@ soln.interp.collCst = @(t)( ...
 absColErr = @(t)(abs(soln.interp.collCst(t)));
 nSegment = problem.options.hermiteSimpson.nSegment;
 nState = size(xSoln,1);
-nQuadSegment = 5;   %Divide each segment into this many sub-segments  
+quadTol = 1e-12;   %Compute quadrature to this tolerance 
 soln.info.error = zeros(nState,nSegment);
 for i=1:nSegment
     idx = 2*i + [-1,1];
-    soln.info.error(:,i) = simpsonQuadrature(absColErr,tSoln(idx(1)),tSoln(idx(2)),nQuadSegment);
+    soln.info.error(:,i) = rombergQuadrature(absColErr,tSoln([idx(1), idx(2)]),quadTol);
 end
 
 end

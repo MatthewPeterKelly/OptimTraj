@@ -1,5 +1,5 @@
 function dz = rocketDynamics(z,u)
-% dz = dynamics(z,u)
+% dz = rocketDynamics(z,u)
 %
 % The basic dynamics and drag coefficient data are from the paper:
 %

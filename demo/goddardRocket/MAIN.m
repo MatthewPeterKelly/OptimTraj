@@ -97,7 +97,7 @@ switch method
         
         P.options(2).method = 'trapezoid';
         P.options(2).defaultAccuracy = 'medium';
-        P.options(2).nlpOpt.MaxFunEvals = 1e6;
+        P.options(2).nlpOpt.MaxFunEvals = 2e4;
         P.options(2).nlpOpt.MaxIter = 1e5;
         
     case 'rungeKutta'
