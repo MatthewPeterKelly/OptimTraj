@@ -94,6 +94,7 @@ soln.info.error = zeros(nState,nSegment);
 for i=1:nSegment
     soln.info.error(:,i) = rombergQuadrature(absColErr,tSoln([i,i+1]),quadTol);
 end
+soln.info.maxError = max(max(soln.info.error));
 
 end
 
