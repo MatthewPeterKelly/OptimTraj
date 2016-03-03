@@ -5,6 +5,7 @@
 %
 
 clc; clear;
+addpath ../../
 
 % Dynamics paramters
 p.g = 9.81; % (m/s^2) gravity

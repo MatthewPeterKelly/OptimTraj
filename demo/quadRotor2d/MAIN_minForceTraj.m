@@ -6,6 +6,8 @@
 
 clc; clear;
 
+addpath ../../
+
 % Dynamics paramters
 p.g = 9.81; % (m/s^2) gravity
 p.d = 0.3;  % (m) half-width of quad rotor

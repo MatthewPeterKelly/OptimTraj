@@ -5,6 +5,7 @@
 %
 
 clc; clear;
+addpath ../../
 
 warning(['This problem appears to be numerically bad, as posed here.',...
     'If you find a bug that is causing the problem, let me know']);
