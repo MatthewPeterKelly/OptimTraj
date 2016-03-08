@@ -3,12 +3,14 @@
 % Fin the minimal torque-squared trajectory to move the quad-rotor from an
 % arbitrary state to the origin.
 %
+% Note that we cannot use low-order methods (Trapezoid, Hermite-Simpson),
+% Since the snap trajectory is zero by definition, thus there is no useful
+% information in the gradient.
+%
+
 
 clc; clear;
 addpath ../../
-
-warning(['This problem appears to be numerically bad, as posed here.',...
-    'If you find a bug that is causing the problem, let me know']);
 
 % Dynamics paramters
 p.g = 9.81; % (m/s^2) gravity
@@ -72,13 +74,9 @@ problem.options.nlpOpt = optimset(...
     'MaxFunEvals',1e5,...
     'MaxIter',50);
 
-
-% problem.options.method = 'trapezoid'; 
-% problem.options.trapezoid.nGrid = 40;
-
-problem.options.method = 'hermiteSimpson';  
-problem.options.hermiteSimpson.nSegment = 4;
-
+% Lower-order direct collocation methods don't seem to work for
+% minimum-snap trajectories, but orthogonal collocation works really well.
+problem.options.method = 'chebyshev';
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -86,11 +84,6 @@ problem.options.hermiteSimpson.nSegment = 4;
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
 soln = trajOpt(problem);
-
-
-warning(['This problem appears to be numerically bad, as posed here.',...
-    'If you find a bug that is causing the problem, let me know']);
-
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                        Display Solution                                 %

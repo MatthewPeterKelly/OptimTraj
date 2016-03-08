@@ -72,8 +72,10 @@ problem.options.nlpOpt = optimset(...
 % problem.options.method = 'trapezoid'; 
 % problem.options.trapezoid.nGrid = 40;
 
-problem.options.method = 'hermiteSimpson';  
-problem.options.hermiteSimpson.nSegment = 10;
+% problem.options.method = 'hermiteSimpson';  
+% problem.options.hermiteSimpson.nSegment = 10;
+
+problem.options.method = 'chebyshev';
 
 
 
