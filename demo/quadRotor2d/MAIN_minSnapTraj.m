@@ -78,6 +78,12 @@ problem.options.nlpOpt = optimset(...
 % minimum-snap trajectories, but orthogonal collocation works really well.
 problem.options.method = 'chebyshev';
 
+%%%% HACK %%%% ????
+% This only appears to get the right answer when there are 13 collocation
+% points. That is crazy. Still an open question as to why.
+problem.options.chebyshev.nColPts = 13;  
+
+
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                            Solve!                                       %
