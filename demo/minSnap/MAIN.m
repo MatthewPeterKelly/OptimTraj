@@ -23,15 +23,15 @@
 % dx = v1;
 % dv1 = f(x,v1,u1)
 %
-% v2 == v1;   % <-- Key line. 
+% v2 == v1;   % <-- Key line.
 % dv2 = a2;
 % da2 = j2;  % jerk = derivative of acceleration
-% dj2 = u2;  % snap = derivative of jerk   
+% dj2 = u2;  % snap = derivative of jerk
 % cost = integral(  u2^2  );
 %
 %
 % NOTES:
-%   
+%
 %   z = [x;v1;v2;a2;j2];
 %   u = [u1;u2];
 %
@@ -39,12 +39,12 @@ clc; clear;
 
 %%%% Specify boundary conditions
 t0 = 0;
-tF = 1;
+tF = 2;
 
 z0 = [0;0;0;0;0];
 zF = [pi;0;0;0;0];
 
-maxTorque = 25;
+maxTorque = 5;
 
 %%%% Pack up boundary conditions
 problem.bounds.initialTime.low = t0;
@@ -74,9 +74,19 @@ problem.func.pathCst = @(t,z,u)(  pathConstraint(z)  );
 
 %%%% Options
 
-problem.options.method = 'chebyshev';
-problem.options.chebyshev.nColPts = 25;
+method = 'chebyshev';
 
+switch method
+    case 'chebyshev'
+        problem.options.method = method;
+        problem.options.chebyshev.nColPts = 25;
+    case 'hermiteSimpson'
+        problem.options.method = method;
+        problem.options.hermiteSimpson.nSegment = 15;
+        problem.options.nlpOpt.MaxFunEvals = 5e4;
+    otherwise
+        error('invalid method')
+end
 
 %%%% Solve
 soln = trajOpt(problem);
