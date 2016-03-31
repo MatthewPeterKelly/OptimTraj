@@ -23,12 +23,14 @@ z0(1) = 1.0;  %x0
 % Final State;
 zF = zeros(3*3,1);  %[pos, vel, acc]
 
+% Control:   [u1;u2;jerk];   % jerk = derivative of acceleration
+
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                     Set up function handles                             %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
 problem.func.dynamics = @(t,x,u)( integratorChainDynamics(x,u(3:5,:)) );
-problem.func.pathObj = @(t,x,u)( sum(u(3:5,:).^2,1) );  %Jerk-Squared cost function
+problem.func.pathObj = @(t,x,u)( sum(u(1:2,:).^2,1) );  %Jerk-Squared cost function
 problem.func.pathCst = @(t,x,u)( dynPathCst(x,u,p) );  % Dynamics
 
 
@@ -66,16 +68,16 @@ problem.guess.control = [p.g*p.m*ones(2,2); zeros(3,2)];
 
 problem.options.nlpOpt = optimset(...
     'Display','iter',...
-    'MaxFunEvals',1e5);
+    'MaxFunEvals',5e4);
 
 
-% problem.options.method = 'trapezoid'; 
-% problem.options.trapezoid.nGrid = 40;
+problem.options.method = 'trapezoid'; 
+problem.options.trapezoid.nGrid = 25;
 
 % problem.options.method = 'hermiteSimpson';  
 % problem.options.hermiteSimpson.nSegment = 10;
 
-problem.options.method = 'chebyshev';
+% problem.options.method = 'chebyshev';
 
 
 

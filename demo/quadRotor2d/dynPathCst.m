@@ -16,8 +16,16 @@ function [c, ceq] = dynPathCst(z,u,p)
 %   ceq = [3,n] = equality constraint on acceleration due to motors
 %
 
-dz = dynamics(z(1:6,:), u(1:2,:), p);   %System dynamics
-ceq = dz(4:6,:) - z(7:9,:);  % Acceleration-level constraint
+pos = z(1:3,:);
+vel = z(4:6,:);
+acc = z(7:9,:);
+u = u(1:2,:);   %First two dimensions are rotor forces
+
+dz = dynamics([pos;vel], u, p);   %System dynamics
+% dPos = dz(1:3,:);
+dVel = dz(4:6,:);
+
+ceq = acc - dVel;  % Acceleration-level constraint
 c = [];
 
 end
