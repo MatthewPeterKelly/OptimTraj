@@ -3,6 +3,11 @@
 % Fin the minimal torque-squared trajectory to move the quad-rotor from an
 % arbitrary state to the origin.
 %
+% NOTES:
+%   X = [x;y;q] = [x pos, y pos, angle] = configuration
+%  dX = [dx;dy;dq] = [x vel, y vel, angle rate] = rate
+% ddX = [ddx;ddy;ddq] = acceleration
+%
 
 clc; clear;
 
@@ -18,20 +23,20 @@ duration = 1;
 uMax = 5*p.g*p.m;
 
 % Initial State:
-x0 = 1.0;
-y0 = 0.0;
-q0 = 0.0;
-dx0 = 0.0;
-dy0 = 0.0;
-dq0 = 0.0;
-z0 = [x0;y0;q0;dx0;dy0;dq0];
+X0 = [1;0;0];   %  initial configuration
+dX0 = zeros(3,1);  % initial rates
+z0 = [X0; dX0];  % initial state
+
+XF = [0;0;0];   % final configuration
+dXF = zeros(3,1);  % final rates
+zF = [XF; dXF];  % final state
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                     Set up function handles                             %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
-problem.func.dynamics = @(t,x,u)( dynamics(x,u,p) );
-problem.func.pathObj = @(t,x,u)( sum(u.^2,1) );  %Force-squared cost function
+problem.func.dynamics = @(t,z,u)( dynamics(z,u,p) );
+problem.func.pathObj = @(t,z,u)( sum(u.^2,1) );  %Force-squared cost function
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -45,8 +50,8 @@ problem.bounds.finalTime.upp = duration;
 
 problem.bounds.initialState.low = z0;
 problem.bounds.initialState.upp = z0;
-problem.bounds.finalState.low = zeros(6,1);
-problem.bounds.finalState.upp = zeros(6,1);
+problem.bounds.finalState.low = zF;
+problem.bounds.finalState.upp = zF;
 
 problem.bounds.control.low = -uMax*[1;1];
 problem.bounds.control.upp = uMax*[1;1];

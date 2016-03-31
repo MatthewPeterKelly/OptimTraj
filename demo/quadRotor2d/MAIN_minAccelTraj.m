@@ -1,15 +1,41 @@
-% MAIN  --  Quad-Rotor  --  Minimal-Snap trajectory
+% MAIN  --  Quad-Rotor  --  Minimal-Acceleration trajectory
 %
-% Fin the minimal torque-squared trajectory to move the quad-rotor from an
+% Fin the minimal acceleration-squared trajectory to move the quad-rotor from an
 % arbitrary state to the origin.
 %
-% Note that we cannot use low-order methods (Trapezoid, Hermite-Simpson),
-% Since the snap trajectory is zero by definition, thus there is no useful
-% information in the gradient.
+% NOTES:
+%   X = [x;y;q] = [x pos, y pos, angle] = configuration
+%  dX = [dx;dy;dq] = [x vel, y vel, angle rate] = rate
+% ddX = [ddx;ddy;ddq] = acceleration
+%
+% PROBLEM:
+% 
+% ddX = f(X,dX,u);     <-- dynamics
+%
+% cost = integral(  ddX^2  );     <-- cost function
+%
+% subject to:
+%   X(0) = X0;
+%   X(1) = XF;
+%   dX(0) = dX0;
+%   dX(1) = dXF;
+%
+% How to pose as a standard trajectory optimization problem?
+%
+% dX = V1;
+% dV1 = f(X,V1,U1)
+%
+% V2 == V1;   % <-- Key line. 
+% dV2 = U2;
+% cost = integral(  U2^2  );
+%
+% z = [X;V1;V2]
+% u = [U1;U2]
 %
 
 
 clc; clear;
+
 addpath ../../
 
 % Dynamics paramters
@@ -22,20 +48,22 @@ duration = 1;
 uMax = 5*p.g*p.m;
 
 % Initial State:
-z0 = zeros(3*4,1);  %[pos, vel, acc]
-z0(1) = 1.0;  %x0 
+X0 = [1;0;0];   %  initial configuration
+dX0 = zeros(3,1);  % initial rates
+z0 = [X0; dX0; dX0];  % initial state
 
-% Final State;
-zF = zeros(3*4,1);  %[pos, vel, acc]
+XF = [0;0;0];   % final configuration
+dXF = zeros(3,1);  % final rates
+zF = [XF; dXF; dXF];  % final state
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                     Set up function handles                             %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+w = 1./[1,1,1];  %weighting vector for path objective
 
-problem.func.dynamics = @(t,x,u)( integratorChainDynamics(x,u(3:5,:)) );
-problem.func.pathObj = @(t,x,u)( sum(u(3:5,:).^2,1) );  %Jerk-Squared cost function
-problem.func.pathCst = @(t,x,u)( dynPathCst(x,u,p) );  % Dynamics
-
+problem.func.dynamics = @(t,z,u)( dynAcc(z,u,p) );
+problem.func.pathObj = @(t,z,u)( pathObj(u,w) );  %accel-squared cost function
+problem.func.pathCst = @(t,z,u)( pathCst(z) );
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                     Set up problem bounds                               %
@@ -51,8 +79,8 @@ problem.bounds.initialState.upp = z0;
 problem.bounds.finalState.low = zF;
 problem.bounds.finalState.upp = zF;
 
-problem.bounds.control.low = -[uMax*[1;1]; inf(3,1)];
-problem.bounds.control.upp = [uMax*[1;1]; inf(3,1)];
+problem.bounds.control.low = [-uMax*[1;1];  -inf(3,1)];   %[torque, accel]
+problem.bounds.control.upp = [uMax*[1;1];  inf(3,1)];
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -71,18 +99,17 @@ problem.guess.control = [p.g*p.m*ones(2,2); zeros(3,2)];
 
 problem.options.nlpOpt = optimset(...
     'Display','iter',...
-    'MaxFunEvals',1e5,...
-    'MaxIter',50);
+    'MaxFunEvals',1e5);
 
-% Lower-order direct collocation methods don't seem to work for
-% minimum-snap trajectories, but orthogonal collocation works really well.
+
+% problem.options.method = 'trapezoid'; 
+% problem.options.trapezoid.nGrid = 40;
+% 
+% problem.options.method = 'hermiteSimpson';  
+% problem.options.hermiteSimpson.nSegment = 10;
+
 problem.options.method = 'chebyshev';
-
-%%%% HACK %%%% ????
-% This only appears to get the right answer when there are 13 collocation
-% points. That is crazy. Still an open question as to why.
-problem.options.chebyshev.nColPts = 13;  
-
+problem.options.chebyshev.nColPts = 15;
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -91,14 +118,16 @@ problem.options.chebyshev.nColPts = 13;
 
 soln = trajOpt(problem);
 
+
+
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                        Display Solution                                 %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
 %%%% Unpack the simulation
-t = linspace(soln.grid.time(1), soln.grid.time(end), 150);
+t = linspace(soln(end).grid.time(1), soln(end).grid.time(end), 150);
 
-z = soln.interp.state(t);
+z = soln(end).interp.state(t);
 x = z(1,:);
 y = z(2,:);
 q = z(3,:);
@@ -106,19 +135,57 @@ dx = z(4,:);
 dy = z(5,:);
 dq = z(6,:);
 
-u = soln.interp.control(t);
+X1 = z(1:3,:);
+V1 = z(4:6,:);
+V2 = z(7:9,:);
+
+u = soln(end).interp.control(t);
 u1 = u(1,:);
 u2 = u(2,:);
+A2 = u(3:5,:);
+
+
+[dObj,uStar] = pathObj(u,w);
 
 
 %%%% Plots:
-figure(3); clf;
+
+
+%%%% Plots:
+
+figure(2); clf;
+
+subplot(2,2,1)
+plot(t,X1);
+legend('x','y','q')
+title('configuration')
+
+subplot(2,2,3)
+plot(t,V2);
+legend('x','y','q')
+title('rates')
+
+subplot(2,2,2)
+plot(t,A2);
+legend('x','y','q')
+title('acceleration')
+
+
+subplot(2,2,4); hold on;
+plot(t,u1);  plot(t,u2);
+title('actuators')
+legend('u1','u2');
+
+
+
+% Configuration trajectories
+figure(1); clf;
 
 subplot(2,2,1); hold on;
 plot(t,x);
 xlabel('t')
 ylabel('x')
-title('Minimum snap-squared trajectory')
+title('Minimum acceleration-squared trajectory')
 
 subplot(2,2,2); hold on;
 plot(t,y);

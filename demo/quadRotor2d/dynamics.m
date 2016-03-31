@@ -5,7 +5,7 @@ function dz = dynamics(z, u, p)
 % helicopter.
 %
 % INPUTS:
-%   z = [6, n] = [x; y; q; dx; dy; dq] = state matrix
+%   z = [6, n] = [X; dX] = state matrix
 %   u = [2, n] = [u1; u2] = control matrix
 %   p = parameter struct:
 %       .g = acceleration due to gravity
@@ -17,15 +17,13 @@ function dz = dynamics(z, u, p)
 %
 
 % Unpack the inputs
-q = z(3,:);  % Angle of the quad-rotor
-u1 = u(1,:);  % rotor 1 force magnitude
-u2 = u(2,:);  % rotor 2 force magnitude
+X = z(1:3,:);   % configuration
+dX = z(4:6,:);  % rates
 
-% The actual dynamics are done by autoGen_dynamics.m, which is computed
-% automatically using the symbolic math toolbox. See "Derive_EoM.m".
-[ddx,ddy,ddq] = autoGen_dynamics(q,u1,u2, p.m, p.g, p.d);
+% Call to the actual dynamics function
+ddX = dynQuadRotor(X, u, p);
 
 % Pack up the outputs
-dz = [z(4:6,:); ddx;ddy;ddq];
+dz = [dX; ddX];
 
 end

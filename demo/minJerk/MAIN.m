@@ -34,16 +34,27 @@
 %   z = [x;v1;v2;a2];
 %   u = [u1;u2];
 %
+%
+% PITFALLS:
+%   One major problem with chain integrators is that they need to be
+%   carefully scaled. For example, if you make the duration of the
+%   trajectory shorter (eg. tF->2) then the trajectory is scaled.
+%   Unfortunately, the derivative scales with duration, the acceleration
+%   scales with duration squared, and jerk scales with the cube of 
+%   duration. This causes problems in the constraint solver in FMINCON. 
+%
+%
+
 clc; clear;
 
 %%%% Specify boundary conditions
 t0 = 0;
-tF = 1;
+tF = 4;
 
 z0 = [0;0;0;0];
 zF = [pi;0;0;0];
 
-maxTorque = 15;
+maxTorque = 1.5;
 
 %%%% Pack up boundary conditions
 problem.bounds.initialTime.low = t0;
