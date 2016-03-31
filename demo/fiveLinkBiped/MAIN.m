@@ -105,11 +105,11 @@ problem.guess.control = zeros(5,2);  %Start with passive trajectory
 % method = 'trapezoid';
 % method = 'trapGrad';
 % method = 'hermiteSimpson';
-method = 'hermiteSimpsonGrad';
+% method = 'hermiteSimpsonGrad';
 % method = 'chebyshev';
 % method = 'multiCheb';
-% method = 'rungeKutta';
-% method = 'rungeKuttaGrad';
+% method = 'rungeKutta';  %slow!
+method = 'rungeKuttaGrad';
 % method = 'gpops';
 
 %%%% Method-independent options:
@@ -203,7 +203,7 @@ switch method
         problem.options(1).defaultAccuracy = 'low';
         problem.options(1).nlpOpt.GradConstr = 'on';
         problem.options(1).nlpOpt.GradObj = 'on';
-        problem.options(1).nlpOpt.DerivativeCheck = 'on';
+        problem.options(1).nlpOpt.DerivativeCheck = 'off';
         
         problem.options(2).method = 'rungeKutta'; % Select the transcription method
         problem.options(2).defaultAccuracy = 'medium';

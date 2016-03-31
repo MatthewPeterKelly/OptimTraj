@@ -1,4 +1,4 @@
-% MAIN.m 
+% MAIN.m
 %
 % Solve the cart-pole swing-up problem
 
@@ -7,8 +7,8 @@ addpath ../../
 
 p.m1 = 2.0;  % (kg) Cart mass
 p.m2 = 0.5;  % (kg) pole mass
-p.g = 9.81;  % (m/s^2) gravity 
-p.l = 0.5;   % (m) pendulum (pole) length 
+p.g = 9.81;  % (m/s^2) gravity
+p.l = 0.5;   % (m) pendulum (pole) length
 
 dist = 0.8;  %How far must the cart translate during its swing-up
 maxForce = 100;  %Maximum actuator forces
@@ -58,8 +58,10 @@ problem.options.nlpOpt = optimset(...
     'Display','iter',...
     'MaxFunEvals',1e5);
 
-% problem.options.method = 'trapezoid'; 
-problem.options.method = 'hermiteSimpson';  
+% problem.options.method = 'trapezoid';
+problem.options.method = 'hermiteSimpson';
+% problem.options.method = 'rungeKutta';
+% problem.options.method = 'chebyshev';
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                            Solve!                                       %
@@ -78,49 +80,51 @@ z = soln.interp.state(t);
 u = soln.interp.control(t);
 
 %%%% Plots:
-figure(1); clf;
-plotPendulumCart(t,z,u,p);
-
 
 %%%% Draw Trajectory:
 [p1,p2] = cartPoleKinematics(z,p);
 
-figure(2); clf; 
+figure(2); clf;
 nFrame = 9;  %Number of frames to draw
 drawCartPoleTraj(t,p1,p2,nFrame);
 
 
 %%%% Show the error in the collocation constraint between grid points:
 %
-figure(5); clf;
+if strcmp(soln.problem.options.method,'trapezoid') || strcmp(soln.problem.options.method,'hermiteSimpson')
+    % Then we can plot an estimate of the error along the trajectory
+    figure(5); clf;
+    
+    % NOTE: the following commands have only been implemented for the direct
+    % collocation(trapezoid, hermiteSimpson) methods, and will not work for
+    % chebyshev or rungeKutta methods.
+    cc = soln.interp.collCst(t);
+    
+    subplot(2,2,1);
+    plot(t,cc(1,:))
+    title('Collocation Error:   dx/dt - f(t,x,u)')
+    ylabel('d/dt cart position')
+    
+    subplot(2,2,3);
+    plot(t,cc(2,:))
+    xlabel('time')
+    ylabel('d/dt pole angle')
+    
+    idx = 1:length(soln.info.error);
+    subplot(2,2,2); hold on;
+    plot(idx,soln.info.error(1,:),'ko');
+    title('State Error')
+    ylabel('cart position')
+    
+    subplot(2,2,4); hold on;
+    plot(idx,soln.info.error(2,:),'ko');
+    xlabel('segment index')
+    ylabel('pole angle');
+end
 
-% NOTE: the following commands have only been implemented for the direct
-% collocation(trapezoid, hermiteSimpson) methods, and will not work for
-% chebyshev or rungeKutta methods.
-cc = soln.interp.collCst(t);
-
-subplot(2,2,1);
-plot(t,cc(1,:))
-title('Collocation Error:   dx/dt - f(t,x,u)')
-ylabel('d/dt cart position')
-
-subplot(2,2,3);
-plot(t,cc(2,:))
-xlabel('time')
-ylabel('d/dt pole angle')
-
-idx = 1:length(soln.info.error);
-subplot(2,2,2); hold on;
-plot(idx,soln.info.error(1,:),'ko');
-title('State Error')
-ylabel('cart position')
-
-subplot(2,2,4); hold on;
-plot(idx,soln.info.error(2,:),'ko');
-xlabel('segment index')
-ylabel('pole angle');
-
-
+%%%% Plot the state and control against time
+figure(1); clf;
+plotPendulumCart(t,z,u,p);
 
 
 

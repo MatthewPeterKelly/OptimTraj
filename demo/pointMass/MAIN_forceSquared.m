@@ -41,9 +41,9 @@ problem.options.nlpOpt = optimset(...
     'GradConstr','on',...
     'DerivativeCheck','off');   %Fmincon automatically checks
 
+
 problem.options.method = 'trapezoid';
-problem.options.trapezoid.nGrid = 100;
-problem.options.defaultAccuracy = 'medium';
+% problem.options.method = 'rungeKutta';
 
 % Solve the problem
 soln = trajOpt(problem);
