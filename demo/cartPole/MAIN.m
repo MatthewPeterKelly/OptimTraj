@@ -59,7 +59,7 @@ problem.options.nlpOpt = optimset(...
     'MaxFunEvals',1e5);
 
 % problem.options.method = 'trapezoid';
-problem.options.method = 'hermiteSimpson';
+% problem.options.method = 'hermiteSimpson';
 % problem.options.method = 'rungeKutta';
 % problem.options.method = 'chebyshev';
 

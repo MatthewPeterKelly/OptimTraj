@@ -246,6 +246,7 @@ OPT_gpops.mesh.method = 'hp-PattersonRao';
 OPT_gpops.method = 'RPM-Integration';
 OPT_gpops.mesh.phase.colpoints = 10*ones(1,10);
 OPT_gpops.mesh.phase.fraction = ones(1,10)/10;
+OPT_gpops.scales.method = 'none'; % { 'none' , automatic-hybridUpdate' , 'automatic-bounds';
 
 switch accuracy
     case 'low'
