@@ -24,7 +24,7 @@ All functions in the problem description can be non-linear, but they must be smo
 
 ## Features:
 
-- __Easy to install -__ no required dependencies outside of Matlab
+- __Easy to install -__ no dependencies outside of Matlab (for base functionality)
 - __Lots of examples -__ look at the `demo/` directory to see for yourself!
 - __Readable source code -__ easy to debug your code and figure out how the software works
 - __Analytic gradients -__ most methods support analytic gradients
@@ -40,7 +40,7 @@ All functions in the problem description can be non-linear, but they must be smo
 ## Installation:
 1. Clone or download the repository
 2. Add the top level folder to your Matlab path
-3. (Optional) Clone or download [chebfun](http://www.chebfun.org/) (needed for orthogonal collocation)
+3. (Optional) Clone or download [chebfun](http://www.chebfun.org/) (needed for global collocation)
 4. Done!
 
 
