@@ -3,12 +3,14 @@ TrajOpt is a matlab library that I developed while working on my PhD at Cornell,
 
 ## What sort of problems does TrajOpt solve?
 
-#### Examples, no math:
-- Cart-Pole: a cart that travels on a horizontal rail, with pendulum hanging from it. Find the force profile to apply to the cart to swing-up the pendulum, starting from rest.
+#### Examples:
+- Cart-pole: a cart that travels on a horizontal rail, with pendulum hanging from it. Find the force profile to apply to the cart to swing-up the pendulum, starting from rest.
 - Compute the gait (joint angles, rates, and torques) for a walking robot that minimizes the energy used while walking.
 - Find a minimum-thrust orbit transfer trajectory for a satellite.
 
 #### Details:
+
+TrajOpt finds the optimal trajectory for a dynamical system. This trajectory is a sequence of controls (expressed as a function) that moves the dynamical system between two points in state space. The trajectory will minimize some cost function, which is typically an integral along the trajectory. The trajectory will also satisfy a set user-defined constraints.
 
 TrajOpt solves problems with
 - continuous dynamics
@@ -17,7 +19,7 @@ TrajOpt solves problems with
 - integral cost function
 - boundary cost function
 
-All functions in the problem description can be non-linear, but they must be smooth (C2 continuous).
+All functions in the problem description can be non-linear, but they must be smooth (C2 continuous). 
 
 
 ## Features:
