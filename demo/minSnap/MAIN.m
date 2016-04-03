@@ -56,7 +56,7 @@ tF = 5;
 z0 = [0;0;0;0;0];
 zF = [pi;0;0;0;0];
 
-maxTorque = 1.3;
+maxTorque = 1.2;
 
 %%%% Pack up boundary conditions
 problem.bounds.initialTime.low = t0;
@@ -96,6 +96,8 @@ switch method
         problem.options.method = method;
         problem.options.hermiteSimpson.nSegment = 15;
         problem.options.nlpOpt.MaxFunEvals = 5e4;
+    case 'gpops'
+        problem.options.method = 'gpops';
     otherwise
         error('invalid method')
 end
@@ -143,6 +145,8 @@ title('velocity (angular rate)')
 legend('v1','v2')
 
 subplot(3,2,5); hold on;
+plot(t([1,end]),[1,1]*maxTorque,'k--','LineWidth',1);
+plot(t([1,end]),-[1,1]*maxTorque,'k--','LineWidth',1);
 plot(t,u1)
 plot(tGrid,u1Grid,'ko','MarkerSize',8,'LineWidth',2);
 title('torque')

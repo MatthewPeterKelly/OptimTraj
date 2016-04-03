@@ -49,12 +49,14 @@ clc; clear;
 
 %%%% Specify boundary conditions
 t0 = 0;
-tF = 4;
+tF = 5;    
+
+maxTorque = 1.2;
 
 z0 = [0;0;0;0];
 zF = [pi;0;0;0];
 
-maxTorque = 1.5;
+
 
 %%%% Pack up boundary conditions
 problem.bounds.initialTime.low = t0;
@@ -82,8 +84,23 @@ problem.func.dynamics = @(t,z,u)(  dynamics(z,u)  );
 problem.func.pathObj = @(t,z,u)(  pathObjective(u)  );
 problem.func.pathCst = @(t,z,u)(  pathConstraint(z)  );
 
-%%%% Options
-problem.options.method = 'chebyshev';
+%%%% Choice of solver:
+method = 'chebyshev';
+
+switch method
+    case 'chebyshev'
+        problem.options.method = method;
+        problem.options.chebyshev.nColPts = 25;
+    case 'hermiteSimpson'
+        problem.options.method = method;
+        problem.options.hermiteSimpson.nSegment = 15;
+        problem.options.nlpOpt.MaxFunEvals = 5e4;
+    case 'gpops'
+        problem.options.method = 'gpops';
+    otherwise
+        error('invalid method')
+end
+
 
 %%%% Solve
 soln = trajOpt(problem);
@@ -97,7 +114,7 @@ v1Grid = soln.grid.state(2, :);
 v2Grid = soln.grid.state(3, :);
 a2Grid = soln.grid.state(4, :);
 u1Grid = soln.grid.control(1, :);
-da2Grid = soln.grid.control(2, :);
+j2Grid = soln.grid.control(2, :);
 
 t = linspace(tGrid(1), tGrid(end), 100);
 z = soln.interp.state(t);
@@ -107,17 +124,18 @@ v1 = z(2,:);
 v2 = z(3,:);
 a2 = z(4,:);
 u1 = u(1,:);
-da2 = u(2,:);
+j2 = u(2,:);
+
 
 %%%% Plot the trajectory against time
 figure(1); clf;
 
-subplot(5,1,1); hold on;
+subplot(3,2,1); hold on;
 plot(t,x)
 plot(tGrid,xGrid,'ko','MarkerSize',8,'LineWidth',2);
 title('position (angle)')
 
-subplot(5,1,2); hold on;
+subplot(3,2,3); hold on;
 plot(t,v1)
 plot(t,v2)
 plot(tGrid,v1Grid,'ko','MarkerSize',8,'LineWidth',2);
@@ -125,24 +143,19 @@ plot(tGrid,v2Grid,'ko','MarkerSize',8,'LineWidth',2);
 title('velocity (angular rate)')
 legend('v1','v2')
 
-subplot(5,1,3); hold on;
-plot(t,a2)
-plot(tGrid,a2Grid,'ko','MarkerSize',8,'LineWidth',2);
-title('acceleration')
-
-subplot(5,1,4); hold on;
+subplot(3,2,5); hold on;
 plot(t([1,end]),[1,1]*maxTorque,'k--','LineWidth',1);
 plot(t([1,end]),-[1,1]*maxTorque,'k--','LineWidth',1);
 plot(t,u1)
 plot(tGrid,u1Grid,'ko','MarkerSize',8,'LineWidth',2);
 title('torque')
 
-subplot(5,1,5); hold on;
-plot(t,da2)
-plot(tGrid,da2Grid,'ko','MarkerSize',8,'LineWidth',2);
+subplot(3,2,2); hold on;
+plot(t,a2)
+plot(tGrid,a2Grid,'ko','MarkerSize',8,'LineWidth',2);
+title('acceleration')
+
+subplot(3,2,4); hold on;
+plot(t,j2)
+plot(tGrid,j2Grid,'ko','MarkerSize',8,'LineWidth',2);
 title('jerk')
-
-
-
-
-
