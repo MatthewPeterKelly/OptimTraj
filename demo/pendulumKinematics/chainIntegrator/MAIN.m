@@ -10,6 +10,7 @@
 %
 
 clc; clear;
+addpath ../../..
 
 %%%% Boundary-value problem:
 

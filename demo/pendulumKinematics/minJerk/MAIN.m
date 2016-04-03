@@ -46,6 +46,7 @@
 %
 
 clc; clear;
+addpath ../../..
 
 %%%% Specify boundary conditions
 t0 = 0;
@@ -84,6 +85,7 @@ problem.func.dynamics = @(t,z,u)(  dynamics(z,u)  );
 problem.func.pathObj = @(t,z,u)(  pathObjective(u)  );
 problem.func.pathCst = @(t,z,u)(  pathConstraint(z)  );
 
+
 %%%% Choice of solver:
 method = 'chebyshev';
 
@@ -91,6 +93,9 @@ switch method
     case 'chebyshev'
         problem.options.method = method;
         problem.options.chebyshev.nColPts = 25;
+    case 'trapezoid'
+        problem.options.method = method;
+        problem.options.trapezoid = 30;
     case 'hermiteSimpson'
         problem.options.method = method;
         problem.options.hermiteSimpson.nSegment = 15;
@@ -100,6 +105,7 @@ switch method
     otherwise
         error('invalid method')
 end
+
 
 
 %%%% Solve

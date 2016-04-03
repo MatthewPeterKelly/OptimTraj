@@ -94,6 +94,24 @@ for i=1:length(opt)
     opt(i).nlpOpt = OPT.nlpOpt;
 end
 
+% Check ChebFun dependency:
+missingChebFun = false;
+for i=1:length(opt)
+if strcmp(opt(i).method,'chebyshev')
+try
+    chebpts(3);  %Test call to chebfun
+catch ME %#ok<NASGU>
+    missingChebFun = true;
+    opt(i).method = 'trapezoid';  %Force default method
+end
+end
+end
+if missingChebFun
+   warning('''chebyshev'' method requires the Chebfun toolbox');
+   disp('   --> Install Chebfun toolbox:  (http://www.chebfun.org/)');
+   disp('   --> Running with default method instead (''trapezoid'')');
+end
+
 % Fill in method-specific paramters:
 for i=1:length(opt)
     OPT_method = opt(i).method;
