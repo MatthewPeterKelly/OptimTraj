@@ -1,5 +1,5 @@
-function dv = pendulum(x,v,u)
-% dv = pendulum(x,v,u)
+function dv = pendulum(x,v,u,param)
+% dv = pendulum(x,v,u,param)
 %
 % Computes the dynamics of a simple pendulum in second-order form
 %
@@ -7,13 +7,15 @@ function dv = pendulum(x,v,u)
 %   x = angle
 %   v = rate
 %   u = torque
-% 
+%   param = struct with physical parameters
+%       .k = gravity torque constant
+%       .b = viscous damping constant
 % OUTPUTS:
 %   dv = acceleration
 %
 
-k = 1.0;   % gravity 
-b = 0.5;   % damping
+k = param.k;   % gravity 
+b = param.b;   % damping
 
 dv = -b*v - k*sin(x) + u;
 

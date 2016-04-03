@@ -38,10 +38,12 @@ addpath ../../..
 t0 = 0;
 tF = 5;    
 
-maxTorque = 1.2;
+maxTorque = 1.0;
 z0 = [0;0;0];
 zF = [pi;0;0];
 
+param.k = 1.0;  % gravity torque constant for pendulum model
+param.b = 0.1;  % viscous damping constant
 
 %%%% Pack up boundary conditions
 problem.bounds.initialTime.low = t0;
@@ -65,7 +67,7 @@ problem.guess.state = [z0, zF];
 problem.guess.control = [zeros(2,1), zeros(2,1)];
 
 %%%% Pack up function handles
-problem.func.dynamics = @(t,z,u)(  dynamics(z,u)  );
+problem.func.dynamics = @(t,z,u)(  dynamics(z,u,param)  );
 problem.func.pathObj = @(t,z,u)(  pathObjective(u)  );
 problem.func.pathCst = @(t,z,u)(  pathConstraint(z)  );
 

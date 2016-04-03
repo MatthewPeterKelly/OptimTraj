@@ -1,5 +1,5 @@
-function dz = dynamics(z,u)
-% dz = dynamics(z,u)
+function dz = dynamics(z,u,param)
+% dz = dynamics(z,u,param)
 %
 % Computes the first-order form of the dynamics for the combined chain
 % integrator and pendulum system
@@ -20,7 +20,7 @@ u1 = u(1,:);
 u2 = u(2,:);
 
 % Pendulum physics
-dv1 = pendulum(x,v1,u1);
+dv1 = pendulum(x,v1,u1,param);
 
 % Integrator chain physics:
 dx = v1;
