@@ -17,7 +17,9 @@ dyn.g = 9.81;  % gravity
 dyn.l1 = 0.5;   % length of first link
 dyn.l2 = 0.5;   % length of second link
 
-maxTorque = 25;  % Max torque at the elbow
+t0 = 0;  
+tF = 2.0;  %For now, force it to take exactly this much time.
+maxTorque = inf;  % Max torque at the elbow
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                       Set up function handles                           %
@@ -30,7 +32,6 @@ problem.func.pathObj = @(t,x,u)( u.^2 );  %Simple torque-squared
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %               Set up bounds on time, state, and control                 %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
-t0 = 0;  tF = 2.5;  %For now, force it to take exactly this much time.
 problem.bounds.initialTime.low = t0;
 problem.bounds.initialTime.upp = t0;
 problem.bounds.finalTime.low = tF;
@@ -74,9 +75,11 @@ problem.guess.control = [0, 0];
 %%%% Run the optimization twice: once on a rough grid with a low tolerance,
 %%%% and then again on a fine grid with a tight tolerance.
 
-method = 'direct';
+method = 'trapezoid';
+% method = 'direct';
 % method = 'rungeKutta';
 % method = 'orthogonal';
+% method = 'gpops';
 
 % NOTES:
 %   - The 'direct' method takes much longer to run, but it finds a good
@@ -94,6 +97,13 @@ switch method
         problem.options(2).nlpOpt.MaxFunEvals = 1e5;
         problem.options(2).nlpOpt.MaxIter = 1e3;
         
+    case 'trapezoid'
+        problem.options(1).method = 'trapezoid';
+        problem.options(1).trapezoid.nGrid = 20;
+        problem.options(2).method = 'trapezoid';
+        problem.options(2).trapezoid.nGrid = 40;
+        problem.options(3).method = 'trapezoid';
+        problem.options(3).trapezoid.nGrid = 60;
     case 'rungeKutta'
         problem.options(1).method = 'rungeKutta';
         problem.options(1).defaultAccuracy = 'low';
@@ -103,10 +113,12 @@ switch method
        
     case 'orthogonal'
         problem.options(1).method = 'chebyshev';
-        problem.options(1).defaultAccuracy = 'low';
+        problem.options(1).chebyshev.nColPts = 9;
         
         problem.options(2).method = 'chebyshev';
-        problem.options(2).defaultAccuracy = 'medium';
+        problem.options(2).chebyshev.nColPts = 18;
+    case 'gpops'
+        problem.options(1).method = 'gpops';
         
 end
 
