@@ -17,9 +17,18 @@ dyn.g = 9.81;  % gravity
 dyn.l1 = 0.5;   % length of first link
 dyn.l2 = 0.5;   % length of second link
 
-t0 = 0;  
+t0 = 0;
 tF = 2.0;  %For now, force it to take exactly this much time.
-maxTorque = inf;  % Max torque at the elbow
+x0 = [0;0];   %[q1;q2];  %initial angles   %Stable equilibrium
+xF = [pi;pi];  %[q1;q2];  %final angles    %Inverted balance
+dx0 = [0;0];   %[dq1;dq2];  %initial angle rates
+dxF = [0;0];  %[dq1;dq2];  %final angle rates
+maxTorque = 20;  % Max torque at the elbow  (GPOPS goes crazy without this)
+
+%  * The optimal trajectory is not actually constrained by the maximum
+%  torque. That being said, GPOPS goes numerically unstable if the torque
+%  is not bounded. This does not seem to be a problem with the other
+%  methods.
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                       Set up function handles                           %
@@ -42,29 +51,14 @@ problem.bounds.finalTime.upp = tF;
 problem.bounds.state.low = [-2*pi; -2*pi; -inf(2,1)];
 problem.bounds.state.upp = [ 2*pi;  2*pi;  inf(2,1)];
 
-stepAngle = 0.2;
-problem.bounds.initialState.low = zeros(4,1);  %Stable equilibrium
-problem.bounds.initialState.upp = zeros(4,1);
-problem.bounds.finalState.low = [pi; pi; 0; 0]; %Inverted balance
-problem.bounds.finalState.upp = [pi; pi; 0; 0];
+problem.bounds.initialState.low = [x0; dx0];
+problem.bounds.initialState.upp = [x0; dx0];
+problem.bounds.finalState.low = [xF; dxF];
+problem.bounds.finalState.upp = [xF; dxF];
 
 problem.bounds.control.low = -maxTorque;
 problem.bounds.control.upp = maxTorque;
 
-%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
-%              Create an initial guess for the trajectory                 %
-%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
-
-% For now, just assume a linear trajectory between boundary values
-
-problem.guess.time = [t0, tF];
-
-stepRate = (2*stepAngle)/(tF-t0);
-x0 = [stepAngle; -stepAngle; -stepRate; stepRate];
-xF = [-stepAngle; stepAngle; -stepRate; stepRate];
-problem.guess.state = [x0, xF];
-
-problem.guess.control = [0, 0];
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -75,11 +69,11 @@ problem.guess.control = [0, 0];
 %%%% Run the optimization twice: once on a rough grid with a low tolerance,
 %%%% and then again on a fine grid with a tight tolerance.
 
-method = 'trapezoid';
-% method = 'direct';
-% method = 'rungeKutta';
-% method = 'orthogonal';
-% method = 'gpops';
+method = 'trapezoid'; %  <-- this is robust, but less accurate
+% method = 'direct'; %  <-- this is robust, but some numerical artifacts
+% method = 'rungeKutta';  % <-- slow, gets a reasonable, but sub-optimal soln
+% method = 'orthogonal';    %  <-- this usually finds bad local minimum
+% method = 'gpops';      %  <-- fast, but numerical problem is maxTorque is large
 
 % NOTES:
 %   - The 'direct' method takes much longer to run, but it finds a good
@@ -90,12 +84,13 @@ method = 'trapezoid';
 switch method
     case 'direct'
         problem.options(1).method = 'trapezoid';
-        problem.options(1).defaultAccuracy = 'low';
+        problem.options(1).trapezoid.nGrid = 20;
         
-        problem.options(2).method = 'hermiteSimpson';
-        problem.options(2).defaultAccuracy = 'medium';
-        problem.options(2).nlpOpt.MaxFunEvals = 1e5;
-        problem.options(2).nlpOpt.MaxIter = 1e3;
+        problem.options(2).method = 'trapezoid';
+        problem.options(2).trapezoid.nGrid = 40;
+        
+        problem.options(3).method = 'hermiteSimpson';
+        problem.options(3).hermiteSimpson.nSegment = 20;
         
     case 'trapezoid'
         problem.options(1).method = 'trapezoid';
@@ -104,13 +99,14 @@ switch method
         problem.options(2).trapezoid.nGrid = 40;
         problem.options(3).method = 'trapezoid';
         problem.options(3).trapezoid.nGrid = 60;
+        
     case 'rungeKutta'
         problem.options(1).method = 'rungeKutta';
         problem.options(1).defaultAccuracy = 'low';
         
         problem.options(2).method = 'rungeKutta';
         problem.options(2).defaultAccuracy = 'medium';
-       
+        
     case 'orthogonal'
         problem.options(1).method = 'chebyshev';
         problem.options(1).chebyshev.nColPts = 9;
@@ -121,6 +117,29 @@ switch method
         problem.options(1).method = 'gpops';
         
 end
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+%              Create an initial guess for the trajectory                 %
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+
+% Start with a linear trajectory between four key frames:
+% 0  --  initial configuration
+% A  --  back swing
+% B  --  front swing
+% F  --  final configuration
+%
+
+tA = t0 + 0.25*(tF-t0);
+xA = [-pi/2; 0];
+dxA = [0;0];
+
+tB = t0 + 0.75*(tF-t0);
+xB = [pi/2; pi];
+dxB = [0;0];
+
+problem.guess.time = [t0, tA, tB, tF];
+problem.guess.state = [[x0;dx0], [xA; dxA],[xB; dxB], [xF;dxF]];
+problem.guess.control = [0, 0, 0, 0];
+
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                           Solve!                                        %
@@ -135,7 +154,7 @@ z = soln(end).interp.state(t);
 u = soln(end).interp.control(t);
 
 
-%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+%% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                     Plot the solution                                   %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
