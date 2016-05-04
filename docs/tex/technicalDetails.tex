@@ -1,21 +1,71 @@
 \section{Technical Details}
 
+
+
 \subsection{Problem Statement}
 
+Minimize the objective function:
+\begin{equation*}
+\underset{t_0, t_F, \bm{x}(t), \bm{u}(t)} \min \;
+J_B\big(t_0,t_F,\bm{x}(t_0),\bm{x}(t_F) \big) + 
+\int_{t_0}^{t_F} \! J_P \big( \tau, \bm{x}(\tau), \bm{u}(\tau) \big)  \; d\tau
+\label{eqn:trajOpt_objectiveFunction}
+\end{equation*}
+
+Subject to the constraints:
+\begin{align*}
+& \quad   \dot{\bm{x}}(t) = \bm{f} \big(t, \bm{x}(t), \bm{u}(t)\big)   & \quad & \eqnTxt{system dynamics}\\
+
+& \quad   \bm{C}_P \big(t, \bm{x}(t), \bm{u}(t)\big) \leq \bm{0}    & \quad &   \eqnTxt{path constraints}\\
+
+& \quad   \bm{C}_B\big(t_0,t_F,\bm{x}(t_0),\bm{x}(t_F) \big) \leq \bm{0}    & \quad & \eqnTxt{boundary constraints} \\
+
+& \quad   \bm{x}^- \leq \bm{x}(t) \leq \bm{x}^+    & \quad & \eqnTxt{constant bounds on state} \\
+& \quad   \bm{u}^- \leq \bm{u}(t) \leq \bm{u}^+    & \quad & \eqnTxt{constant bounds on control} \\
+
+& \quad   t^- \leq t_0 < t_F \leq t^+    & \quad & \eqnTxt{bounds on initial and final time} \\
+& \quad   \bm{x}_0^- \leq \bm{x}(t_0) \leq  \bm{x}_0^+   & \quad & \eqnTxt{bound on initial state} \\
+& \quad   \bm{x}_F^- \leq \bm{x}(t_F) \leq \bm{x}_F^+    & \quad & \eqnTxt{bound on final state}
+\end{align*}
+
+Assuming that the user-defined objective, dynamics, and constraint functions ($J_P$, $J_B$, $\bm{f}$, $\bm{C}_P$, $\bm{C}_B$) are smooth. The user must provide an initial guess for the decision variables $t_0$, $t_F$, $\bm{x}(t)$, and $\bm{u}(t)$, and ensure that a feasible solution exists.
 
 \subsection{Trapezoidal Direct Collocation:  \hc{trapezoid}}
 
-\cite{Betts2010}
+Trapezoidal direct collocation works by making the assumption that the optimal trajectory can be approximated using a low-order spline. In this case, the dynamics, objective function, and control trajectories are approximated using a linear spline, and the state trajectory is the quadratic spline, obtained by integration of the (linear) dynamics spline. Integration of a linear spline is computed using the trapezoid rule, hence the name. The implementation of trapezoidal direct collocation in TrajOpt is almost entirely based on the method as it is described in \cite{Betts2010}.
 
 \subsection{Hermite-Simpson Direct Collocation:  \hc{hermiteSimpson}}
 
-\cite{Betts2010}
+Hermite-Simpson direct collocation works by making the assumption that the optimal trajectory can be approximated using a medium-order spline. In this case, the dynamics, objective function, and control trajectories are approximated using a quadratic spline, and the state trajectory is a cubic hermite spline, obtained by integration of the (quadratic) dynamics spline. Integration of a quadratic spline is computed using Simpson's rule. There are two versions of this method: separated and compressed. In the separated form, the state at the mid-point of each trajectory segment is included as a decision variable, and the Hermite-interpolation is enforced with a constraint. In the compressed form, the state at the mid-point is computed from the definition of the Hermite-interpolant during optimization. TrajOpt implements the separated Hermite-Simpson method, almost entirely based on the method as it is described in \cite{Betts2010}.
 
 \subsection{Chebyshev--Lobatto Orthogonal Collocation:  \hc{chebyshev}}
 
-\cite{Vlassenbroeck1988}
+Chebyshev--Lobatto orthogonal collocation works by representing the entire trajectory using a high-order Chebyshev orthogonal polynomial. The implementation here might also be called pseudospectral or global collocation, since the entire trajectory is represented using a single segment, rather than several segments. Orthogonal collocation methods can be divided into three categories: Gauss, Radau, and Lobatto. In a Gauss method, neither end-point of a segment is a collocation point, in a Radau method, a single end-point of the segment is a collocation point, and in a Lobatto method, both end-points are collocation points \cite{Garg2010}.
+
+\par The implementation here uses the ChebFun toolbox \cite{Driscoll2014} for computing the Chebyshev--Lobatto collocation points, and also for interpolation of the solution. More details regarding orthogonal polynomials and calculations with them can be found in \cite{Berrut2004a} and \cite{Trefethen2012}. The details of the collocation method itself are largely drawn from \cite{Vlassenbroeck1988}.
 
 \subsection{Runge--Kutta $4^\text{th}$-order Multiple Shooting:  \hc{rungeKutta}}
 
+A multiple shooting method works by breaking the trajectory into segments, and approximating each segment using an explicit simulation. In this case, we use a $4^\text{th}$-order Runge--Kutta method for the simulation. A defect constraint is used to ensure that the end of each trajectory segment correctly lines up with the next. The interpolation of the solution trajectory, for both control and state, is approximated using a cubic Hermite spline. The implementation here, except for interpolation, is as described in \cite{Betts2010}.
 
-\cite{Betts2010}
+\subsection{GPOPS-II:    \hc{gpops}}
+
+TrajOpt includes a wrapper to the software GPOPS-II \cite{Patterson2013}, a professionally developed trajectory optimization library for Matlab. It implements a nicely optimized version of Radau orthogonal collocation with adaptive meshing \cite{Darby2011a}. There are a few choice in GPOPS-II for both collocation metho and the adaptive meshing. It also supports analytic gradients using automatic differentiation. It is included in TrajOpt for two reasons: 1) GPOPS-II can be used to benchmark and verify the methods in TrajOpt, and 2) GPOPS-II provides a collection of methods that are not otherwise available in TrajOpt.
+
+\subsection{Resources for Learning Trajectory Optimization}
+
+The single best resource for learning about trajectory optimization is the textbook by John T. Betts: "Practical Methods for Optimal Control and Estimation Using Nonlinear Programming" \cite{Betts2010}. The textbook by Bryson and Ho: "Applied Optimal Control" \cite{Bryson1975}. Both of these books are also excellent for learning about nonlinear programming and optimization.\\
+
+\par There are two good review papers about trajectory optimization. The paper by Betts \cite{Betts1998} is more focused on direct collocation and shooting methods, while the paper by Rao \cite{Rao2009} is more focused on orthogonal collocation methods.\\
+
+\par Understanding orthogonal collocation is rather challenging, and I found that it was first necessary to get a solid understanding of orthogonal polynomials and function approximation. I started by reading "Approximation Theory and Approximation Practice" \cite{Trefethen2012} by Trefethen, and then his paper on barycentric interpolation \cite{Berrut2004a}. Some intuition can also be obtained by reading the source code of ChebFun \cite{Driscoll2014}: \\
+\url{http://www.chebfun.org/}\\
+
+\par Russ Tedrake at MIT has also provided some excellent resources for learning about trajectory optimization, and robotics in general. The first is his online course on underactuated robotics. You can download the pdf of the course notes \cite{Tedrake2009}, or access the full course and video lectures at: \\
+\href{http://ocw.mit.edu/courses/electrical-engineering-and-computer-science/6-832-underactuated-robotics-spring-2009/index.htm}{http://ocw.mit.edu/courses/} \\
+
+Second, his group at MIT are producing a planning, control, and analysis toolbox called Drake, which includes trajectory optimization. It is open source, so it is another good place to read the source code and figure out how it works: \\
+\url{https://github.com/RobotLocomotion/drake}\\
+
+\par There is also a tutorial page on my website. It contains a high-level summary, useful links, visualization of single shooting, multiple shooting, and collocation, and a link to a simple multiple shooting tutorial in Matlab. \\
+\url{http://www.matthewpeterkelly.com/tutorials/trajectoryOptimization/index.html}

@@ -30,20 +30,20 @@ There are five fields in the \tc{problem}.\hc{func} struct, each of which is a u
 	\\ where $\bm{\dot{x}}$ is the time derivative of $\bm{x}$ and \texttt{size($\bm{\dot{x}}$)==size($\bm{x}$)}
 \item \tc{problem.}\hc{func.pathObj}
 	${\bm: \quad \to \quad }$
-	\tc{$\bm{J_P}$ = }\hc{pathObj}\tc{($t$,$\bm{x}$,$\bm{u}$)}
-	\\ where $\bm{J_P}$ is the integrand of the objective function and \texttt{size($\bm{J_P}$)==size($t$)}
+	\tc{$\bm{J}_P$ = }\hc{pathObj}\tc{($t$,$\bm{x}$,$\bm{u}$)}
+	\\ where $\bm{J}_P$ is the integrand of the objective function and \texttt{size($\bm{J_P}$)==size($t$)}
 \item \tc{problem.}\hc{func.pathCst}
 	${\bm: \quad \to \quad }$
-	\tc{$\bm{[C_P^a, C_P^b ]}$ = }\hc{pathCst}\tc{($t$,$\bm{x}$,$\bm{u}$)}
-	\\ where $\bm{C_P^a}=\bm{0}$ is path equality constraint, and $\bm{C_P^b} \leq \bm{0}$ is the path inequality constraint. Either may be left empty \texttt{[ ]}. 	 	The 	number of columns in each must equal that of time, but the number of rows in each is arbitrary (it just must be consistent between function calls).
+	\tc{$[\bm{C}_P^a, \bm{C}_P^b ]$ = }\hc{pathCst}\tc{($t$,$\bm{x}$,$\bm{u}$)}
+	\\ where $\bm{C}_P^a=\bm{0}$ is path equality constraint, and $\bm{C}_P^b \leq \bm{0}$ is the path inequality constraint. Either may be left empty \texttt{[ ]}. 	 	The 	number of columns in each must equal that of time, but the number of rows in each is arbitrary (it just must be consistent between function calls).
 \item \tc{problem.}\hc{func.bndObj}
 	${\bm: \quad \to \quad }$
 	\tc{$J_B$ = }\hc{bndObj}\tc{($t_0$,$\bm{x}_0$,$t_F$,$\bm{x}_F$)}
-	\\ where $\bm{J_B}$ is a scalar cost associated with the boundary points of the trajectory. 
+	\\ where $J_B$ is a scalar cost associated with the boundary points of the trajectory. 
 \item \tc{problem.}\hc{func.bndCst}
 	${\bm: \quad \to \quad }$
-	\tc{$\bm{[C_B^a, C_B^b] }$ = }\hc{bndCst}\tc{($t_0$,$\bm{x}_0$,$t_F$,$\bm{x}_F$)}
-	\\ where $\bm{C_B^a}=\bm{0}$ is boundary equality constraint, and $\bm{C_B^b} \leq \bm{0}$ is the boundary inequality constraint. Either may be left empty \texttt{[ ]}. Each is a column vector of arbitrary length, provided that it is consistent between function calls.
+	\tc{$[\bm{C}_B^a, \bm{C}_B^b]$ = }\hc{bndCst}\tc{($t_0$,$\bm{x}_0$,$t_F$,$\bm{x}_F$)}
+	\\ where $\bm{C_B^a}=\bm{0}$ is boundary equality constraint, and $\bm{C}_B^b \leq \bm{0}$ is the boundary inequality constraint. Either may be left empty \texttt{[]}. Each is a column vector of arbitrary length, provided that it is consistent between function calls.
 \end{itemize}
 
 
