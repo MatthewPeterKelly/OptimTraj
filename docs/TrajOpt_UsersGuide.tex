@@ -1,0 +1,54 @@
+\documentclass[onecolumn]{article}
+%%%% Compile with PdfLaTex
+
+\usepackage{graphicx} % handles graphics and figures
+\usepackage{mathtools,bm}
+\usepackage{bbold}   %Get fancy double struck math notation for sets
+\usepackage{courier}   %Have code written out nicely
+\usepackage{color}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage{float}
+\usepackage[top=1in, bottom=1in, left=1in, right=1in]{geometry}
+\usepackage[titletoc,title]{appendix}
+
+\catcode`\^^M=10      %  Makes blank lines meaningless, force use of \par 
+
+%Custon inline font commands
+\newcommand{\quotes}[1]{``#1''}   % Quotes!
+\newcommand{\eqnTxt}[1]{\text{\footnotesize \textbf{#1}} }   % annotation in an equation
+
+% Custom editing commands                 
+\definecolor{darkgreen}{rgb}{0.0, 0.4, 0.2}
+\definecolor{lightblue}{rgb}{0.0,0.5,0.8}
+\newcommand{\todo}[1]{{\color{lightblue}\par {[{\bf TO DO: } {\em #1}} ] \\    }}
+\newcommand{\addsub}[1]{{\color{red}\small\par {[{\bf Add Section:} {\em #1}}  ] \\    }}
+\newcommand{\addpar}[1]{{\color{red}\small\par {[{\bf Add Paragraph:} {\em #1}}  ] \\    }}
+\newcommand{\addref}[1]{{\color{red}{\bf [REF #1]}}}
+\newcommand{\addfig}[1]{{\color{blue}{\par {\bf FIGURE: } #1 \par }}}
+\newcommand{\addeqn}[1]{{\color{red}{\par {\bf EQN: } #1 \par }}}
+
+% Specialized commands for this document:
+\newcommand{\tc}[1]{{\bf \texttt{#1}}}  % Soft-coded variable names (can be changed)
+\newcommand{\hc}[1]{{\color{darkgreen}{\bf \texttt{#1}}}}  % Hard-coded variable names
+
+
+%========================================================================
+\title{TrajOpt Users Guide  \\  Version 1.5}
+\author{Matthew P. Kelly}
+
+%====================================================
+%====================================================
+\begin{document} % 
+\maketitle
+
+\input{tex/introduction}
+
+\input{tex/usingTrajOpt}
+
+%=========================================================================
+\pagebreak
+\bibliographystyle{abbrv} \bibliography{TrajectoryOptimization}
+
+%=================================================
+\end{document}

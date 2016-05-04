@@ -7,7 +7,7 @@ function soln = trajOpt(problem)
 %
 %   func -- struct for user-defined functions, passed as function handles
 %
-%       Input Notes:
+%       Input Notes:  square braces show size:  [a,b] = size()
 %               t = [1, nTime] = time vector (grid points)
 %               x = [nState, nTime] = state vector at each grid point
 %               u = [nControl, nTime] = control vector at each grid point

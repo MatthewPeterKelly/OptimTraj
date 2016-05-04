@@ -13,3 +13,16 @@
 # Large data files:
 **/*.mat
 **/*.mp4
+
+# LaTeX autogen and compiled figure files
+**/*.aux
+**/*.log
+**/*.bbl
+**/*.blg
+**/*.synctex.gz
+**/*.pdf
+**/*.eps
+**/*.dvi
+**/*.out
+**/*.ps
+

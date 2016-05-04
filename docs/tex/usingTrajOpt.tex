@@ -1,0 +1,48 @@
+\section{Using TrajOpt}
+
+There is a single calling sequence for using TrajOpt:  \tc{soln = }\hc{trajOpt}\tc{(problem)}. The input \tc{problem} is a struct that describes a trajectory optimization problem, and the output \tc{soln} is a struct that gives details regarding the solution to the trajectory optimization problem. This section is similar to the help file for \tc{trajOpt()}.
+
+\subsection{Notation}
+
+Throughout this section we will use $t$ for time, $\bm{x}$ for state, and $\bm{u}$ for control. We will use $N$ for an integer, where $N_t$ is the number of grid-points along the trajectory and $N_g$ is the number of grid-points in the initial guess. The dimension of the state is given by $N_x$ and the dimension of the control is given by $N_u$. We will use this notation: \tc{problem.}\hc{func} to indicate that the field \hc{func} must be typed exactly as shown, while the struct \tc{problem} can be named anything.
+
+\par We will use $t_0$ and $t_F$ to indicate the initial and final times. Similarly, $\bm{x}_0 = \bm{x}(t_0)$ and $\bm{x}_F = \bm{x}(t_F)$ are the initial and final state. Throughout the software, we use the convention that time is a row vector, while the dimensions of state and control are a column vector. Thus, \\
+\texttt{size($t$) = [1, $N_t$]}, \\
+\texttt{size($\bm{x}$) = [$N_x$, $N_t$]}, \\
+\texttt{size($\bm{u}$) = [$N_u$, $N_t$]}, \\
+\texttt{size($\bm{x}_0$) = size($\bm{x}_F$)  = [$N_x$, 1]}. 
+
+
+\subsection{Constructing the Input to TrajOpt}
+
+The input to \hc{trajOpt()} is a single struct, which we will call the \tc{problem} struct. The \tc{problem} struct has four fields. The \tc{problem}.\hc{func} struct contains a set of user-defined function handles to the dynamics, objective, and constraint functions. The \tc{problem}.\hc{bounds} struct contains all constant bounds on trajectory (time, state, and control). The \tc{problem}.\hc{guess} struct contains an initial guess for the trajectory. Finally, the \tc{problem}.\hc{options} struct contains options for both \hc{trajOpt()} and \hc{fmincon()}, which it calls to solve the underlying non-linear program.
+
+\subsubsection*{\tc{problem}.\hc{func}}
+
+There are five fields in the \tc{problem}.\hc{func} struct, each of which is a user-defined function handle. The only mandatory field is \texttt{func.dynamics}, and at least one of either \texttt{func.pathObj} or \texttt{func.bndObj}. All other fields can simply be omitted or left empty \texttt{[]}. Here we will list the prototype for each function handle: \texttt{outArgs = funName(inArgs)}. The user can pass additional parameters using the Matlab anonymous function syntax: \texttt{funHandle = @( funName(inArgs, extraParams) );}.
+
+\par Both of the direct collocation methods (trapezoidal and Hermite-Simpson) support analytic gradients. The details regarding the construction of these function handles is provided in the help files for each of these methods: \texttt{>> help trapezoid} and \texttt{>> help hermiteSimpson}. If you're using analytic gradients, then you should look at the \texttt{demo/gradientsTutorial} for an simple tutorial example and \texttt{demo/fiveLinkBiped} for a complicated example.
+
+\begin{itemize} \setlength\itemsep{-0.1em}
+\item \tc{problem.}\hc{func.dynamics}
+	${\bm: \quad \to \quad }$
+	\tc{$\bm{\dot{x}}$ = }\hc{dynamics}\tc{($t$,$\bm{x}$,$\bm{u}$)}
+	\\ where $\bm{\dot{x}}$ is the time derivative of $\bm{x}$ and \texttt{size($\bm{\dot{x}}$)==size($\bm{x}$)}
+\item \tc{problem.}\hc{func.pathObj}
+	${\bm: \quad \to \quad }$
+	\tc{$\bm{J_P}$ = }\hc{pathObj}\tc{($t$,$\bm{x}$,$\bm{u}$)}
+	\\ where $\bm{J_P}$ is the integrand of the objective function and \texttt{size($\bm{J_P}$)==size($t$)}
+\item \tc{problem.}\hc{func.pathCst}
+	${\bm: \quad \to \quad }$
+	\tc{$\bm{[C_P^a, C_P^b ]}$ = }\hc{pathCst}\tc{($t$,$\bm{x}$,$\bm{u}$)}
+	\\ where $\bm{C_P^a}=\bm{0}$ is path equality constraint, and $\bm{C_P^b} \leq \bm{0}$ is the path inequality constraint. Either may be left empty \texttt{[ ]}. 	 	The 	number of columns in each must equal that of time, but the number of rows in each is arbitrary (it just must be consistent between function calls).
+\item \tc{problem.}\hc{func.bndObj}
+	${\bm: \quad \to \quad }$
+	\tc{$J_B$ = }\hc{bndObj}\tc{($t_0$,$\bm{x}_0$,$t_F$,$\bm{x}_F$)}
+	\\ where $\bm{J_B}$ is a scalar cost associated with the boundary points of the trajectory. 
+\item \tc{problem.}\hc{func.bndCst}
+	${\bm: \quad \to \quad }$
+	\tc{$\bm{[C_B^a, C_B^b] }$ = }\hc{bndCst}\tc{($t_0$,$\bm{x}_0$,$t_F$,$\bm{x}_F$)}
+	\\ where $\bm{C_B^a}=\bm{0}$ is boundary equality constraint, and $\bm{C_B^b} \leq \bm{0}$ is the boundary inequality constraint. Either may be left empty \texttt{[ ]}. Each is a column vector of arbitrary length, provided that it is consistent between function calls.
+\end{itemize}
+

@@ -1,0 +1,79 @@
+\section{Introduction}
+
+TrajOpt is a matlab library designed for solving continuous-time single-phase trajectory optimization problems. I developed it while working on my PhD at Cornell, studying non-linear controller design for walking robots.
+
+\subsection{What sort of problems does TrajOpt solve?}
+
+\subsubsection*{Examples:}
+\begin{itemize} 
+\item Cart-Pole Swing-Up: Find the force profile to apply to the cart to swing-up the pendulum that freely hangs from it.
+\item Compute the gait (joint angles, rates, and torques) for a walking robot that minimizes the energy used while walking.
+\item Find a minimum-thrust orbit transfer trajectory for a satellite.
+\end{itemize}
+
+\subsubsection*{Details:}
+
+TrajOpt finds the optimal trajectory for a dynamical system. This trajectory is a sequence of controls (expressed as a function) that moves the dynamical system between two points in state space. The trajectory will minimize some cost function, which is typically an integral along the trajectory. The trajectory will also satisfy a set user-defined constraints. All functions in the problem description can be non-linear, but they must be smooth (C$^2$ continuous).
+
+TrajOpt solves problems with
+\begin{itemize} \setlength\itemsep{-0.1em}
+\item continuous dynamics
+\item boundary constraints
+\item path constraints
+\item integral cost function
+\item boundary cost function
+\end{itemize}
+
+\cite{Betts2010}
+
+\subsection{Features:}
+\begin{itemize} \setlength\itemsep{-0.1em}
+\item {\bf Easy to Install: } no dependencies outside of Matlab \footnotemark
+\item {\bf Lots of example: } look at the \texttt{deom/} directory to see for yourself!
+\item {\bf Readable source code: } easy to debug your code and figure out how the software works
+\item {\bf Analytic gradients: } most methods support analytic gradients
+\item {\bf Rapidly switch between methods: } helpful for debugging and experimenting
+ 	\begin{itemize} \setlength\itemsep{-0.1em}
+ 	\item Trapezoidal Direct Collocation
+ 	\item Hermite-Simpson Direct Collocation
+ 	\item $4^\text{th}$-order Runge--Kutta Multiple Shooting
+ 	\item Chebyshev--Lobatto Pseudospectral (Orthogonal) Collocation 
+ 	\end{itemize}
+\end{itemize}
+\footnotetext{Chebyshev--Lobatto method requires ChebFun (\texttt{http://www.chebfun.org})}
+
+\subsection{Installation:}
+\begin{enumerate} \setlength\itemsep{-0.1em}
+\item Clone or download the repository (\texttt{https://github.com/MatthewPeterKelly/TrajOpt})
+\item Add the top level folder to your Matlab path
+\item (Optional) Clone or download ChebFun (\texttt{http://www.chebfun.org}) to use the Chebyshev--Lobatto method
+\end{enumerate}
+
+\subsection{Usage: }
+\begin{itemize} \setlength\itemsep{-0.1em}
+\item Call the function \texttt{trajOpt} from inside matlab.
+\item \texttt{trajOpt} takes a single argument: a struct that describes your trajectory optimization problem.
+\item \texttt{trajOpt} returns a struct that describes the solution. It contains a full description of the problem, the transcription method that was used, and the solution (both as a vector of points and a function handle for interpolation).
+\item For more details, type \texttt{>> help trajOpt} at the command line, or check out some of the examples in the \texttt{demo/} directory.
+\end{itemize}
+
+\subsection{License: }
+TrajOpt is published under the MIT License, Copyright (c) 2016 Matthew P. Kelly.  \vspace{0.5em} \\
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:  \vspace{0.5em} \\
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.  \vspace{0.5em} \\
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
