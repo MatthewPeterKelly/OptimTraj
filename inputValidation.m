@@ -56,7 +56,12 @@ end
 
 %%%% Check the problem bounds:
 if ~isfield(problem,'bounds')
-    error('Field ''bounds'' cannot be ommitted from ''problem''');
+    problem.bounds.initialTime = [];
+    problem.bounds.finalTime = [];
+    problem.bounds.state = [];
+    problem.bounds.initialState = [];
+    problem.bounds.finalState = [];
+    problem.bounds.control = [];
 else
     
     if ~isfield(problem.bounds,'initialTime')

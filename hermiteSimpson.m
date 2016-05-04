@@ -14,7 +14,7 @@ function soln = hermiteSimpson(problem)
 %
 %   problem.options.method = 'hermiteSimpson'
 %   problem.options.hermiteSimpson = struct with method parameters:
-%       .nGrid = number of grid points to use for transcription
+%       .nSegment = number of trajectory segments
 %
 % This transcription method is compatable with analytic gradients. To
 % enable this option, set:

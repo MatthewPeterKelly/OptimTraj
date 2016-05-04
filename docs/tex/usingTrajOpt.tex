@@ -49,7 +49,7 @@ There are five fields in the \tc{problem}.\hc{func} struct, each of which is a u
 
 \subsubsection*{\tc{problem}.\hc{bounds}}
 
-The bounds struct provides constant bounds on the state and control along the trajectory, as well as the time and state on the boundaries. All fields are either scalar or a column vector, and can be omitted if not needed. If you need to include a bound on only part of the state or control, then set the remaining entries to $\pm\infty$. For example: \hc{bounds.state.low}\tc{ = [0;-inf;0;-inf];} sets a bound only for the first and third element of the state vector. All entries relating to time are scalar, entries relating to state $\bm{x}$ are column vectors of length $N_x$, and entries relating to control $\bm{u}$ are column vectors of length $N_u$.
+The bounds struct provides constant bounds on the state and control along the trajectory, as well as the time and state on the boundaries. All fields are either scalar or a column vector, and can be omitted (or left empty) if not needed. If you need to include a bound on only part of the state or control, then set the remaining entries to $\pm\infty$. For example: \hc{bounds.state.low}\tc{ = [0;-inf;0;-inf];} sets a bound only for the first and third element of the state vector. All entries relating to time are scalar, entries relating to state $\bm{x}$ are column vectors of length $N_x$, and entries relating to control $\bm{u}$ are column vectors of length $N_u$.
 \begin{itemize} \setlength\itemsep{-0.1em}
 \item \tc{problem.}\hc{bounds.initialTime.low}\tc{ = }$t_0^-$ 
 \item \tc{problem.}\hc{bounds.initialTime.upp}\tc{ = }$t_0^+$ 
@@ -78,4 +78,35 @@ The guess struct provides the optimization with an initialization. All fields ar
 \item \tc{problem.}\hc{guess.time}\tc{ = }$t_g \qquad$ \texttt{size($t_g$) = [1, $N_g$]}   
 \item \tc{problem.}\hc{guess.state}\tc{ = }$\bm{x}_g \qquad$ \texttt{size($\bm{x}_g$) = [$N_x$, $N_g$]}  
 \item \tc{problem.}\hc{guess.control}\tc{ = }$\bm{u}_g \qquad$ \texttt{size($\bm{u}_g$) = [$N_u$, $N_g$]}
+\end{itemize}
+
+
+\subsubsection*{\tc{problem}.\hc{options}}
+
+The options struct provides options for both \texttt{trajOpt} and \texttt{fmincon}, which is called by \texttt{trajOpt} to solve the underlying nonlinear program. All fields, including \hc{options} itself may be omitted. If \tc{problem}.\hc{options} is a struct array, then \texttt{trajOpt} will run a sequence of trajectory optimizations, one for each element of the options struct array. The solution to each sub-problem is used to initialize the following. This is used for manual mesh refinement, and is illustrated in several of the example problems in the \texttt{demo/} directory. 
+
+\par The \texttt{trapezoid}, \texttt{hermiteSimpson}, and \texttt{rungeKutta} methods work without any external dependencies. The \texttt{chebyshev} method is written entirely in \texttt{trajOpt}, but relies on ChebFun\cite{Driscoll2014} for computing some of the low-level implementation details for the orthogonal polynomials. ChebFun is easy to download and install from \texttt{https://github.com/chebfun/chebfun}. The final method, \texttt{gpops} is actually just a wrapper for the professional software GPOPS-II\cite{Patterson2013}, for which a license can be obtained from \texttt{http://www.gpops2.com/}.
+
+\par Each method has a single field devoted to it in the options struct. The options in each of these fields are used exclusively by the method for which they are named. This allows for method-specific options, like the number of sub-steps in the multiple shooting method. The field \tc{problem}.\hc{options.gpops} is passed to GPOPS-II as the \tc{setup} struct, allowing the user to specify low-level options in GPOPS-II. 
+
+\begin{itemize} \setlength\itemsep{-0.1em}
+\item \tc{problem.}\hc{options.nlpOpt} = a struct of options that are passed directly to fmincon
+\item \tc{problem.}\hc{options.verbose} = how much detail to provide? \\
+$0\to$ no printing,  $1\to$ default, $2\to$ extra warnings, $3\to$ debug. 
+\item \tc{problem.}\hc{options.defaultAccuracy} = used to set the default settings for all methods \\
+possible values:  \texttt{ 'low' } $\quad$ \texttt{ 'medium' } $\quad$ \texttt{'high'}
+\item \tc{problem.}\hc{options.method} = a string, specifying which method to use. 
+	\begin{itemize} \setlength\itemsep{-0.1em}
+	\item \hc{'trapezoid'} $\quad \to \quad $ trapezoidal direct collocation
+	\item \hc{'hermiteSimpson'} $\quad \to \quad $ Hermite--Simpson direct collocation
+	\item \hc{'chebyshev'} $\quad \to \quad $ Chebyshev--Lobatto orthogonal collocation
+	\item \hc{'rungeKutta'} $\quad \to \quad $ $4^\text{th}$-order Runge--Kutta Multiple Shooting
+	\item \hc{'gpops'} $\quad \to \quad $ wrapper for calling GPOPS-II
+	\end{itemize}
+\item \tc{problem.}\hc{options.trapezoid.nGrid} = number of grid-points in \texttt{trapezoid}
+\item \tc{problem.}\hc{options.hermiteSimpson.nSegment} = number of segments in \texttt{hermiteSimpson} 
+\item \tc{problem.}\hc{options.chebyshev.nColPts} = number of collocation points in \texttt{chebyshev} 
+\item \tc{problem.}\hc{options.rungeKutta.nSegment} = number of segments in \texttt{rungeKutta}
+\item \tc{problem.}\hc{options.rungeKutta.nSubStep} = number of sub-steps per segment in \texttt{rungeKutta}
+\item \tc{problem.}\hc{options.gpops} = low-level options for \texttt{gpops}  (passed like \texttt{setup})
 \end{itemize}
