@@ -70,15 +70,12 @@ The bounds struct provides constant bounds on the state and control along the tr
 
 The guess struct provides the optimization with an initialization. All fields are mandatory. Internally, \texttt{trajOpt} uses the guess struct to determine the dimension of the state and control. The number of grid points in the guess struct does not correspond to the number of grid points in the solution. Instead, \texttt{trajOpt} constructs the solution grid using information from the options struct, and then uses interpolation of the data in guess to evaluate the initial value of the solution grid.
 
-\texttt{size($t$) = [1, $N_t$]}, \\
-\texttt{size($\bm{x}$) = [$N_x$, $N_t$]}, \\
-\texttt{size($\bm{u}$) = [$N_u$, $N_t$]}, \\
-
 \begin{itemize} \setlength\itemsep{-0.1em}
 \item \tc{problem.}\hc{guess.time}\tc{ = }$t_g \qquad$ \texttt{size($t_g$) = [1, $N_g$]}   
 \item \tc{problem.}\hc{guess.state}\tc{ = }$\bm{x}_g \qquad$ \texttt{size($\bm{x}_g$) = [$N_x$, $N_g$]}  
 \item \tc{problem.}\hc{guess.control}\tc{ = }$\bm{u}_g \qquad$ \texttt{size($\bm{u}_g$) = [$N_u$, $N_g$]}
 \end{itemize}
+
 
 
 \subsubsection*{\tc{problem}.\hc{options}}
@@ -110,3 +107,56 @@ possible values:  \texttt{ 'low' } $\quad$ \texttt{ 'medium' } $\quad$ \texttt{'
 \item \tc{problem.}\hc{options.rungeKutta.nSubStep} = number of sub-steps per segment in \texttt{rungeKutta}
 \item \tc{problem.}\hc{options.gpops} = low-level options for \texttt{gpops}  (passed like \texttt{setup})
 \end{itemize}
+
+
+
+\section{Details for the Output of TrajOpt}
+The output of \hc{trajOpt()} is a single struct, which we will call the \tc{soln} struct. The \tc{soln} struct has four fields. The \tc{soln}.\hc{grid} struct contains value of the trajectory along the exact grid-points that were used by the non-linear program.  The \tc{soln}.\hc{interp} struct contains a set of function handles that are used for method-consistent interpolation the solution trajectory. The \tc{soln}.\hc{info} struct contains a variety of details about the solution to the trajectory optimizaiton problem. Finally, the \tc{soln}.\hc{problem} struct is a copy of the input to \texttt{trajOpt}, including all default options that were used.
+
+
+\subsubsection*{\tc{soln}.\hc{grid}}
+The grid struct contains trajectory evaluated at the grid-points used by the transcriptions algorithm. The spacing and number of the grid-points is dependent on the transcription method and options that were passed to it.
+\begin{itemize} \setlength\itemsep{-0.1em}
+\item \tc{soln.}\hc{grid.time}\tc{ = }$t \qquad$ \texttt{size($t$) = [1, $N_t$]}   
+\item \tc{soln.}\hc{grid.state}\tc{ = }$\bm{x} \qquad$ \texttt{size($\bm{x}$) = [$N_x$, $N_t$]}  
+\item \tc{soln.}\hc{grid.control}\tc{ = }$\bm{u} \qquad$ \texttt{size($\bm{u}$) = [$N_u$, $N_t$]}
+\end{itemize}
+
+
+\subsubsection*{\tc{soln}.\hc{interp}}
+The interp struct contains two function handles, one for the state and another for control. Each function handle takes a single argument (time), and returns either the state or control vector at each point in the time vector. The interpolation method is consistent with whatever transcription method was used. For example, if you used the \texttt{trapezoid} method, then \tc{soln}.\hc{interp.state} will use linear interpolation between the control grid points. This method-consistent interpolation is particularly important for high-order methods, such as \texttt{chebyshev}. Note: in both cases below, the function name \texttt{'specialInterpolation'} is just a placeholder. It will be different for each method.
+\begin{itemize}
+\item \tc{soln.}\hc{interp.state}
+	${\bm: \quad \to \quad }$
+	\tc{$\bm{x}$ = }\tc{specialInterpolation($t$)}
+	\\ where $\bm{x} = \bm{x}(t)$ is the value of the state at each point in $t$ and \texttt{size($\bm{x}$)==[$N_x$, length($t$)]}
+\item \tc{soln.}\hc{interp.control}
+	${\bm: \quad \to \quad }$
+	\tc{$\bm{u}$ = }\tc{specialInterpolation($t$)}
+	\\ where $\bm{u} = \bm{u}(t)$ is the value of the state at each point in $t$ and \texttt{size($\bm{u}$)==[$N_u$, length($t$)]}
+\item \tc{soln.}\hc{interp.collCst}
+	${\bm: \quad \to \quad }$
+	\tc{$\bm{\varepsilon}$ = }\tc{specialInterpolation($t$)}
+	\\ where $\bm{\varepsilon} = \bm{\varepsilon}(t)$ is the value of the collocation constraint. This will be zero at each collocation point and non-zero elsewhere. It is used as an error metric. Currently only available for the \texttt{trapezoid} and \texttt{hermiteSimpson} methods.  \texttt{size($\bm{\varepsilon}$)==size($\bm{x}$)}
+\end{itemize}
+
+
+
+\subsubsection*{\tc{soln}.\hc{info}}
+
+The info struct provides details regarding the performance of both \texttt{trajOpt} and \texttt{fmincon}, as well as general information about the solution. All solvers return the fields described here, with two exceptions. First, many of the methods output additional information, such as error metrics for the direct collocation methods. Type \texttt{>>help [method name]} for details. Second, the \texttt{gpops} method does not use \texttt{fmincon}. Instead of returning the information from \texttt{fmincon}, the entire output of GPOPS-II is placed in the field \tc{soln}.\hc{info.gpops}.
+
+\par If the \tc{problem}.\hc{options} is a struct array, then \tc{soln} will also be a struct array, with one solution for each of the sub-problems specified by the options struct.
+
+\begin{itemize} \setlength\itemsep{-0.1em}
+\item \tc{soln.}\hc{info.nlpTime} = total time spent in the nonlinear programming solver.
+\item \tc{soln.}\hc{info.exitFlag} = exit flag returned by the nonlinear programmign solver.
+\item \tc{soln.}\hc{info.objVal} = value of the objective function
+\item \tc{soln.}\hc{info.*} = all fields from the \texttt{fmincon problem struct} 
+\item \tc{soln.}\hc{info.error} = integral of absolute error in collocation constraint along each segment of the trajectory. Currently only available for the \texttt{trapezoid} and \texttt{hermiteSimpson} methods. 
+\item \tc{soln.}\hc{info.maxError} = \texttt{max(max(\tc{soln.}\hc{info.error}))}
+\end{itemize}
+
+\subsubsection*{\tc{soln}.\hc{problem}}
+
+The problem struct is similar to the problem struct that was passed in, but \texttt{trajOpt} fills in all omitted fields with the defaults that were actually used by the program.
