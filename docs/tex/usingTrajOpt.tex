@@ -46,3 +46,36 @@ There are five fields in the \tc{problem}.\hc{func} struct, each of which is a u
 	\\ where $\bm{C_B^a}=\bm{0}$ is boundary equality constraint, and $\bm{C_B^b} \leq \bm{0}$ is the boundary inequality constraint. Either may be left empty \texttt{[ ]}. Each is a column vector of arbitrary length, provided that it is consistent between function calls.
 \end{itemize}
 
+
+\subsubsection*{\tc{problem}.\hc{bounds}}
+
+The bounds struct provides constant bounds on the state and control along the trajectory, as well as the time and state on the boundaries. All fields are either scalar or a column vector, and can be omitted if not needed. If you need to include a bound on only part of the state or control, then set the remaining entries to $\pm\infty$. For example: \hc{bounds.state.low}\tc{ = [0;-inf;0;-inf];} sets a bound only for the first and third element of the state vector. All entries relating to time are scalar, entries relating to state $\bm{x}$ are column vectors of length $N_x$, and entries relating to control $\bm{u}$ are column vectors of length $N_u$.
+\begin{itemize} \setlength\itemsep{-0.1em}
+\item \tc{problem.}\hc{bounds.initialTime.low}\tc{ = }$t_0^-$ 
+\item \tc{problem.}\hc{bounds.initialTime.upp}\tc{ = }$t_0^+$ 
+\item \tc{problem.}\hc{bounds.finalTime.low}\tc{ = }$t_F^-$ 
+\item \tc{problem.}\hc{bounds.finalTime.upp}\tc{ = }$t_F^+$ 
+\item \tc{problem.}\hc{bounds.initialState.low}\tc{ = }$\bm{x}_0^-$ 
+\item \tc{problem.}\hc{bounds.initialState.upp}\tc{ = }$\bm{x}_0^+$ 
+\item \tc{problem.}\hc{bounds.finalState.low}\tc{ = }$\bm{x}_F^-$ 
+\item \tc{problem.}\hc{bounds.finalState.upp}\tc{ = }$\bm{x}_F^+$ 
+\item \tc{problem.}\hc{bounds.state.low}\tc{ = }$\bm{x}^-$ 
+\item \tc{problem.}\hc{bounds.state.upp}\tc{ = }$\bm{x}^+$ 
+\item \tc{problem.}\hc{bounds.control.low}\tc{ = }$\bm{u}^-$ 
+\item \tc{problem.}\hc{bounds.control.upp}\tc{ = }$\bm{u}^+$ 
+\end{itemize}
+ 
+
+\subsubsection*{\tc{problem}.\hc{guess}}
+
+The guess struct provides the optimization with an initialization. All fields are mandatory. Internally, \texttt{trajOpt} uses the guess struct to determine the dimension of the state and control. The number of grid points in the guess struct does not correspond to the number of grid points in the solution. Instead, \texttt{trajOpt} constructs the solution grid using information from the options struct, and then uses interpolation of the data in guess to evaluate the initial value of the solution grid.
+
+\texttt{size($t$) = [1, $N_t$]}, \\
+\texttt{size($\bm{x}$) = [$N_x$, $N_t$]}, \\
+\texttt{size($\bm{u}$) = [$N_u$, $N_t$]}, \\
+
+\begin{itemize} \setlength\itemsep{-0.1em}
+\item \tc{problem.}\hc{guess.time}\tc{ = }$t_g \qquad$ \texttt{size($t_g$) = [1, $N_g$]}   
+\item \tc{problem.}\hc{guess.state}\tc{ = }$\bm{x}_g \qquad$ \texttt{size($\bm{x}_g$) = [$N_x$, $N_g$]}  
+\item \tc{problem.}\hc{guess.control}\tc{ = }$\bm{u}_g \qquad$ \texttt{size($\bm{u}_g$) = [$N_u$, $N_g$]}
+\end{itemize}
