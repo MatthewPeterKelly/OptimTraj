@@ -114,7 +114,7 @@ switch method
 end
 
 %%%% Solve
-soln = trajOpt(problem);
+soln = optimTraj(problem);
 
 
 %%%% Unpack the solution

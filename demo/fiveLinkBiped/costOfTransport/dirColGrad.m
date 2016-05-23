@@ -1,7 +1,7 @@
 function soln = dirColGrad(P, problem)
 % soln = dirColGrad(P, problem)
 %
-% TrajOpt utility function - Direct Collocation with Gradients
+% OptimTraj utility function - Direct Collocation with Gradients
 %
 % This function is core function that is called to run the transcription
 % for both the "trapezoid" and the "hermiteSimpson" methods when they are
@@ -186,7 +186,7 @@ end
 
 function [dt, dtGrad] = grad_timeStep(t,gradInfo)
 %
-% TrajOpt utility function
+% OptimTraj utility function
 %
 % Computes the time step and its gradient
 %
@@ -210,7 +210,7 @@ end
 function [c, ceq, cGrad, ceqGrad] = grad_collectConstraints(t,x,u,defects, defectsGrad, pathCst, bndCst, gradInfo)
 % [c, ceq, cGrad, ceqGrad] = grad_collectConstraints(t,x,u,defects, defectsGrad, pathCst, bndCst, gradInfo)
 %
-% TrajOpt utility function.
+% OptimTraj utility function.
 %
 % Collects the defects, calls user-defined constraints, and then packs
 % everything up into a form that is good for fmincon. Additionally, it
@@ -316,7 +316,7 @@ end
 function grad = grad_reshapeContinuous(gradRaw,gradInfo)
 % grad = grad_reshapeContinuous(gradRaw,gradInfo)
 %
-% TrajOpt utility function.
+% OptimTraj utility function.
 %
 % This function converts the raw gradients from the user function into
 % gradients with respect to the decision variables.

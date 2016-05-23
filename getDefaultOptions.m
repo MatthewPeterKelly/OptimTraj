@@ -2,7 +2,7 @@ function problem = getDefaultOptions(problem)
 % problem = getDefaultOptions(problem)
 %
 % This function fills in any blank entries in the problem.options struct.
-% It is designed to be called from inside of trajOpt.m, and not by the
+% It is designed to be called from inside of optimTraj.m, and not by the
 % user.
 %
 
@@ -254,7 +254,7 @@ OPT_gpops.bounds.phase.integral.lower = -inf;
 OPT_gpops.bounds.phase.integral.upper = inf;
 OPT_gpops.guess.phase.integral = 0;
 
-OPT_gpops.name = 'TrajOpt_GPOPS';
+OPT_gpops.name = 'OptimTraj_GPOPS';
 OPT_gpops.auxdata = [];
 OPT_gpops.nlp.solver = 'ipopt'; % {'ipopt','snopt'}
 OPT_gpops.derivatives.dependencies = 'full';  %�full�, �sparse� or �sparseNaN�

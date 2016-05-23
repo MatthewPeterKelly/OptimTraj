@@ -9,7 +9,7 @@ Minimize the objective function:
 \underset{t_0, t_F, \bm{x}(t), \bm{u}(t)} \min \;
 J_B\big(t_0,t_F,\bm{x}(t_0),\bm{x}(t_F) \big) + 
 \int_{t_0}^{t_F} \! J_P \big( \tau, \bm{x}(\tau), \bm{u}(\tau) \big)  \; d\tau
-\label{eqn:trajOpt_objectiveFunction}
+\label{eqn:optimTraj_objectiveFunction}
 \end{equation*}
 
 Subject to the constraints:
@@ -32,11 +32,11 @@ Assuming that the user-defined objective, dynamics, and constraint functions ($J
 
 \subsection{Trapezoidal Direct Collocation:  \hc{trapezoid}}
 
-Trapezoidal direct collocation works by making the assumption that the optimal trajectory can be approximated using a low-order spline. In this case, the dynamics, objective function, and control trajectories are approximated using a linear spline, and the state trajectory is the quadratic spline, obtained by integration of the (linear) dynamics spline. Integration of a linear spline is computed using the trapezoid rule, hence the name. The implementation of trapezoidal direct collocation in TrajOpt is almost entirely based on the method as it is described in \cite{Betts2010}.
+Trapezoidal direct collocation works by making the assumption that the optimal trajectory can be approximated using a low-order spline. In this case, the dynamics, objective function, and control trajectories are approximated using a linear spline, and the state trajectory is the quadratic spline, obtained by integration of the (linear) dynamics spline. Integration of a linear spline is computed using the trapezoid rule, hence the name. The implementation of trapezoidal direct collocation in OptimTraj is almost entirely based on the method as it is described in \cite{Betts2010}.
 
 \subsection{Hermite-Simpson Direct Collocation:  \hc{hermiteSimpson}}
 
-Hermite-Simpson direct collocation works by making the assumption that the optimal trajectory can be approximated using a medium-order spline. In this case, the dynamics, objective function, and control trajectories are approximated using a quadratic spline, and the state trajectory is a cubic hermite spline, obtained by integration of the (quadratic) dynamics spline. Integration of a quadratic spline is computed using Simpson's rule. There are two versions of this method: separated and compressed. In the separated form, the state at the mid-point of each trajectory segment is included as a decision variable, and the Hermite-interpolation is enforced with a constraint. In the compressed form, the state at the mid-point is computed from the definition of the Hermite-interpolant during optimization. TrajOpt implements the separated Hermite-Simpson method, almost entirely based on the method as it is described in \cite{Betts2010}.
+Hermite-Simpson direct collocation works by making the assumption that the optimal trajectory can be approximated using a medium-order spline. In this case, the dynamics, objective function, and control trajectories are approximated using a quadratic spline, and the state trajectory is a cubic hermite spline, obtained by integration of the (quadratic) dynamics spline. Integration of a quadratic spline is computed using Simpson's rule. There are two versions of this method: separated and compressed. In the separated form, the state at the mid-point of each trajectory segment is included as a decision variable, and the Hermite-interpolation is enforced with a constraint. In the compressed form, the state at the mid-point is computed from the definition of the Hermite-interpolant during optimization. OptimTraj implements the separated Hermite-Simpson method, almost entirely based on the method as it is described in \cite{Betts2010}.
 
 \subsection{Chebyshev--Lobatto Orthogonal Collocation:  \hc{chebyshev}}
 
@@ -50,7 +50,7 @@ A multiple shooting method works by breaking the trajectory into segments, and a
 
 \subsection{GPOPS-II:    \hc{gpops}}
 
-TrajOpt includes a wrapper to the software GPOPS-II \cite{Patterson2013}, a professionally developed trajectory optimization library for Matlab. It implements a nicely optimized version of Radau orthogonal collocation with adaptive meshing \cite{Darby2011a}. There are a few choice in GPOPS-II for both collocation metho and the adaptive meshing. It also supports analytic gradients using automatic differentiation. It is included in TrajOpt for two reasons: 1) GPOPS-II can be used to benchmark and verify the methods in TrajOpt, and 2) GPOPS-II provides a collection of methods that are not otherwise available in TrajOpt.
+OptimTraj includes a wrapper to the software GPOPS-II \cite{Patterson2013}, a professionally developed trajectory optimization library for Matlab. It implements a nicely optimized version of Radau orthogonal collocation with adaptive meshing \cite{Darby2011a}. There are a few choice in GPOPS-II for both collocation metho and the adaptive meshing. It also supports analytic gradients using automatic differentiation. It is included in OptimTraj for two reasons: 1) GPOPS-II can be used to benchmark and verify the methods in OptimTraj, and 2) GPOPS-II provides a collection of methods that are not otherwise available in OptimTraj.
 
 \subsection{Resources for Learning Trajectory Optimization}
 

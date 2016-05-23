@@ -136,7 +136,7 @@ end
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                              Solve!                                     %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
-soln = trajOpt(P);
+soln = optimTraj(P);
 
 t = linspace(soln(end).grid.time(1),soln(end).grid.time(end),250);
 x = soln(end).interp.state(t);

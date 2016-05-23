@@ -1,6 +1,6 @@
 % DEV_rungeKutta_grad.m
 %
-% Script for testing and development of the runge-kutta option for TrajOpt
+% Script for testing and development of the runge-kutta option for OptimTraj
 % with analytic gradients.
 %
 % WARNING:  This script uses adaptive numerical gradients to check the
@@ -150,7 +150,7 @@ end
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
 %%%%% THE KEY LINE:
-soln = trajOpt(problem);
+soln = optimTraj(problem);
 
 % Transcription Grid points:
 t = soln(end).grid.time;

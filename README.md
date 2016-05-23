@@ -1,7 +1,7 @@
-# TrajOpt - Trajectory Optimization for Matlab
-TrajOpt is a matlab library designed for solving continuous-time single-phase trajectory optimization problems. I developed it while working on my PhD at Cornell, studying non-linear controller design for walking robots.
+# OptimTraj - Trajectory Optimization for Matlab
+OptimTraj is a matlab library designed for solving continuous-time single-phase trajectory optimization problems. I developed it while working on my PhD at Cornell, studying non-linear controller design for walking robots.
 
-## What sort of problems does TrajOpt solve?
+## What sort of problems does OptimTraj solve?
 
 #### Examples:
 - [Cart-pole swing-up](https://youtu.be/kAlhKJlu7O8): Find the force profile to apply to the cart to swing-up the pendulum that freely hanges from it.
@@ -10,9 +10,9 @@ TrajOpt is a matlab library designed for solving continuous-time single-phase tr
 
 #### Details:
 
-TrajOpt finds the optimal trajectory for a dynamical system. This trajectory is a sequence of controls (expressed as a function) that moves the dynamical system between two points in state space. The trajectory will minimize some cost function, which is typically an integral along the trajectory. The trajectory will also satisfy a set user-defined constraints.
+OptimTraj finds the optimal trajectory for a dynamical system. This trajectory is a sequence of controls (expressed as a function) that moves the dynamical system between two points in state space. The trajectory will minimize some cost function, which is typically an integral along the trajectory. The trajectory will also satisfy a set user-defined constraints.
 
-TrajOpt solves problems with
+OptimTraj solves problems with
 - continuous dynamics
 - boundary constraints
 - path constraints
@@ -45,10 +45,10 @@ All functions in the problem description can be non-linear, but they must be smo
 
 
 ## Usage:
-- Call the function `trajOpt` from inside matlab.
-- `trajOpt` takes a single argument: a struct that describes your trajectory optimization problem.
-- `trajOpt` returns a struct that describes the solution. It contains a full description of the problem, the transcription method that was used, and the solution (both as a vector of points and a function handle for interpolation).
-- For more details, type `help trajOpt` at the command line, or check out some of the examples in the `demo/` directory.
+- Call the function `optimTraj` from inside matlab.
+- `optimTraj` takes a single argument: a struct that describes your trajectory optimization problem.
+- `optimTraj` returns a struct that describes the solution. It contains a full description of the problem, the transcription method that was used, and the solution (both as a vector of points and a function handle for interpolation).
+- For more details, type `help optimTraj` at the command line, or check out some of the examples in the `demo/` directory.
 
 ## Contribute:
 This code is still under development, and will be from now until at least May 2016. Please contact me if you have any comments or suggestions, or create a pull request if you would like to add content.

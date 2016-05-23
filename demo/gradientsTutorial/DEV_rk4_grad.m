@@ -4,7 +4,7 @@
 %
 % Demonstrates simple swing-up for a single pendulum with a torque motor.
 % This is an easy problem, used for demonstrating how to use analytic
-% gradients with trajOpt.
+% gradients with optimTraj.
 %
 
 clc; clear;
@@ -58,7 +58,7 @@ problem.options(2) = problem.options(1);
 
 % Solve the problem
 tic;
-soln = trajOpt(problem);
+soln = optimTraj(problem);
 toc
 
 t = soln(end).grid.time;

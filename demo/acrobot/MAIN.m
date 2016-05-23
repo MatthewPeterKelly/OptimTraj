@@ -145,7 +145,7 @@ problem.guess.control = [0, 0, 0, 0];
 %                           Solve!                                        %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
-soln = trajOpt(problem);
+soln = optimTraj(problem);
 
 % Interpolate the solution on a uniform grid for plotting and animation:
 tGrid = soln(end).grid.time;

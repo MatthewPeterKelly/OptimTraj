@@ -1,6 +1,6 @@
-# README.txt -- TrajOpt/demo
+# README.txt -- OptimTraj/demo
 
-This directory contains a collection of example problems for trajectory optimization, all solved using TrajOpt. Each example contains a MAIN.m file, which is the entry-point file for the example. 
+This directory contains a collection of example problems for trajectory optimization, all solved using OptimTraj. Each example contains a MAIN.m file, which is the entry-point file for the example. 
 
 If the dynamics or constraints are complicated, then a script Derive_*.m is provided to use the symbolic toolbox to derive these equations. Any files with the autoGen_fileName.m are created by the Matlab symbolic toolbox, and should not be edited. In each case, they will be called by a regular function named fileName.m.
 

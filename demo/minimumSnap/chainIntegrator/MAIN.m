@@ -68,7 +68,7 @@ problem.options.method = 'chebyshev';
 
 
 %%%% Solve!
-soln = trajOpt(problem);
+soln = optimTraj(problem);
 
 
 %%%% Unpack the solution

@@ -8,7 +8,7 @@ function soln = trapezoid(problem)
 %   John T. Betts, 2001
 %   Practical Methods for Optimal Control Using Nonlinear Programming
 %
-% For details on the input and output, see the help file for trajOpt.m
+% For details on the input and output, see the help file for optimTraj.m
 %
 % Method specific parameters:
 %

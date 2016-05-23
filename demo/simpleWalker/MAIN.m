@@ -1,7 +1,7 @@
 %MAIN.m  --  simple walker trajectory optimization
 %
 % This script sets up a trajectory optimization problem for a simple model
-% of walking, and solves it using TrajOpt. The walking model is a double
+% of walking, and solves it using OptimTraj. The walking model is a double
 % pendulum, with point feet, no ankle torques, impulsive heel-strike (but
 % not push-off), and continuous hip torque. Both legs have inertia. Cost
 % function is minimize integral of torque-squared.
@@ -165,7 +165,7 @@ end
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
 %%%%% THE KEY LINE:
-soln = trajOpt(problem);
+soln = optimTraj(problem);
 
 % Transcription Grid points:
 t = soln(end).grid.time;

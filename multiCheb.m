@@ -38,7 +38,7 @@ function soln = multiCheb(problem)
 %   Website:  http://www.chebfun.org/
 %   by  Lloyd N. Trefethen   et al.
 %
-% For details on the input and output, see the help file for trajOpt.m
+% For details on the input and output, see the help file for optimTraj.m
 %
 % Method specific parameters:
 %

@@ -1,5 +1,5 @@
-function soln = trajOpt(problem)
-% soln = trajOpt(problem)
+function soln = optimTraj(problem)
+% soln = optimTraj(problem)
 %
 % Solves a trajectory optimization problem.
 %
@@ -41,7 +41,7 @@ function soln = trajOpt(problem)
 %               problem.func.dynamics = @(t,x,u)( pendulum(t,x,u,p) );
 %
 %       Analytic Gradients:
-%           Both the "trapezoid" and "hermiteSimpson" methods in TrajOpt
+%           Both the "trapezoid" and "hermiteSimpson" methods in OptimTraj
 %       support analytic gradients. Type help "trapezoid" or help
 %       "hermiteSimpson" for details on how to pass gradients to the
 %       transcription method.
@@ -99,7 +99,7 @@ function soln = trajOpt(problem)
 %       .defaultAccuracy = {'low','medium','high'}
 %           Sets the default options for each transcription method
 %
-%       * if options is a struct array, the trajOpt will run the optimization
+%       * if options is a struct array, the optimTraj will run the optimization
 %       by running options(1) and then using the result to initialize a new
 %       solve with options(2) and so on, until it runs options (end). This
 %       allows for successive grid and tolerance opdates.
@@ -167,7 +167,7 @@ for iter=1:nIter
     
     if P.options.verbose > 0    %then print out iteration count:
         disp('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
-        disp(['Running TrajOpt, iteration ' num2str(iter)]);
+        disp(['Running OptimTraj, iteration ' num2str(iter)]);
     end
     
     if iter > 1  %Use previous soln as new guess
@@ -189,7 +189,7 @@ for iter=1:nIter
         case 'gpops'
             soln(iter) = gpopsWrapper(P);
         otherwise
-            error('Invalid method. Type: ''help trajOpt'' for a valid list.');
+            error('Invalid method. Type: ''help optimTraj'' for a valid list.');
     end
     
 end

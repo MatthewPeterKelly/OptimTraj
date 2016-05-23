@@ -61,7 +61,7 @@ problem.options.trapezoid.nGrid = 100;
 problem.options.defaultAccuracy = 'medium';
 
 % Solve the problem
-soln = trajOpt(problem);
+soln = optimTraj(problem);
 t = soln.grid.time;
 q = soln.grid.state(1,:);
 dq = soln.grid.state(2,:);

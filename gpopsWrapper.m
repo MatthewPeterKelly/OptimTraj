@@ -1,14 +1,14 @@
 function soln = gpopsWrapper(problem)
 % soln = gpopsWrapper(problem)
 %
-% This function is a wrapper that converts the standard input for trajOpt
+% This function is a wrapper that converts the standard input for optimTraj
 % into a call to GPOPS2, a commercially available transcription software
 % for matlab. You can purchase and download it at http://www.gpops2.com/
 %
 % GPOPS2 implements an adaptive transcription method - it adjusts both the
 % number of trajectory segments and the order of the interpolating
-% polynomial in each segment. Many GPOPS features are available in TrajOpt,
-% but not all. Notably, TrajOpt cannot solve multi-phase problems.
+% polynomial in each segment. Many GPOPS features are available in OptimTraj,
+% but not all. Notably, OptimTraj cannot solve multi-phase problems.
 %
 % Set any special GPOPS options by storing the 'setup' sturuct in the 
 % problem.options.gpops struct.

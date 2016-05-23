@@ -116,7 +116,7 @@ problem.options.chebyshev.nColPts = 15;
 %                            Solve!                                       %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
-soln = trajOpt(problem);
+soln = optimTraj(problem);
 
 
 

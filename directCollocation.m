@@ -1,7 +1,7 @@
 function soln = directCollocation(problem)
 % soln = directCollocation(problem)
 %
-% TrajOpt utility function
+% OptimTraj utility function
 %
 % This function is designed to be called by either "trapezoid" or
 % "hermiteSimpson". It actually calls FMINCON to solve the trajectory
@@ -325,7 +325,7 @@ end
 function [c, ceq, cGrad, ceqGrad] = grad_collectConstraints(t,x,u,defects, defectsGrad, pathCst, bndCst, gradInfo)
 % [c, ceq, cGrad, ceqGrad] = grad_collectConstraints(t,x,u,defects, defectsGrad, pathCst, bndCst, gradInfo)
 %
-% TrajOpt utility function.
+% OptimTraj utility function.
 %
 % Collects the defects, calls user-defined constraints, and then packs
 % everything up into a form that is good for fmincon. Additionally, it
@@ -433,7 +433,7 @@ end
 function grad = grad_reshapeContinuous(gradRaw,gradInfo)
 % grad = grad_reshapeContinuous(gradRaw,gradInfo)
 %
-% TrajOpt utility function.
+% OptimTraj utility function.
 %
 % This function converts the raw gradients from the user function into
 % gradients with respect to the decision variables.

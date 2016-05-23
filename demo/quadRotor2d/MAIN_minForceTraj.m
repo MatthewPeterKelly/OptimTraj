@@ -88,7 +88,7 @@ problem.options.hermiteSimpson.nSegment = 30;
 %                            Solve!                                       %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
-soln = trajOpt(problem);
+soln = optimTraj(problem);
 
 
 

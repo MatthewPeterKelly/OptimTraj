@@ -1,8 +1,8 @@
 \section{Introduction}
 
-TrajOpt is a matlab library designed for solving continuous-time single-phase trajectory optimization problems. I developed it while working on my PhD at Cornell, studying non-linear controller design for walking robots.
+OptimTraj is a matlab library designed for solving continuous-time single-phase trajectory optimization problems. I developed it while working on my PhD at Cornell, studying non-linear controller design for walking robots.
 
-\subsection{What sort of problems does TrajOpt solve?}
+\subsection{What sort of problems does OptimTraj solve?}
 
 \subsubsection*{Examples:}
 \begin{itemize} 
@@ -13,9 +13,9 @@ TrajOpt is a matlab library designed for solving continuous-time single-phase tr
 
 \subsubsection*{Details:}
 
-TrajOpt finds the optimal trajectory for a dynamical system. This trajectory is a sequence of controls (expressed as a function) that moves the dynamical system between two points in state space. The trajectory will minimize some cost function, which is typically an integral along the trajectory. The trajectory will also satisfy a set user-defined constraints. All functions in the problem description can be non-linear, but they must be smooth (C$^2$ continuous).
+OptimTraj finds the optimal trajectory for a dynamical system. This trajectory is a sequence of controls (expressed as a function) that moves the dynamical system between two points in state space. The trajectory will minimize some cost function, which is typically an integral along the trajectory. The trajectory will also satisfy a set user-defined constraints. All functions in the problem description can be non-linear, but they must be smooth (C$^2$ continuous).
 
-TrajOpt solves problems with
+OptimTraj solves problems with
 \begin{itemize} \setlength\itemsep{-0.1em}
 \item continuous dynamics
 \item boundary constraints
@@ -43,21 +43,21 @@ TrajOpt solves problems with
 
 \subsection{Installation:}
 \begin{enumerate} \setlength\itemsep{-0.1em}
-\item Clone or download the repository (\texttt{https://github.com/MatthewPeterKelly/TrajOpt})
+\item Clone or download the repository (\texttt{https://github.com/MatthewPeterKelly/OptimTraj})
 \item Add the top level folder to your Matlab path
 \item (Optional) Clone or download ChebFun (\texttt{http://www.chebfun.org}) to use the Chebyshev--Lobatto method
 \end{enumerate}
 
 \subsection{Usage: }
 \begin{itemize} \setlength\itemsep{-0.1em}
-\item Call the function \texttt{trajOpt} from inside matlab.
-\item \texttt{trajOpt} takes a single argument: a struct that describes your trajectory optimization problem.
-\item \texttt{trajOpt} returns a struct that describes the solution. It contains a full description of the problem, the transcription method that was used, and the solution (both as a vector of points and a function handle for interpolation).
-\item For more details, type \texttt{>> help trajOpt} at the command line, or check out some of the examples in the \texttt{demo/} directory.
+\item Call the function \texttt{optimTraj} from inside matlab.
+\item \texttt{optimTraj} takes a single argument: a struct that describes your trajectory optimization problem.
+\item \texttt{optimTraj} returns a struct that describes the solution. It contains a full description of the problem, the transcription method that was used, and the solution (both as a vector of points and a function handle for interpolation).
+\item For more details, type \texttt{>> help optimTraj} at the command line, or check out some of the examples in the \texttt{demo/} directory.
 \end{itemize}
 
 \subsection{License: }
-TrajOpt is published under the MIT License, Copyright (c) 2016 Matthew P. Kelly.  \vspace{0.5em} \\
+OptimTraj is published under the MIT License, Copyright (c) 2016 Matthew P. Kelly.  \vspace{0.5em} \\
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

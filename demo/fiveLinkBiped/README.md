@@ -1,4 +1,4 @@
-# Five-Link Biped - Example problem for TrajOpt
+# Five-Link Biped - Example problem for OptimTraj
 
 The model for this problem is for the robot RABBIT, taken from the 2003 paper by Westervelt, Grizzle, and Koditschek: "Hybrid Zero Dynamics of Planar Biped Walkers"
 

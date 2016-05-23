@@ -1,7 +1,7 @@
 function [c, ceq] = collectConstraints(t,x,u,defects, pathCst, bndCst)
 % [c, ceq] = collectConstraints(t,x,u,defects, pathCst, bndCst)
 %
-% TrajOpt utility function.
+% OptimTraj utility function.
 %
 % Collects the defects, calls user-defined constraints, and then packs
 % everything up into a form that is good for fmincon.

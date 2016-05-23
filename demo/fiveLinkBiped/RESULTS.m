@@ -213,7 +213,7 @@ end
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
 %%%%% THE KEY LINE:
-soln = trajOpt(problem);
+soln = optimTraj(problem);
 
 % Transcription Grid points:
 tGrid = soln(end).grid.time;

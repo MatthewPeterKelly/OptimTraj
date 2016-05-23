@@ -42,7 +42,7 @@ minus3pt\let\@listi\@listI}
 \begin{document}
 \maketitle
 
-This document describes the method for calculating the analytic gradients for the multiple shooting approach, ``rungeKutta'' of the TrajOpt package. The procedure is exactly the same as that described in Russ Tedrake's Course notes~\cite{tedrakeNotes},(Sec 12.3.3). It may look complicated, but it is essentially just a careful and repeated carrying out of the chain rule. The gradient calculation depends on the specific numerical integration approach of the dynamics and cost function. We consider a couple integration cases below: explicit Euler, and 4$^{\text{th}}$ order Runge-Kutta. The explicit Euler case is only considered as a simple example. The 4$^{\text{th}}$ order Runge-Kutta is the integration scheme used in multiple shooting approach, ``rungeKutta'', of the TrajOpt package.
+This document describes the method for calculating the analytic gradients for the multiple shooting approach, ``rungeKutta'' of the OptimTraj package. The procedure is exactly the same as that described in Russ Tedrake's Course notes~\cite{tedrakeNotes},(Sec 12.3.3). It may look complicated, but it is essentially just a careful and repeated carrying out of the chain rule. The gradient calculation depends on the specific numerical integration approach of the dynamics and cost function. We consider a couple integration cases below: explicit Euler, and 4$^{\text{th}}$ order Runge-Kutta. The explicit Euler case is only considered as a simple example. The 4$^{\text{th}}$ order Runge-Kutta is the integration scheme used in multiple shooting approach, ``rungeKutta'', of the OptimTraj package.
 
 \section{Cost function gradients}
 Consider the scalar valued cost function,
@@ -178,7 +178,7 @@ Similarly, to determine the gradient of second defect, the term $\partial\bs x_0
 \section{Other Integration Schemes}
 
 \subsection{4$^{\text{th}}$ Order Runge-Kutta Integration}
-See the function \texttt{simSysGrad} inside \texttt{rungeKutta.m} of the TrajOpt package for the matlab implementation of the following equations. Consider the path cost 
+See the function \texttt{simSysGrad} inside \texttt{rungeKutta.m} of the OptimTraj package for the matlab implementation of the following equations. Consider the path cost 
 \begin{equation}
 J^{\bs \alpha} = \int_{t_0}^{t_F}  g(t, \bs x(t), \bs u(t)) dt,
 \label{eq:PathCost}
