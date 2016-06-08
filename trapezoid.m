@@ -62,6 +62,33 @@ end
 problem.func.weights = ones(nGrid,1);
 problem.func.weights([1,end]) = 0.5;
 
+% Trapezoid Method with Shooting
+if isfield(problem.options,'shooting') && strcmp(problem.options.shooting,'on')
+  
+    if isfield(problem.options,'crtldefect') && strcmp(problem.options.crtldefect,'on')
+        % Trapazoid integration calculation of defects:
+        problem.func.defectCst = @computeDefectsShootingCtlDefect;
+
+        %%%% The key line - solve the problem by direct collocation:
+        soln = DEV_dirColShooting_CntlDefect(problem);
+      
+    else % no defect in control at shooting end points
+      
+  
+      % Trapazoid integration calculation of defects:
+      problem.func.defectCst = @computeDefectsShooting;
+
+      %%%% The key line - solve the problem by direct collocation:
+      soln = DEV_dirColShooting(problem);
+    
+    end
+
+% Standard Trapezoid Direct Collocation
+else
+    problem.func.defectCst = @computeDefects;
+    soln = directCollocation(problem);
+end
+
 % Trapazoid integration calculation of defects:
 problem.func.defectCst = @computeDefects;
 
@@ -155,6 +182,159 @@ if nargout == 2
     defectsGrad = xUppGrad - xLowGrad + dtGradTerm + ...
         - 0.5*dt*(fLowGrad+fUppGrad);
     
+end
+
+end
+
+%%%% Compute defects for multi-shooting trapezoid with no defect in control
+%%%% only defect in state
+function [defects, defectsGrad] = computeDefectsShooting(dt,x,f,idx_ShootEnd,dtGrad,xGrad,fGrad)
+%
+% This function computes the defects that are used to enforce the
+% continuous dynamics of the system along the trajectory.
+%
+% INPUTS:
+%   dt = time step (scalar)
+%   x = [nState, nTime + nShootSegment] = state at each grid-point along the trajectory
+%   f = [nState, nTime + nShootSegment] = dynamics of the state along the trajectory
+%   idx_ShootEnd = indices of x that correspond to end points of the Shooting Segments
+%   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+%   dtGrad = [2,1] = gradient of time step with respect to [t0; tF]
+%   xGrad = [nState,nTime+nShootSegment,nDecVar] = gradient of trajectory wrt dec vars
+%   fGrad = [nState,nTime+nShootSegment,nDecVar] = gradient of dynamics wrt dec vars
+%
+% OUTPUTS:
+%   defects = [nState, nShootSegment+nTime-1] = error in dynamics along the trajectory
+%   defectsGrad = [nState, nShootSegment+nTime-1, nDecVars] = gradient of defects
+%
+
+nGridAll = size(x,2); % nGridAll = nShootSegment + nTime
+
+idxLow = 1:(nGridAll-1);
+idxLow(idx_ShootEnd) = [];
+idxUpp = idxLow+1;
+
+xLow = x(:,idxLow);
+xUpp = x(:,idxUpp);
+
+fLow = f(:,idxLow);
+fUpp = f(:,idxUpp);
+
+% This is the key line:  (Trapazoid Rule)
+defectsTrap = xUpp-xLow - 0.5*dt*(fLow+fUpp);
+
+% Shooting Defects
+xUppShoot = x(:,idx_ShootEnd+1);
+xLowShoot = x(:,idx_ShootEnd);
+defectsShoot = xUppShoot - xLowShoot;
+
+% All defects
+defects = [defectsTrap,defectsShoot];
+
+%%%% Gradient Calculations:
+if nargout == 2
+
+    % need to replace this with xGradAll
+    xLowGrad = xGrad(:,idxLow,:);
+    xUppGrad = xGrad(:,idxUpp,:);
+    
+    fLowGrad = fGrad(:,idxLow,:);
+    fUppGrad = fGrad(:,idxUpp,:);
+    
+    % Gradient of the defects:  (chain rule!)
+    dtGradTerm = zeros(size(xUppGrad));
+    dtGradTerm(:,:,1) = -0.5*dtGrad(1)*(fLow+fUpp);
+    dtGradTerm(:,:,2) = -0.5*dtGrad(2)*(fLow+fUpp);
+    defectsGradTrap = xUppGrad - xLowGrad + dtGradTerm + ...
+        - 0.5*dt*(fLowGrad+fUppGrad);
+    
+    % Shooting Segment Gradients
+    defectsGradShoot = xGrad(:,idx_ShootEnd+1,:)-xGrad(:,idx_ShootEnd,:);
+    
+    % concatanate defect gradients
+    defectsGrad= cat(2,defectsGradTrap,defectsGradShoot);
+end
+
+end
+
+
+%%%% Compute defects for multi-shooting trapezoid with defects in control
+%%%% and defect in state
+function [defects, defectsGrad, defectsGradShootCtrl] = computeDefectsShootingCtlDefect(dt,x,u,f,idx_ShootEnd,dtGrad,xGrad,uGrad,fGrad)
+%
+% This function computes the defects that are used to enforce the
+% continuous dynamics of the system along the trajectory.
+%
+% INPUTS:
+%   dt = time step (scalar)
+%   x = [nState, nTime + nShootSegment] = state at each grid-point along the trajectory
+%   f = [nState, nTime + nShootSegment] = dynamics of the state along the trajectory
+%   idx_ShootEnd = indices of x that correspond to end points of the Shooting Segments
+%   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+%   dtGrad = [2,1] = gradient of time step with respect to [t0; tF]
+%   xGrad = [nState,nTime+nShootSegment,nDecVar] = gradient of trajectory wrt dec vars
+%   fGrad = [nState,nTime+nShootSegment,nDecVar] = gradient of dynamics wrt dec vars
+%
+% OUTPUTS:
+%   defects = [nState, nShootSegment+nTime-1] = error in dynamics along the trajectory
+%   defectsGrad = [nState, nShootSegment+nTime-1, nDecVars] = gradient of defects
+%
+
+nGridAll = size(x,2); % nGridAll = nShootSegment + nTime
+
+idxLow = 1:(nGridAll-1);
+idxLow(idx_ShootEnd) = [];
+idxUpp = idxLow+1;
+
+xLow = x(:,idxLow);
+xUpp = x(:,idxUpp);
+
+fLow = f(:,idxLow);
+fUpp = f(:,idxUpp);
+
+% This is the key line:  (Trapazoid Rule)
+defectsTrap = xUpp-xLow - 0.5*dt*(fLow+fUpp);
+
+% Shooting Defects
+xUppShoot = x(:,idx_ShootEnd+1);
+xLowShoot = x(:,idx_ShootEnd);
+defectsShoot = xUppShoot - xLowShoot;
+
+% Shooting Defects Control 
+uUppShoot = u(:,idx_ShootEnd+1);
+uLowShoot = u(:,idx_ShootEnd);
+defectsShootCtrl = uUppShoot - uLowShoot;
+
+% All defects
+defects = [defectsTrap,defectsShoot];
+defects = [defects(:);defectsShootCtrl(:)];
+
+%%%% Gradient Calculations:
+if nargout ==2 || nargout >1
+
+    % need to replace this with xGradAll
+    xLowGrad = xGrad(:,idxLow,:);
+    xUppGrad = xGrad(:,idxUpp,:);
+    
+    fLowGrad = fGrad(:,idxLow,:);
+    fUppGrad = fGrad(:,idxUpp,:);
+    
+    % Gradient of the defects:  (chain rule!)
+    dtGradTerm = zeros(size(xUppGrad));
+    dtGradTerm(:,:,1) = -0.5*dtGrad(1)*(fLow+fUpp);
+    dtGradTerm(:,:,2) = -0.5*dtGrad(2)*(fLow+fUpp);
+    defectsGradTrap = xUppGrad - xLowGrad + dtGradTerm + ...
+        - 0.5*dt*(fLowGrad+fUppGrad);
+    
+    % Shooting Segment Gradients
+    defectsGradShoot = xGrad(:,idx_ShootEnd+1,:)-xGrad(:,idx_ShootEnd,:);
+    
+    defectsGradShootCtrl = uGrad(:,idx_ShootEnd+1,:)-uGrad(:,idx_ShootEnd,:);
+    
+    %defectsGradShoot = cat(1,defectsGradShoot,defectsGradShootCtrl);
+    
+    % concatanate defect gradients
+    defectsGrad= cat(2,defectsGradTrap,defectsGradShoot);
 end
 
 end

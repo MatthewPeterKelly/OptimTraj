@@ -163,6 +163,10 @@ switch accuracy
         OPT_trapezoid.nGrid = 15;
     case 'medium'
         OPT_trapezoid.nGrid = 30;
+        % For multi-shooting trapezoid.
+        OPT_trapezoid.nSplineSegment = 3;
+        OPT_trapezoid.nShootSegment = ...
+            floor((OPT_trapezoid.nGrid-1)/(OPT_trapezoid.nSplineSegment));
     case 'high'
         OPT_trapezoid.nGrid = 60;
     otherwise
@@ -180,6 +184,10 @@ switch accuracy
         OPT_hermiteSimpson.nSegment = 10;
     case 'medium'
         OPT_hermiteSimpson.nSegment = 20;
+        % For multi-shooting Hermite-Simpson.
+        OPT_hermiteSimpson.nSplineSegment = 3;
+        OPT_hermiteSimpson.nShootSegment = ...
+            floor((OPT_hermiteSimpson.nSegment-1)/(OPT_hermiteSimpson.nSplineSegment));
     case 'high'
         OPT_hermiteSimpson.nSegment = 40;
     otherwise
