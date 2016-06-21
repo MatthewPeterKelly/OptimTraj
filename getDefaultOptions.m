@@ -160,18 +160,23 @@ function OPT_trapezoid = defaults_trapezoid(accuracy)
 
 switch accuracy
     case 'low'
-        OPT_trapezoid.nGrid = 15;
+        OPT_trapezoid.nGrid = 12;
+        OPT_trapezoid.nShootSegment = 5; % number of shooting segments
     case 'medium'
         OPT_trapezoid.nGrid = 30;
-        % For multi-shooting trapezoid.
-        OPT_trapezoid.nSplineSegment = 3;
-        OPT_trapezoid.nShootSegment = ...
-            floor((OPT_trapezoid.nGrid-1)/(OPT_trapezoid.nSplineSegment));
+        OPT_trapezoid.nShootSegment = 9;
     case 'high'
         OPT_trapezoid.nGrid = 60;
+        OPT_trapezoid.nShootSegment = 20;
     otherwise
         error('Invalid value for options.defaultAccuracy')
 end
+
+OPT_trapezoid.AdaptiveDerivativeCheck = 'off';
+
+% By default do not use shooting segments in trapezoid method
+OPT_trapezoid.shooting = 'off';
+OPT_trapezoid.crtldefect = 'off';
 
 end
 
@@ -182,17 +187,23 @@ function OPT_hermiteSimpson = defaults_hermiteSimpson(accuracy)
 switch accuracy
     case 'low'
         OPT_hermiteSimpson.nSegment = 10;
+        OPT_hermiteSimpson.nShootSegment = 3; % number of shooting segments
     case 'medium'
         OPT_hermiteSimpson.nSegment = 20;
-        % For multi-shooting Hermite-Simpson.
-        OPT_hermiteSimpson.nSplineSegment = 3;
-        OPT_hermiteSimpson.nShootSegment = ...
-            floor((OPT_hermiteSimpson.nSegment-1)/(OPT_hermiteSimpson.nSplineSegment));
+        OPT_hermiteSimpson.nShootSegment = 5;
     case 'high'
         OPT_hermiteSimpson.nSegment = 40;
+        OPT_hermiteSimpson.nShootSegment = 12;
     otherwise
         error('Invalid value for options.defaultAccuracy')
 end
+
+% % number of splines per shooting segment.
+% OPT_hermiteSimpson.nSplineSegment = floor((OPT_hermiteSimpson.nSegment)/OPT_hermiteSimpson.nShootSegment);
+
+% By default do not use shooting segments in hermite simpson
+OPT_hermiteSimpson.shooting = 'off';
+OPT_hermiteSimpson.crtldefect = 'off';
 
 end
 

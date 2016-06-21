@@ -14,7 +14,11 @@ p.c = 0.1;  % Normalized damping constant
 
 % User-defined dynamics and objective functions
 problem.func.dynamics = @(t,x,u)( dynamics(x,u,p) );
-problem.func.pathObj = @(t,x,u)( pathObjective(u) );
+problem.func.pathObj = @(t,x,u)( pathObjectiveTest(t,x,u) );
+
+% bound objective for testing
+xF_target = [pi;0];
+problem.func.bndObj = @(t0,x0,tF,xF)( boundObjective(xF,xF_target) );
 
 % Problem bounds
 problem.bounds.initialTime.low = 0;
@@ -34,25 +38,30 @@ problem.bounds.control.upp = 5; %inf;
 
 % Guess at the initial trajectory
 problem.guess.time = [0,1];
-problem.guess.state = [0, pi; pi, pi];
-problem.guess.control = [0, 0];
+problem.guess.state = [0, pi; pi, 0];
+problem.guess.control = [1, 0];
 
 % Options for fmincon
-problem.options.nlpOpt = optimset(...
+problem.options(1).nlpOpt = optimset(...
     'Display','iter',...
     'GradObj','on',...
     'GradConstr','on',...
     'DerivativeCheck','on',...
-    'MaxFunEvals',6000);   %Fmincon automatically checks derivatives
+    'MaxFunEvals',600);   %Fmincon automatically checks derivatives
 
-problem.options.method = 'trapezoid';
-problem.options.shooting = 'off';
-problem.options.defaultAccuracy = 'medium';
+% method = 'trapezoid';
+method =  'hermiteSimpson';
+problem.options(1).method = method;
+problem.options(1).defaultAccuracy = 'low';
+problem.options(1).(method).shooting = 'on';
+problem.options(1).(method).crtldefect = 'off';
 
-problem.options.crtldefect = 'off';
+problem.options(2) = problem.options(1);
+
 
 % Solve the problem
 soln = optimTraj(problem);
+soln = soln(end);
 t = soln.grid.time;
 q = soln.grid.state(1,:);
 dq = soln.grid.state(2,:);

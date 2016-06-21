@@ -62,10 +62,19 @@ end
 problem.func.weights = ones(nGrid,1);
 problem.func.weights([1,end]) = 0.5;
 
+
+% Standard Trapezoid Direct Collocation
+if strcmp(problem.options.trapezoid.shooting,'off')
+    
+    % Trapazoid integration calculation of defects:
+    problem.func.defectCst = @computeDefects;
+
+    %%%% The key line - solve the problem by direct collocation:
+    soln = directCollocation(problem);
+
 % Trapezoid Method with Shooting
-if isfield(problem.options,'shooting') && strcmp(problem.options.shooting,'on')
-  
-    if isfield(problem.options,'crtldefect') && strcmp(problem.options.crtldefect,'on')
+else
+    if strcmp(problem.options.trapezoid.crtldefect,'on')
         % Trapazoid integration calculation of defects:
         problem.func.defectCst = @computeDefectsShootingCtlDefect;
 
@@ -73,27 +82,16 @@ if isfield(problem.options,'shooting') && strcmp(problem.options.shooting,'on')
         soln = DEV_dirColShooting_CntlDefect(problem);
       
     else % no defect in control at shooting end points
-      
   
-      % Trapazoid integration calculation of defects:
-      problem.func.defectCst = @computeDefectsShooting;
+        % Trapazoid integration calculation of defects:
+        problem.func.defectCst = @computeDefectsShooting;
 
-      %%%% The key line - solve the problem by direct collocation:
-      soln = DEV_dirColShooting(problem);
+        %%%% The key line - solve the problem by direct collocation:
+        soln = DEV_dirColShooting(problem);
     
     end
-
-% Standard Trapezoid Direct Collocation
-else
-    problem.func.defectCst = @computeDefects;
-    soln = directCollocation(problem);
 end
 
-% Trapazoid integration calculation of defects:
-problem.func.defectCst = @computeDefects;
-
-%%%% The key line - solve the problem by direct collocation:
-soln = directCollocation(problem);
 
 % Use piecewise linear interpolation for the control
 tSoln = soln.grid.time;

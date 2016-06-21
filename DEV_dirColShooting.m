@@ -31,27 +31,32 @@ if Opt.verbose > 0
     fprintf('\n');
 end
 
-% shooting Param
-shootingParam = Opt.(Opt.method);
-% nGrid = shootingParam.nGrid
-nSplineSegment = shootingParam.nSplineSegment; % = number of splines per shooting Segment
-nShootSegment = shootingParam.nShootSegment;
 
 switch Opt.method
     case 'trapezoid'
-        % number of grid points per segment
+        % number of shooting segments
+        nShootSegment = Opt.trapezoid.nShootSegment;
+        % number of splines per shooting Segment
+        nSplineSegment = floor((nGrid-1)/nShootSegment);
+        % number of grid points per shooting segment
         nGridSegment = 1+nSplineSegment; 
         % State indices corresponding to the end of a shooting segment
-        idx_ShootEnd = nGridSegment : nGridSegment : nGrid+nShootSegment;
+        idx_ShootEnd = nGridSegment : nGridSegment : nShootSegment*nGridSegment;
+        %idx_ShootEnd = nGridSegment : nGridSegment : nGrid+nShootSegment;
         % Main Trajectory indices
         idx = 1:nGrid+nShootSegment;
         idx(idx_ShootEnd) = [];
         
     case 'hermiteSimpson'
-        % number of grid points per segment
+        % number of shooting segments
+        nShootSegment = Opt.hermiteSimpson.nShootSegment;
+        % number of splines per shooting Segment
+        nSplineSegment = floor((Opt.hermiteSimpson.nSegment)/nShootSegment);
+        % number of grid points per shooting segment
         nGridSegment = 1+2*nSplineSegment; 
         % State indices corresponding to the end of a shooting segment
-        idx_ShootEnd = nGridSegment : nGridSegment : nGrid+nShootSegment;
+        idx_ShootEnd = nGridSegment : nGridSegment : nShootSegment*nGridSegment;
+        %idx_ShootEnd = nGridSegment : nGridSegment : nGrid+nShootSegment;
         % Main Trajectory indices
         idx = 1:nGrid+nShootSegment;
         idx(idx_ShootEnd) = [];
@@ -114,6 +119,19 @@ if flagGradCst
 else
     P.nonlcon = @(z)( ...
         myConstraint(z, pack, F.dynamics, F.pathCst, F.bndCst, F.defectCst) ); %Numerical gradients
+end
+
+
+% Check analytic gradients with DERIVEST package
+if strcmp(Opt.(Opt.method).AdaptiveDerivativeCheck,'on')
+    if exist('jacobianest','file')
+        runGradientCheck(zGuess, pack,F.dynamics, F.pathObj, F.bndObj, F.weights, F.pathCst, F.bndCst, F.defectCst, gradInfo);
+        Opt.nlpOpt.DerivativeCheck = [];  %Disable built-in derivative check
+    else
+        Opt.(Opt.method).AdaptiveDerivativeCheck = 'cannot find jacobianest.m';
+        disp('Warning: the derivest package is not on search path.');
+        disp(' --> Using fmincon''s built-in derivative checks.');
+    end
 end
 
 
@@ -332,8 +350,83 @@ end
 %%%%            Additional Sub-Functions for Gradients                 %%%%
 %%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
 
+%%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
+
+function [fail] = runGradientCheck(z_test, pack,dynamics, pathObj, bndObj, weights, pathCst, bndCst, defectCst, gradInfo)
+%
+% This function tests the analytic gradients of the objective and
+% nonlinear constraints with the DERIVEST package. The finite difference
+% calculations in matlab's optimization package were not sufficiently
+% accurate.
+%
+GradientCheckTol = 1e-6;  %Analytic gradients must match numerical within this bound
+
+fail = 0;
+
+fprintf('\n%s\n','____________________________________________________________')
+fprintf('%s\n','  DerivativeCheck Information with DERIVEST Package ')
+
+% analytic gradient
+if 0
+[~, dcost] = myObjGrad(z_test, pack, pathObj, bndObj, weights, gradInfo);
+
+% check gradient with derivest package
+deriv = gradest(@(z) myObjGrad(z, pack, pathObj, bndObj, weights, gradInfo),z_test);
+
+% print largest difference in numerical and analytic gradients
+fprintf('\n%s\n','Objective function derivatives:')
+fprintf('%s\n','Maximum relative difference between user-supplied')
+fprintf('%s %1.5e \n','and finite-difference derivatives = ',max(abs(dcost-deriv')))
+if any(abs(dcost-deriv') > GradientCheckTol)
+    error('Objective gradient did not pass')
+end
+end
+
+% analytic nonlinear constraints
+[c, ceq,dc, dceq] = myCstGrad(z_test, pack, dynamics, pathCst, bndCst, defectCst, gradInfo);
+
+% check nonlinear inequality constraints with 'jacobianest'
+if ~isempty(c)
+    jac = jacobianest(@(z) myCstGrad(z_test, pack, dynamics, pathCst, bndCst, defectCst, gradInfo),z_test);
+    
+    % print largest difference in numerical and analytic gradients
+    fprintf('\n%s\n','Nonlinear inequality constraint function derivatives:')
+    fprintf('%s\n','Maximum relative difference between user-supplied')
+    fprintf('%s %1.5e \n','and finite-difference derivatives = ',max(max(abs(dc-jac'))))
+    if any(any(abs(dc - jac') > GradientCheckTol))
+        error('Nonlinear inequality constraint did not pass')
+    end
+end
+
+% check nonlinear equality constraints with 'jacobianest'
+if ~isempty(ceq)
+    jac = jacobianest(@(z) myCstGradCheckEq(z, pack, dynamics, pathCst, bndCst, defectCst, gradInfo),z_test);
+    
+    % print largest difference in numerical and analytic gradients
+    fprintf('\n%s\n','Nonlinear equality constraint function derivatives:')
+    fprintf('%s\n','Maximum relative difference between user-supplied')
+    fprintf('%s %1.5e \n','and finite-difference derivatives = ',max(max(abs(dceq-jac'))))
+    if any(any(abs(dceq - jac') > GradientCheckTol))
+        error('Nonlinear equality constraint did not pass')
+    end
+end
+
+fprintf('\n%s\n','DerivativeCheck successfully passed.')
+fprintf('%s\n','____________________________________________________________')
+end
+
 %%%% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ %%%%
 
+function ceq = myCstGradCheckEq(decVars, pack, dynamics, pathCst, bndCst, defectCst, gradInfo)
+% This function is necessary for runGradientCheck function
+% return only equality constraint (ceq) for use with jacobest.m
+
+[~, ceq] = myCstGrad(decVars, pack, dynamics, pathCst, bndCst, defectCst, gradInfo);
+
+end
+
+
+%%%% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ %%%%
 
 
 function gradInfo = grad_computeInfo(pack)
@@ -683,7 +776,7 @@ end
 cost = bndCost + integralCost;
 
 % Gradients
-costGrad = bndCostGrad + integralCostGrad;
+costGrad = (bndCostGrad + integralCostGrad)';
 
 end
 

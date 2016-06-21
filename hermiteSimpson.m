@@ -65,10 +65,18 @@ problem.func.weights = (2/3)*ones(nGrid,1);
 problem.func.weights(2:2:end) = 4/3;
 problem.func.weights([1,end]) = 1/3;
 
+% Standard Hermite-Simpson Direct Collocation
+if strcmp(problem.options.hermiteSimpson.shooting,'off')
+    
+    % Hermite-Simpson calculation of defects:
+    problem.func.defectCst = @computeDefects;
+
+    %%%% The key line - solve the problem by direct collocation:
+    soln = directCollocation(problem);
+
 % Hermit-Simpson Method with Shooting
-if isfield(problem.options,'shooting') && strcmp(problem.options.shooting,'on')
-  
-    if isfield(problem.options,'crtldefect') && strcmp(problem.options.crtldefect,'on')
+else
+    if strcmp(problem.options.hermiteSimpson.crtldefect,'on')
         % Hermite-Simpson calculation of defects:
         problem.func.defectCst = @computeDefectsShootingCtlDefect;
 
@@ -76,7 +84,6 @@ if isfield(problem.options,'shooting') && strcmp(problem.options.shooting,'on')
         soln = DEV_dirColShooting_CntlDefect(problem);
       
     else % no defect in control at shooting end points
-      
   
         % Hermite-Simpson calculation of defects:
         problem.func.defectCst = @computeDefectsShooting;
@@ -85,21 +92,8 @@ if isfield(problem.options,'shooting') && strcmp(problem.options.shooting,'on')
         soln = DEV_dirColShooting(problem);
     
     end
-
-% Standard Hermite-Simpson Direct Collocation
-else
-    % Hermite-Simpson calculation of defects:
-    problem.func.defectCst = @computeDefects;
-    
-    %%%% The key line - solve the problem by direct collocation:
-    soln = directCollocation(problem);
 end
 
-% Hermite-Simpson calculation of defects:
-problem.func.defectCst = @computeDefects;
-
-%%%% The key line - solve the problem by direct collocation:
-soln = directCollocation(problem);
 
 % Use method-consistent interpolation
 tSoln = soln.grid.time;
