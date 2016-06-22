@@ -88,7 +88,7 @@ dqF = dq0;
 
 problem.guess.state = [q0, qF; dq0, dqF];
 
-problem.guess.control = zeros(5,2);  %Start with passive trajectory
+problem.guess.control = zeros(5,2)+1;  %Start with passive trajectory
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -106,8 +106,8 @@ problem.guess.control = zeros(5,2);  %Start with passive trajectory
 
 % method = 'Baseline Solution';
 % method = 'rungeKutta_test';
-method = 'dircolShooting_trap';
-% method = 'dircolShooting_herm';
+% method = 'dircolShooting_trap';
+method = 'dircolShooting_herm';
 
 switch method
     
@@ -158,7 +158,7 @@ switch method
         %problem.options(1).trapezoid.nShootSegment = 2;
         
         problem.options(2) = problem.options(1);
-        problem.options(2).defaultAccuracy = 'low';
+        problem.options(2).defaultAccuracy = 'medium';
         problem.options(2).trapezoid.AdaptiveDerivativeCheck = 'on';
         
     case 'dircolShooting_herm'

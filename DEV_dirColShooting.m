@@ -367,7 +367,6 @@ fprintf('\n%s\n','____________________________________________________________')
 fprintf('%s\n','  DerivativeCheck Information with DERIVEST Package ')
 
 % analytic gradient
-if 0
 [~, dcost] = myObjGrad(z_test, pack, pathObj, bndObj, weights, gradInfo);
 
 % check gradient with derivest package
@@ -380,14 +379,13 @@ fprintf('%s %1.5e \n','and finite-difference derivatives = ',max(abs(dcost-deriv
 if any(abs(dcost-deriv') > GradientCheckTol)
     error('Objective gradient did not pass')
 end
-end
 
 % analytic nonlinear constraints
 [c, ceq,dc, dceq] = myCstGrad(z_test, pack, dynamics, pathCst, bndCst, defectCst, gradInfo);
 
 % check nonlinear inequality constraints with 'jacobianest'
 if ~isempty(c)
-    jac = jacobianest(@(z) myCstGrad(z_test, pack, dynamics, pathCst, bndCst, defectCst, gradInfo),z_test);
+    jac = jacobianest(@(z) myCstGrad(z, pack, dynamics, pathCst, bndCst, defectCst, gradInfo),z_test);
     
     % print largest difference in numerical and analytic gradients
     fprintf('\n%s\n','Nonlinear inequality constraint function derivatives:')

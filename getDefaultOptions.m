@@ -198,8 +198,7 @@ switch accuracy
         error('Invalid value for options.defaultAccuracy')
 end
 
-% % number of splines per shooting segment.
-% OPT_hermiteSimpson.nSplineSegment = floor((OPT_hermiteSimpson.nSegment)/OPT_hermiteSimpson.nShootSegment);
+OPT_hermiteSimpson.AdaptiveDerivativeCheck = 'off';
 
 % By default do not use shooting segments in hermite simpson
 OPT_hermiteSimpson.shooting = 'off';
