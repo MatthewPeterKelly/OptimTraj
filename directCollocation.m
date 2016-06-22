@@ -70,6 +70,14 @@ else
 end
 
 
+% Plot Defect Constraint Sparsity
+if strcmp(Opt.(Opt.method).PlotDefectGrad,'on')
+    [~,~,~,dceq] = myCstGrad(zGuess, pack, F.dynamics, [], [], F.defectCst, gradInfo);
+    figure(100),clf
+    spy(dceq')
+end
+
+
 P.x0 = zGuess;
 P.lb = zLow;
 P.ub = zUpp;
@@ -134,11 +142,28 @@ tSpan = [t(1); t(end)];
 xCol = reshape(x, nState*nTime, 1);
 uCol = reshape(u, nControl*nTime, 1);
 
-z = [tSpan;xCol;uCol];
+indz = reshape(2+(1:numel(u)+numel(x)),nState+nControl,nTime);
+
+% index of time, state, control variables in the decVar vector
+indt = 1:2;
+indx = indz(1:nState,:);
+indu = indz(nState+(1:nControl),:);
+
+% old version
+% indx = 2+(1:nState*nTime);
+% indu = 2+nState*nTime+(1:nControl*nTime);
+
+z = zeros(2+numel(indz),1);
+z(indt(:),1) = tSpan;
+z(indx(:),1) = xCol;
+z(indu(:),1) = uCol;
 
 pack.nTime = nTime;
 pack.nState = nState;
 pack.nControl = nControl;
+pack.indt = indt;
+pack.indx = indx;
+pack.indu = indu;
 
 end
 
@@ -171,8 +196,15 @@ nu = nControl*nTime;
 
 t = linspace(z(1),z(2),nTime);
 
-x = reshape(z((2+1):(2+nx)),nState,nTime);
-u = reshape(z((2+nx+1):(2+nx+nu)),nControl,nTime);
+% x = reshape(z((2+1):(2+nx)),nState,nTime);
+% u = reshape(z((2+nx+1):(2+nx+nu)),nControl,nTime);
+x = z(pack.indx);
+u = z(pack.indu);
+
+% make sure x and u are returned as vectors, [nState,nTime] and
+% [nControl,nTime]
+x = reshape(x,nState,nTime);
+u = reshape(u,nControl,nTime);
 
 end
 

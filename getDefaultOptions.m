@@ -169,6 +169,8 @@ switch accuracy
         error('Invalid value for options.defaultAccuracy')
 end
 
+OPT_trapezoid.PlotDefectGrad = 'off';
+
 end
 
 
@@ -185,6 +187,8 @@ switch accuracy
     otherwise
         error('Invalid value for options.defaultAccuracy')
 end
+
+OPT_hermiteSimpson.PlotDefectGrad = 'off';
 
 end
 
@@ -241,6 +245,7 @@ switch accuracy
         error('Invalid value for options.defaultAccuracy')
 end
 
+OPT_rungeKutta.PlotDefectGrad = 'off';
 OPT_rungeKutta.AdaptiveDerivativeCheck = 'off';
 
 end
