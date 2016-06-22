@@ -104,10 +104,11 @@ problem.guess.control = zeros(5,2)+1;  %Start with passive trajectory
 %NOTE:  There are many methods written out below, just to show different
 %   ways to solve the problem.
 
-% method = 'Baseline Solution';
+method = 'Baseline Solution';
 % method = 'rungeKutta_test';
+% method = 'trapezoid';
 % method = 'dircolShooting_trap';
-method = 'dircolShooting_herm';
+% method = 'dircolShooting_herm';
 
 switch method
     
@@ -118,6 +119,8 @@ switch method
         problem.options(1).nlpOpt.GradConstr = 'on';
         problem.options(1).nlpOpt.GradObj = 'on';
         problem.options(1).nlpOpt.DerivativeCheck = 'on';
+        
+        problem.options(1).hermiteSimpson.PlotDefectGrad = 'on';
         
         problem.options(2).method = 'hermiteSimpson'; % Select the transcription method
         problem.options(2).hermiteSimpson.nSegment = 15;  %method-specific options
@@ -143,6 +146,23 @@ switch method
         % gradients more robustly than fmincon's internal checks.
         problem.options(2).rungeKutta.AdaptiveDerivativeCheck = 'on';
         
+    case 'trapezoid'
+
+        problem.options(1).method = 'trapezoid';
+        problem.options(1).defaultAccuracy = 'low';
+        problem.options(1).nlpOpt.GradConstr = 'on';
+        problem.options(1).nlpOpt.GradObj = 'on';
+        problem.options(1).nlpOpt.DerivativeCheck = 'on';
+        
+        problem.options(1).trapezoid.PlotDefectGrad = 'on';
+
+        %problem.options(1).trapezoid.nGrid = 4;
+        %problem.options(1).trapezoid.nShootSegment = 2;
+        
+        problem.options(2) = problem.options(1);
+        problem.options(2).defaultAccuracy = 'medium';
+        problem.options(2).trapezoid.AdaptiveDerivativeCheck = 'off';
+        
     case 'dircolShooting_trap'
 
         problem.options(1).method = 'trapezoid';
@@ -153,7 +173,7 @@ switch method
         
         problem.options(1).trapezoid.shooting = 'on';
         problem.options(1).trapezoid.crtldefect = 'off';
-        
+
         %problem.options(1).trapezoid.nGrid = 4;
         %problem.options(1).trapezoid.nShootSegment = 2;
         

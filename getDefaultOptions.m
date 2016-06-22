@@ -173,6 +173,7 @@ switch accuracy
 end
 
 OPT_trapezoid.AdaptiveDerivativeCheck = 'off';
+OPT_trapezoid.PlotDefectGrad = 'off';
 
 % By default do not use shooting segments in trapezoid method
 OPT_trapezoid.shooting = 'off';
@@ -199,6 +200,7 @@ switch accuracy
 end
 
 OPT_hermiteSimpson.AdaptiveDerivativeCheck = 'off';
+OPT_hermiteSimpson.PlotDefectGrad = 'off';
 
 % By default do not use shooting segments in hermite simpson
 OPT_hermiteSimpson.shooting = 'off';

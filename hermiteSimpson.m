@@ -173,6 +173,11 @@ defectInterval = xUpp - xLow - dt*(fUpp + 4*fMid + fLow)/3;
 % Pack up all defects:
 defects = [defectMidpoint, defectInterval];
 
+% rearrange defects for bandedness.
+defects_tmp = 0*defects;
+defects_tmp(:,iLow) = defectInterval;
+defects_tmp(:,iMid) = defectMidpoint;
+defects = defects_tmp;
 
 %%%% Gradient Calculations:
 if nargout == 2
@@ -202,6 +207,12 @@ if nargout == 2
     %Pack up the gradients of the defects:
     defectsGrad = cat(2,defectMidpointGrad,defectIntervalGrad);
     
+    
+    % rearrange defects for bandedness.
+    defectsGrad_tmp = 0*defectsGrad;
+    defectsGrad_tmp(:,iLow,:) = defectIntervalGrad;
+    defectsGrad_tmp(:,iMid,:) = defectMidpointGrad;
+    defectsGrad = defectsGrad_tmp;
 end
 
 end
