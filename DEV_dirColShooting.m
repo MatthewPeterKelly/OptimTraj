@@ -47,6 +47,13 @@ switch Opt.method
         idx = 1:nGrid+nShootSegment;
         idx(idx_ShootEnd) = [];
         
+        % the last segment has more points than other segments
+        if (idx(end) - (idx_ShootEnd(end)+1) > nSplineSegment)
+            warning(['The number of splines in the last shooting ',...
+                'segment is greater than the other segments. May be good to reduce the number of shooting segments.'])
+            fprintf('\n')
+        end
+        
     case 'hermiteSimpson'
         % number of shooting segments
         nShootSegment = Opt.hermiteSimpson.nShootSegment;
