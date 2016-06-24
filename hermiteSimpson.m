@@ -313,7 +313,7 @@ end
 
 %%%% Compute defects for hermite simpson multiple shooting (state and control
 %%%% defect)
-function [defects, defectsGrad, defectsGradShootCtrl] = computeDefectsShootingCtlDefect(dt,x,u,f,idx_ShootEnd,dtGrad,xGrad,uGrad,fGrad)
+function [defects, defectsGrad, defectsGradShootCtrl] = computeDefectsShootingCtlDefect(pack,dt,x,u,f,dtGrad,xGrad,uGrad,fGrad)
 %
 % This function computes the defects that are used to enforce the
 % continuous dynamics of the system along the trajectory.
@@ -333,10 +333,12 @@ function [defects, defectsGrad, defectsGradShootCtrl] = computeDefectsShootingCt
 %
 
 nGridAll = size(x,2); % nGridAll = nShootSegment + nTime
+nState = pack.nState;
+nControl = pack.nControl;
 
 %iLow1 = 1:2:(nGridAll-1);
 iLow = 1:nGridAll-1;
-iLow(idx_ShootEnd) = [];
+iLow(pack.idx_ShootEnd) = [];
 iLow = iLow(1:2:end);
 
 iMid = iLow + 1;
@@ -360,18 +362,40 @@ defectInterval = xUpp - xLow - dt*(fUpp + 4*fMid + fLow)/3;
 defectsSimpson = [defectMidpoint, defectInterval];
 
 % Shooting Defects
-xUppShoot = x(:,idx_ShootEnd+1);
-xLowShoot = x(:,idx_ShootEnd);
+xUppShoot = x(:,pack.idx_ShootEnd+1);
+xLowShoot = x(:,pack.idx_ShootEnd);
 defectsShoot = xUppShoot - xLowShoot;
 
 % Shooting Defects Control 
-uUppShoot = u(:,idx_ShootEnd+1);
-uLowShoot = u(:,idx_ShootEnd);
+uUppShoot = u(:,pack.idx_ShootEnd+1);
+uLowShoot = u(:,pack.idx_ShootEnd);
 defectsShootCtrl = uUppShoot - uLowShoot;
 
-% All defects
-defects = [defectsSimpson,defectsShoot];
-defects = [defects(:);defectsShootCtrl(:)];
+% % All defects
+% defects = [defectsSimpson,defectsShoot];
+% defects = [defects(:);defectsShootCtrl(:)];
+
+% Indicies of defect constraints. Organize defect constraints so that
+% gradients have a banded structure.
+indtmp = ones(nState+nControl,nGridAll);
+indtmp(nState+(1:nControl),pack.idx_Traj) = 0;
+indtmp = reshape(cumsum(indtmp(:)),nState+nControl,nGridAll);
+
+% All defect constraints
+nDefect = numel(defectsSimpson)+numel(defectsShoot)+numel(defectsShootCtrl);
+defects = zeros(nDefect,1);
+
+% Trapezoidal integration defects
+indTrap = indtmp(1:nState,pack.idx_Traj(1:end-1));
+defects(indTrap(:),1) = defectsSimpson(:);
+
+% State Shooting Defects
+indShootEnd = indtmp(1:nState,pack.idx_ShootEnd);
+defects(indShootEnd(:),1) = defectsShoot(:);
+
+% Control Shooting Defects
+indShootEndControl = indtmp(nState+(1:nControl),pack.idx_ShootEnd);
+defects(indShootEndControl(:),1) = defectsShootCtrl(:);
 
 %%%% Gradient Calculations:
 if nargout == 2 || nargout >1
@@ -399,19 +423,46 @@ if nargout == 2 || nargout >1
         - dt*(fUppGrad + 4*fMidGrad + fLowGrad)/3;
     
     % Shooting Segment Gradients
-    defectsGradShoot = xGrad(:,idx_ShootEnd+1,:)-xGrad(:,idx_ShootEnd,:);
+    defectsGradShoot = xGrad(:,pack.idx_ShootEnd+1,:)-xGrad(:,pack.idx_ShootEnd,:);
     
-    defectsGradShootCtrl = uGrad(:,idx_ShootEnd+1,:)-uGrad(:,idx_ShootEnd,:);
+    defectsGradShootCtrl = uGrad(:,pack.idx_ShootEnd+1,:)-uGrad(:,pack.idx_ShootEnd,:);
     
     %defectsGradShoot = cat(1,defectsGradShoot,defectsGradShootCtrl);
     
-    %Pack up the gradients of the defects:
-    defectsGrad = cat(2,defectMidpointGrad,defectIntervalGrad,defectsGradShoot);
+%     %Pack up the gradients of the defects:
+%     defectsGrad = cat(2,defectMidpointGrad,defectIntervalGrad,defectsGradShoot);
+%     
+    defectsGradSimpson = cat(2,defectMidpointGrad,defectIntervalGrad);
     
-end
+    % all defects
+    defectsGrad = zeros(numel(defects),pack.nDecVar);
+    
+    % Trapezoidal integration defects
+    defectsGrad(indTrap(:),:) = grad_flattenPathCst(defectsGradSimpson);
+
+    % State Shooting Defects
+    defectsGrad(indShootEnd(:),:) = grad_flattenPathCst(defectsGradShoot);
+
+    % Control Shooting Defects
+    defectsGrad(indShootEndControl(:),:) = grad_flattenPathCst(defectsGradShootCtrl);
 
 end
 
+end
+
+function C = grad_flattenPathCst(CC)
+%
+% This function takes a path constraint and reshapes the first two
+% dimensions so that it can be passed to fmincon
+%
+if isempty(CC)
+    C = [];
+else
+    [n1,n2,n3] = size(CC);
+    C = reshape(CC,n1*n2,n3);
+end
+
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %

@@ -88,7 +88,7 @@ guess.state(:,idx) = interp1(G.time', G.state', guess.time')';
 guess.state(:,idx_ShootEnd) = guess.state(:,idx_ShootEnd+1);
 guess.control = interp1(G.time', G.control', guess.time')';
 
-[zGuess, pack] = packDecVar(guess.time, guess.state, guess.control);
+[zGuess, pack] = packDecVar(guess.time, guess.state, guess.control,idx,idx_ShootEnd);
 
 % Shooting Info
 pack.idx = idx;
@@ -105,12 +105,12 @@ end
 tLow = linspace(B.initialTime.low, B.finalTime.low, nGrid);
 xLow = [B.initialState.low, B.state.low*ones(1,nGrid+nShootSegment-2), B.finalState.low];
 uLow = B.control.low*ones(1,nGrid);
-zLow = packDecVar(tLow,xLow,uLow);
+zLow = packDecVar(tLow,xLow,uLow,idx,idx_ShootEnd);
 
 tUpp = linspace(B.initialTime.upp, B.finalTime.upp, nGrid);
 xUpp = [B.initialState.upp, B.state.upp*ones(1,nGrid+nShootSegment-2), B.finalState.upp];
 uUpp = B.control.upp*ones(1,nGrid);
-zUpp = packDecVar(tUpp,xUpp,uUpp);
+zUpp = packDecVar(tUpp,xUpp,uUpp,idx,idx_ShootEnd);
 
 %%%% Set up problem for fmincon:
 if flagGradObj
@@ -126,6 +126,13 @@ if flagGradCst
 else
     P.nonlcon = @(z)( ...
         myConstraint(z, pack, F.dynamics, F.pathCst, F.bndCst, F.defectCst) ); %Numerical gradients
+end
+
+% Plot Constraint 
+if strcmp(Opt.(Opt.method).PlotDefectGrad,'on')
+    [~,~,~,dceq] = myCstGrad(zGuess, pack, F.dynamics, [], [], F.defectCst, gradInfo);
+    figure(100),clf
+    spy(dceq')
 end
 
 
@@ -178,7 +185,7 @@ end
 %%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
 %%%%                          SUB FUNCTIONS                            %%%%
 %%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
-function [z,pack] = packDecVar(t,x,u)
+function [z,pack] = packDecVar(t,x,u,idx,idx_Shootend)
 %
 % This function collapses the time (t), state (x)
 % and control (u) matricies into a single vector
@@ -207,11 +214,44 @@ tSpan = [t(1); t(end)];
 xCol = reshape(x, nState*(nTime+nShootSegment), 1);
 uCol = reshape(u, nControl*nTime, 1);
 
-z = [tSpan;xCol;uCol];
+indz = ones(nState+nControl,nTime+nShootSegment);
+% remove indices asscoiated with control at shooting endpoints
+indz(nState+(1:nControl),idx_Shootend) = 0;
+indz = reshape(2+cumsum(indz(:)),nState+nControl,nTime+nShootSegment);
+
+% index of time, state, control variables in the decVar vector
+indt = 1:2;
+indx = indz(1:nState,:);
+indu = indz(nState+(1:nControl),idx);
+
+% %%%%%%  more banded version %%%%
+% indz(nState+(1:nControl),idx_Shootend+1) = 0;
+% indz = reshape(2+cumsum(indz(:)),nState+nControl,nTime+nShootSegment);
+% 
+% % index of time, state, control variables in the decVar vector
+% indt = 1:2;
+% indx = indz(1:nState,:);
+% idu = 1:idx(end);
+% idu(idx_Shootend+1)=[]; % align the last control with index of shooting end point so that defect gradients are more banded.
+% indu = indz(nState+(1:nControl),idu);
+
+
+% old version
+% indx = 2+(1:nState*nTime);
+% indu = 2+nState*nTime+(1:nControl*nTime);
+
+
+z = zeros(2+numel(u)+numel(x),1);
+z(indt(:),1) = tSpan;
+z(indx(:),1) = xCol;
+z(indu(:),1) = uCol;
 
 pack.nTime = nTime;
 pack.nState = nState;
 pack.nControl = nControl;
+pack.indt = indt;
+pack.indx = indx;
+pack.indu = indu;
 
 end
 
@@ -243,13 +283,11 @@ nShootSegment = pack.nShootSegment;
 nTime = pack.nTime;
 nState = pack.nState;
 nControl = pack.nControl;
-nx = nState*(nTime+nShootSegment);
-nu = nControl*nTime;
 
 t = linspace(z(1),z(2),nTime);
-u = reshape(z((2+nx+1):(2+nx+nu)),nControl,nTime);
+u = reshape(z(pack.indu),nControl,nTime);
 
-tmp = reshape(z((2+1):(2+nx)),nState,nTime+nShootSegment);
+tmp = reshape(z(pack.indx),nState,nTime+nShootSegment);
 x = tmp(:,idx);
 
 

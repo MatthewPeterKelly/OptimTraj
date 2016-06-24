@@ -49,10 +49,10 @@ problem.options(1).nlpOpt = optimset(...
     'DerivativeCheck','on',...
     'MaxFunEvals',600);
 
-method = 'dircolShooting_trap';
+% method = 'dircolShooting_trap';
 % method = 'dircolShooting_herm';
-% method = 'dircolShooting_trap_ctrl';
-% method = 'dircolShooting_herm_ctrl';
+method = 'dircolShooting_trap_ctrl';
+method = 'dircolShooting_herm_ctrl';
 
 switch method
 
@@ -61,17 +61,13 @@ switch method
         problem.options(1).method = 'trapezoid';
         problem.options(1).defaultAccuracy = 'low';
         
-        problem.options(1).trapezoid.shooting = 'off';
+        problem.options(1).trapezoid.shooting = 'on';
         problem.options(1).trapezoid.crtldefect = 'off';
         
         problem.options(1).trapezoid.nShootSegment = 3;
         
         % plot defect gradient sparsity
         problem.options(1).trapezoid.PlotDefectGrad = 'on';
-        
-%         problem.options(2) = problem.options(1);
-%         problem.options(2).defaultAccuracy = 'medium';
-%         problem.options(2).trapezoid.AdaptiveDerivativeCheck = 'on';
         
     case 'dircolShooting_trap_ctrl'  % with Control defect
 
@@ -82,6 +78,8 @@ switch method
         problem.options(1).trapezoid.crtldefect = 'on';
         
         problem.options(1).trapezoid.nShootSegment = 5;
+        
+        problem.options(1).trapezoid.PlotDefectGrad = 'on';
         
         problem.options(2) = problem.options(1);
         problem.options(2).defaultAccuracy = 'medium';
@@ -107,10 +105,12 @@ switch method
         problem.options(1).hermiteSimpson.shooting = 'on';
         problem.options(1).hermiteSimpson.crtldefect = 'on';
         
-        problem.options(2) = problem.options(1);
-        problem.options(2).defaultAccuracy = 'medium';
-        problem.options(2).hermiteSimpson.AdaptiveDerivativeCheck = 'on';
+        problem.options(1).hermiteSimpson.PlotDefectGrad = 'on';
         
+%         problem.options(2) = problem.options(1);
+%         problem.options(2).defaultAccuracy = 'medium';
+%         problem.options(2).hermiteSimpson.AdaptiveDerivativeCheck = 'on';
+%         
 end
 
 

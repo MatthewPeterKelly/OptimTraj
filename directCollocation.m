@@ -75,7 +75,6 @@ if strcmp(Opt.(Opt.method).PlotDefectGrad,'on')
     [~,~,~,dceq] = myCstGrad(zGuess, pack, F.dynamics, [], [], F.defectCst, gradInfo);
     figure(100),clf
     spy(dceq')
-    
 end
 
 

@@ -44,11 +44,11 @@ switch Opt.method
         idx_ShootEnd = nGridSegment : nGridSegment : nShootSegment*nGridSegment;
         %idx_ShootEnd = nGridSegment : nGridSegment : nGrid+nShootSegment;
         % Main Trajectory indices
-        idx = 1:nGrid+nShootSegment;
-        idx(idx_ShootEnd) = [];
+        idx_Traj = 1:nGrid+nShootSegment;
+        idx_Traj(idx_ShootEnd) = [];
         
         % the last segment has more points than other segments
-        if (idx(end) - (idx_ShootEnd(end)+1) > nSplineSegment)
+        if (idx_Traj(end) - (idx_ShootEnd(end)+1) > nSplineSegment)
             warning(['The number of splines in the last shooting ',...
                 'segment is greater than the other segments. May be good to reduce the number of shooting segments.'])
             fprintf('\n')
@@ -65,35 +65,14 @@ switch Opt.method
         idx_ShootEnd = nGridSegment : nGridSegment : nShootSegment*nGridSegment;
         %idx_ShootEnd = nGridSegment : nGridSegment : nGrid+nShootSegment;
         % Main Trajectory indices
-        idx = 1:nGrid+nShootSegment;
-        idx(idx_ShootEnd) = [];
+        idx_Traj = 1:nGrid+nShootSegment;
+        idx_Traj(idx_ShootEnd) = [];
     
     otherwise
         error('undefined dirCol Shooting Method')
 end
 
-% switch Opt.method
-%     case 'trapezoid'
-%         % number of grid points per segment
-%         nGridSegment = 1+nSplineSegment; 
-%         % State indices corresponding to the end of a shooting segment
-%         idx_ShootEnd = nGridSegment : nGridSegment : nGrid+nShootSegment;
-%         % Main Trajectory indices
-%         idx = 1:nGrid+nShootSegment;
-%         idx(idx_ShootEnd) = [];
-%         
-%     case 'hermiteSimpson'
-%         % number of grid points per segment
-%         nGridSegment = 1+2*nSplineSegment; 
-%         % State indices corresponding to the end of a shooting segment
-%         idx_ShootEnd = nGridSegment : nGridSegment : nGrid+nShootSegment;
-%         % Main Trajectory indices
-%         idx = 1:nGrid+nShootSegment;
-%         idx(idx_ShootEnd) = [];
-%     
-%     otherwise
-%         error('undefined dirCol Shooting Method')
-% end
+
 if Opt.verbose > 0
     fprintf('  -> Number of shooting segments = %d\n',nShootSegment);
     fprintf('  -> Number of splines per segment = %d\n',nSplineSegment);
@@ -107,19 +86,22 @@ guess.time = linspace(guess.tSpan(1), guess.tSpan(2), nGrid);
 % guess of state
 % assume at end of shooting segments x_minus = x_plus
 guess.state = zeros(size(G.state,1),nGrid+nShootSegment);
-guess.state(:,idx) = interp1(G.time', G.state', guess.time')';
+guess.state(:,idx_Traj) = interp1(G.time', G.state', guess.time')';
 guess.state(:,idx_ShootEnd) = guess.state(:,idx_ShootEnd+1);
 % guess of state
 % assume at end of shooting segments u_minus = u_plus
 guess.control = zeros(size(G.control,1),nGrid+nShootSegment);
-guess.control(:,idx) = interp1(G.time', G.control', guess.time')';
+guess.control(:,idx_Traj) = interp1(G.time', G.control', guess.time')';
 guess.control(:,idx_ShootEnd) = guess.control(:,idx_ShootEnd+1);
 
 [zGuess, pack] = packDecVar(guess.time, guess.state, guess.control);
 
-% Shooting Info
-pack.idx = idx;
+%%%% DirCol Shooting Info
+% grid points associated with the main trajectory
+pack.idx_Traj = idx_Traj;
+% grid points associated with the shooting segment endpoints
 pack.idx_ShootEnd = idx_ShootEnd;
+% number of shooting segments
 pack.nShootSegment = nShootSegment;
 
 
@@ -153,6 +135,14 @@ if flagGradCst
 else
     P.nonlcon = @(z)( ...
         myConstraint(z, pack, F.dynamics, F.pathCst, F.bndCst, F.defectCst) ); %Numerical gradients
+end
+
+
+% Plot Defect Constraint sparsity
+if strcmp(Opt.(Opt.method).PlotDefectGrad,'on')
+    [~,~,~,dceq] = myCstGrad(zGuess, pack, F.dynamics, [], [], F.defectCst, gradInfo);
+    figure(100),clf
+    spy(dceq')
 end
 
 
@@ -234,11 +224,28 @@ tSpan = [t(1); t(end)];
 xCol = reshape(x, nState*(nTime+nShootSegment), 1);
 uCol = reshape(u, nControl*(nTime+nShootSegment), 1);
 
-z = [tSpan;xCol;uCol];
+indz = reshape(2+(1:numel(u)+numel(x)),nState+nControl,nTime+nShootSegment);
+
+% index of time, state, control variables in the decVar vector
+tIdx = 1:2;
+xIdx = indz(1:nState,:);
+uIdx = indz(nState+(1:nControl),:);
+
+% create decision Var vector (z) from t, x, u
+% variables are indexed so that the defects gradients appear as a banded
+% matrix
+z = zeros(2+numel(indz),1);
+z(tIdx(:),1) = tSpan;
+z(xIdx(:),1) = xCol;
+z(uIdx(:),1) = uCol;
 
 pack.nTime = nTime;
 pack.nState = nState;
 pack.nControl = nControl;
+pack.nDecVar = 2 + (nState+nControl)*(nTime+nShootSegment);
+pack.tIdx = tIdx;
+pack.xIdx = xIdx;
+pack.uIdx = uIdx;
 
 end
 
@@ -263,27 +270,31 @@ function [t,x,u,t_all,x_all,u_all] = unPackDecVar(z,pack)
 %   u = [nControl, nTime] = control vector at each grid point
 %
 
-idx = pack.idx;
+idx_Traj = pack.idx_Traj;
 idx_ShootEnd = pack.idx_ShootEnd;
 nShootSegment = pack.nShootSegment;
 
 nTime = pack.nTime;
 nState = pack.nState;
 nControl = pack.nControl;
-nx = nState*(nTime+nShootSegment);
-nu = nControl*(nTime+nShootSegment);
 
 t = linspace(z(1),z(2),nTime);
-tmp_u = reshape(z((2+nx+1):(2+nx+nu)),nControl,nTime+nShootSegment);
-u = tmp_u(:,idx);
 
-tmp_x = reshape(z((2+1):(2+nx)),nState,nTime+nShootSegment);
-x = tmp_x(:,idx);
+% tmp_u = control at trajectory points and shooting segment end points
+tmp_u = reshape(z(pack.uIdx),nControl,nTime+nShootSegment);
+% Control values at trajectory points, not shooting segment end points
+u = tmp_u(:,idx_Traj);
 
+% tmp_x = state at trajectory points and shooting segment end points
+tmp_x = reshape(z(pack.xIdx),nState,nTime+nShootSegment);
+% State values at trajectory points, not shooting segment end points
+x = tmp_x(:,idx_Traj);
 
 % Values of t,x,u at the end of shooting segments.
 if nargout > 3
   
+    % state and control at all points (trajectory + shooting segment end
+    % points)
     u_all = tmp_u;
     x_all = tmp_x;
 
@@ -292,7 +303,7 @@ if nargout > 3
     
     % create a time vector that includes times at the Shooting Endpoints
     t_all = zeros(1,nTime+nShootSegment);
-    t_all(1,idx) = t;
+    t_all(1,idx_Traj) = t;
     t_all(1,idx_ShootEnd) = t(1,idt_SegmentEnd);
     
 end
@@ -368,7 +379,7 @@ idx_ShootEnd = pack.idx_ShootEnd;
 %%%% Compute defects along the trajectory:
 dt = (t(end)-t(1))/(length(t)-1);
 f_all = dynFun(t_all,x_all,u_all);
-defects = defectCst(dt,x_all,u_all,f_all,idx_ShootEnd);
+defects = defectCst(pack,dt,x_all,u_all,f_all,idx_ShootEnd);
 
 %%%% Call user-defined constraints and pack up:
 [c, ceq] = collectConstraints(t,x,u,defects, pathCst, bndCst);
@@ -479,18 +490,23 @@ function gradInfo = grad_computeInfo(pack)
 %
 
 
-idx = pack.idx;
+idx_Traj = pack.idx_Traj;
 idx_ShootEnd = pack.idx_ShootEnd;
 nShootSegment = pack.nShootSegment;
 
 nTime = pack.nTime;
 nState = pack.nState;
 nControl = pack.nControl;
-nDecVar = 2 + nState*(nTime+nShootSegment) + nControl*(nTime+nShootSegment);
+nDecVar = pack.nDecVar;
 
-zIdx = 1:nDecVar;
 gradInfo.nDecVar = nDecVar;
-[tIdx, xIdx, uIdx, tIdxAll, xIdxAll, uIdxAll] = unPackDecVar(zIdx,pack);
+
+%[tIdx, xIdx, uIdx, tIdxAll, xIdxAll, uIdxAll] = unPackDecVar(zIdx,pack);
+tIdx = pack.tIdx;
+xIdx = pack.xIdx(:,pack.idx_Traj);
+uIdx = pack.uIdx(:,pack.idx_Traj);
+xIdxAll = pack.xIdx;
+uIdxAll = pack.uIdx;
 
 % indices at the trajectory points
 gradInfo.tIdx = tIdx([1,end]);
@@ -507,7 +523,7 @@ gradInfo.alpha = [1-alpha; alpha];
 
 % create an alpha vector that includes alpha at the Shooting Endpoints
 alphaAll = zeros(1,nTime+nShootSegment);
-alphaAll(1,idx) = alpha;
+alphaAll(1,idx_Traj) = alpha;
 idt_SegmentEnd = idx_ShootEnd - (0:nShootSegment-1);
 alphaAll(1,idx_ShootEnd) = alpha(1,idt_SegmentEnd);
 gradInfo.alphaAll = [1-alphaAll;alphaAll];
@@ -574,7 +590,11 @@ function [c, ceq, cGrad, ceqGrad] = grad_collectConstraints(t,x,u,defects, defec
 %
 
 ceq_dyn = reshape(defects,numel(defects),1);
-ceq_dynGrad = [grad_flattenPathCst(defectsGrad);grad_flattenPathCst(defectsGradShootCtrl)];
+if size(defectsGrad,3) > 1
+    ceq_dynGrad = [grad_flattenPathCst(defectsGrad);grad_flattenPathCst(defectsGradShootCtrl)];
+else
+    ceq_dynGrad = defectsGrad;
+end
 
 %%%% Compute the user-defined constraints:
 if isempty(pathCst)
@@ -839,7 +859,6 @@ function [c, ceq, cGrad, ceqGrad] = myCstGrad(z,pack,dynFun, pathCst, bndCst, de
 
 
 %Unpack the decision variables:
-idx_ShootEnd = pack.idx_ShootEnd;
 [t,x,u,t_all,x_all,u_all] = unPackDecVar(z,pack);
 
 % Time step for integration:
@@ -859,7 +878,7 @@ uGradAll = gradInfo.uGradAll;
 fGradAll = grad_reshapeContinuousAll(f_allGradRaw,gradInfo);
 
 %computeDefects(dt,x,f_all,idx_ShootEnd,dtGrad,xGrad,fGrad)
-[defects, defectsGrad,defectsGradShoot] = defectCst(dt,x_all,u_all,f_all,idx_ShootEnd,...
+[defects, defectsGrad,defectsGradShoot] = defectCst(pack,dt,x_all,u_all,f_all,...
     dtGrad, xGradAll, uGradAll, fGradAll);
 
 % Compute gradients of the user-defined constraints and then pack up:

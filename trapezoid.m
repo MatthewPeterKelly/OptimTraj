@@ -228,6 +228,8 @@ defectsShoot = xUppShoot - xLowShoot;
 
 % All defects
 defects = [defectsTrap,defectsShoot];
+defects(:,idxLow) = defectsTrap;
+defects(:,idx_ShootEnd) = defectsShoot;
 
 %%%% Gradient Calculations:
 if nargout == 2
@@ -250,7 +252,9 @@ if nargout == 2
     defectsGradShoot = xGrad(:,idx_ShootEnd+1,:)-xGrad(:,idx_ShootEnd,:);
     
     % concatanate defect gradients
-    defectsGrad= cat(2,defectsGradTrap,defectsGradShoot);
+    defectsGrad = 0*cat(2,defectsGradTrap,defectsGradShoot);
+    defectsGrad(:,idxLow,:) = defectsGradTrap;
+    defectsGrad(:,idx_ShootEnd,:) = defectsGradShoot;
 end
 
 end
@@ -258,7 +262,7 @@ end
 
 %%%% Compute defects for multi-shooting trapezoid with defects in control
 %%%% and defect in state
-function [defects, defectsGrad, defectsGradShootCtrl] = computeDefectsShootingCtlDefect(dt,x,u,f,idx_ShootEnd,dtGrad,xGrad,uGrad,fGrad)
+function [defects, defectsGrad, defectsGradShootCtrl] = computeDefectsShootingCtlDefect(pack,dt,x,u,f,dtGrad,xGrad,uGrad,fGrad)
 %
 % This function computes the defects that are used to enforce the
 % continuous dynamics of the system along the trajectory.
@@ -280,8 +284,11 @@ function [defects, defectsGrad, defectsGradShootCtrl] = computeDefectsShootingCt
 
 nGridAll = size(x,2); % nGridAll = nShootSegment + nTime
 
+nState = size(x,1);
+nControl = size(u,1);
+
 idxLow = 1:(nGridAll-1);
-idxLow(idx_ShootEnd) = [];
+idxLow(pack.idx_ShootEnd) = [];
 idxUpp = idxLow+1;
 
 xLow = x(:,idxLow);
@@ -294,18 +301,37 @@ fUpp = f(:,idxUpp);
 defectsTrap = xUpp-xLow - 0.5*dt*(fLow+fUpp);
 
 % Shooting Defects
-xUppShoot = x(:,idx_ShootEnd+1);
-xLowShoot = x(:,idx_ShootEnd);
+xUppShoot = x(:,pack.idx_ShootEnd+1);
+xLowShoot = x(:,pack.idx_ShootEnd);
 defectsShoot = xUppShoot - xLowShoot;
 
 % Shooting Defects Control 
-uUppShoot = u(:,idx_ShootEnd+1);
-uLowShoot = u(:,idx_ShootEnd);
+uUppShoot = u(:,pack.idx_ShootEnd+1);
+uLowShoot = u(:,pack.idx_ShootEnd);
 defectsShootCtrl = uUppShoot - uLowShoot;
 
-% All defects
-defects = [defectsTrap,defectsShoot];
-defects = [defects(:);defectsShootCtrl(:)];
+% Indicies of defect constraints. Organize defect constraints so that
+% gradients have a banded structure.
+indtmp = ones(nState+nControl,nGridAll);
+indtmp(nState+(1:nControl),pack.idx_Traj) = 0;
+indtmp = reshape(cumsum(indtmp(:)),nState+nControl,nGridAll);
+
+% All defect constraints
+nDefect = numel(defectsTrap)+numel(defectsShoot)+numel(defectsShootCtrl);
+defects = zeros(nDefect,1);
+
+% Trapezoidal integration defects
+indTrap = indtmp(1:nState,pack.idx_Traj(1:end-1));
+defects(indTrap(:),1) = defectsTrap(:);
+
+% State Shooting Defects
+indShootEnd = indtmp(1:nState,pack.idx_ShootEnd);
+defects(indShootEnd(:),1) = defectsShoot(:);
+
+% Control Shooting Defects
+indShootEndControl = indtmp(nState+(1:nControl),pack.idx_ShootEnd);
+defects(indShootEndControl(:),1) = defectsShootCtrl(:);
+
 
 %%%% Gradient Calculations:
 if nargout ==2 || nargout >1
@@ -324,15 +350,38 @@ if nargout ==2 || nargout >1
     defectsGradTrap = xUppGrad - xLowGrad + dtGradTerm + ...
         - 0.5*dt*(fLowGrad+fUppGrad);
     
-    % Shooting Segment Gradients
-    defectsGradShoot = xGrad(:,idx_ShootEnd+1,:)-xGrad(:,idx_ShootEnd,:);
+    % Shooting state defects
+    defectsGradShoot = xGrad(:,pack.idx_ShootEnd+1,:)-xGrad(:,pack.idx_ShootEnd,:);
     
-    defectsGradShootCtrl = uGrad(:,idx_ShootEnd+1,:)-uGrad(:,idx_ShootEnd,:);
+    % Shooting Control defects
+    defectsGradShootCtrl = uGrad(:,pack.idx_ShootEnd+1,:)-uGrad(:,pack.idx_ShootEnd,:);
     
-    %defectsGradShoot = cat(1,defectsGradShoot,defectsGradShootCtrl);
+    % all defects
+    defectsGrad = zeros(numel(defects),pack.nDecVar);
     
-    % concatanate defect gradients
-    defectsGrad= cat(2,defectsGradTrap,defectsGradShoot);
+    % Trapezoidal integration defects
+    defectsGrad(indTrap(:),:) = grad_flattenPathCst(defectsGradTrap);
+
+    % State Shooting Defects
+    defectsGrad(indShootEnd(:),:) = grad_flattenPathCst(defectsGradShoot);
+
+    % Control Shooting Defects
+    defectsGrad(indShootEndControl(:),:) = grad_flattenPathCst(defectsGradShootCtrl);
+
+end
+
+end
+
+function C = grad_flattenPathCst(CC)
+%
+% This function takes a path constraint and reshapes the first two
+% dimensions so that it can be passed to fmincon
+%
+if isempty(CC)
+    C = [];
+else
+    [n1,n2,n3] = size(CC);
+    C = reshape(CC,n1*n2,n3);
 end
 
 end
