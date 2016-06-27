@@ -207,7 +207,6 @@ if nargout == 2
     %Pack up the gradients of the defects:
     defectsGrad = cat(2,defectMidpointGrad,defectIntervalGrad);
     
-    
     % rearrange defects for bandedness.
     defectsGrad_tmp = 0*defectsGrad;
     defectsGrad_tmp(:,iLow,:) = defectIntervalGrad;
@@ -221,7 +220,7 @@ end
 
 %%%% Compute defects for hermite simpson multiple shooting (state defect
 %%%% only)
-function [defects, defectsGrad] = computeDefectsShooting(dt,x,f,idx_ShootEnd,dtGrad,xGrad,fGrad)
+function [defects, defectsGrad] = computeDefectsShooting(pack,dt,x,f,dtGrad,xGrad,fGrad)
 %
 % This function computes the defects that are used to enforce the
 % continuous dynamics of the system along the trajectory.
@@ -241,10 +240,10 @@ function [defects, defectsGrad] = computeDefectsShooting(dt,x,f,idx_ShootEnd,dtG
 %
 
 nGridAll = size(x,2); % nGridAll = nShootSegment + nTime
+nState = pack.nState;
 
-%iLow1 = 1:2:(nGridAll-1);
 iLow = 1:nGridAll-1;
-iLow(idx_ShootEnd) = [];
+iLow(pack.idx_ShootEnd) = [];
 iLow = iLow(1:2:end);
 
 iMid = iLow + 1;
@@ -264,16 +263,24 @@ defectMidpoint = xMid - (xUpp+xLow)/2 - dt*(fLow-fUpp)/4;
 % Interval constraint (Simpson)
 defectInterval = xUpp - xLow - dt*(fUpp + 4*fMid + fLow)/3;
 
-% Pack up all defects:
-defectsSimpson = [defectMidpoint, defectInterval];
+% Organize hermite simpson defects for banded gradients.
+iLowTraj = 1:2:(nGridAll-pack.nShootSegment-1); 
+iMidTraj = iLowTraj+1;
+defectsSimpson = zeros(nState,nGridAll-pack.nShootSegment-1);
+defectsSimpson(:,iLowTraj) = defectInterval;
+defectsSimpson(:,iMidTraj) = defectMidpoint;
 
 % Shooting Defects
-xUppShoot = x(:,idx_ShootEnd+1);
-xLowShoot = x(:,idx_ShootEnd);
+xUppShoot = x(:,pack.idx_ShootEnd+1);
+xLowShoot = x(:,pack.idx_ShootEnd);
 defectsShoot = xUppShoot - xLowShoot;
 
-% All defects
-defects = [defectsSimpson,defectsShoot];
+% % Packup all defect constraints
+defects = zeros(nState,nGridAll-1);
+defects(:,pack.idx_Traj(1:end-1)) = defectsSimpson;
+defects(:,pack.idx_ShootEnd) = defectsShoot;
+
+% defects = [defectInterval,defectMidpoint,defectsShoot];
 
 %%%% Gradient Calculations:
 if nargout == 2
@@ -299,13 +306,23 @@ if nargout == 2
     dtGradTerm(:,:,2) = -dtGrad(2)*(fUpp + 4*fMid + fLow)/3;
     defectIntervalGrad = xUppGrad - xLowGrad + dtGradTerm + ...
         - dt*(fUppGrad + 4*fMidGrad + fLowGrad)/3;
+      
+    % organize defect constraints for bandned structure
+    defectsGradSimpson = zeros(pack.nState,nGridAll-pack.nShootSegment-1,pack.nDecVar);
+    defectsGradSimpson(:,iLowTraj,:) = defectIntervalGrad;
+    defectsGradSimpson(:,iMidTraj,:) = defectMidpointGrad;
     
     % Shooting Segment Gradients
-    defectsGradShoot = xGrad(:,idx_ShootEnd+1,:)-xGrad(:,idx_ShootEnd,:);
+    defectsGradShoot = xGrad(:,pack.idx_ShootEnd+1,:)-xGrad(:,pack.idx_ShootEnd,:); 
     
     %Pack up the gradients of the defects:
-    defectsGrad = cat(2,defectMidpointGrad,defectIntervalGrad,defectsGradShoot);
+    defectsGrad = zeros(pack.nState,nGridAll-1,pack.nDecVar);
     
+    % Simpson Integration Constraints
+    defectsGrad(:,pack.idx_Traj(1:end-1),:) = defectsGradSimpson;
+    
+    % State shooting defects
+    defectsGrad(:,pack.idx_ShootEnd,:) = defectsGradShoot;
 end
 
 end
@@ -313,7 +330,7 @@ end
 
 %%%% Compute defects for hermite simpson multiple shooting (state and control
 %%%% defect)
-function [defects, defectsGrad, defectsGradShootCtrl] = computeDefectsShootingCtlDefect(pack,dt,x,u,f,dtGrad,xGrad,uGrad,fGrad)
+function [defects, defectsGrad] = computeDefectsShootingCtlDefect(pack,dt,x,u,f,dtGrad,xGrad,uGrad,fGrad)
 %
 % This function computes the defects that are used to enforce the
 % continuous dynamics of the system along the trajectory.
@@ -336,7 +353,6 @@ nGridAll = size(x,2); % nGridAll = nShootSegment + nTime
 nState = pack.nState;
 nControl = pack.nControl;
 
-%iLow1 = 1:2:(nGridAll-1);
 iLow = 1:nGridAll-1;
 iLow(pack.idx_ShootEnd) = [];
 iLow = iLow(1:2:end);
@@ -358,8 +374,12 @@ defectMidpoint = xMid - (xUpp+xLow)/2 - dt*(fLow-fUpp)/4;
 % Interval constraint (Simpson)
 defectInterval = xUpp - xLow - dt*(fUpp + 4*fMid + fLow)/3;
 
-% Pack up all defects:
-defectsSimpson = [defectMidpoint, defectInterval];
+% Organize hermite simpson defects for banded gradients.
+iLowTraj = 1:2:(nGridAll-pack.nShootSegment-1); 
+iMidTraj = iLowTraj+1;
+defectsSimpson = zeros(nState,nGridAll-pack.nShootSegment-1);
+defectsSimpson(:,iLowTraj) = defectInterval;
+defectsSimpson(:,iMidTraj) = defectMidpoint;
 
 % Shooting Defects
 xUppShoot = x(:,pack.idx_ShootEnd+1);
@@ -371,9 +391,9 @@ uUppShoot = u(:,pack.idx_ShootEnd+1);
 uLowShoot = u(:,pack.idx_ShootEnd);
 defectsShootCtrl = uUppShoot - uLowShoot;
 
-% % All defects
-% defects = [defectsSimpson,defectsShoot];
-% defects = [defects(:);defectsShootCtrl(:)];
+% Packup all defect constraints
+nDefect = numel(defectsSimpson)+numel(defectsShoot)+numel(defectsShootCtrl);
+defects = zeros(nDefect,1);
 
 % Indicies of defect constraints. Organize defect constraints so that
 % gradients have a banded structure.
@@ -381,13 +401,9 @@ indtmp = ones(nState+nControl,nGridAll);
 indtmp(nState+(1:nControl),pack.idx_Traj) = 0;
 indtmp = reshape(cumsum(indtmp(:)),nState+nControl,nGridAll);
 
-% All defect constraints
-nDefect = numel(defectsSimpson)+numel(defectsShoot)+numel(defectsShootCtrl);
-defects = zeros(nDefect,1);
-
-% Trapezoidal integration defects
-indTrap = indtmp(1:nState,pack.idx_Traj(1:end-1));
-defects(indTrap(:),1) = defectsSimpson(:);
+% Integration defects
+indInt = indtmp(1:nState,pack.idx_Traj(1:end-1));
+defects(indInt(:),1) = defectsSimpson(:);
 
 % State Shooting Defects
 indShootEnd = indtmp(1:nState,pack.idx_ShootEnd);
@@ -422,23 +438,22 @@ if nargout == 2 || nargout >1
     defectIntervalGrad = xUppGrad - xLowGrad + dtGradTerm + ...
         - dt*(fUppGrad + 4*fMidGrad + fLowGrad)/3;
     
-    % Shooting Segment Gradients
+    % organize defect constraints for bandned structure
+    defectsGradSimpson = zeros(pack.nState,nGridAll-pack.nShootSegment-1,pack.nDecVar);
+    defectsGradSimpson(:,iLowTraj,:) = defectIntervalGrad;
+    defectsGradSimpson(:,iMidTraj,:) = defectMidpointGrad;
+    
+    % Shooting state defects
     defectsGradShoot = xGrad(:,pack.idx_ShootEnd+1,:)-xGrad(:,pack.idx_ShootEnd,:);
     
-    defectsGradShootCtrl = uGrad(:,pack.idx_ShootEnd+1,:)-uGrad(:,pack.idx_ShootEnd,:);
+    % Shooting control defects
+    defectsGradShootCtrl = uGrad(:,pack.idx_ShootEnd+1,:)-uGrad(:,pack.idx_ShootEnd,:);    
     
-    %defectsGradShoot = cat(1,defectsGradShoot,defectsGradShootCtrl);
-    
-%     %Pack up the gradients of the defects:
-%     defectsGrad = cat(2,defectMidpointGrad,defectIntervalGrad,defectsGradShoot);
-%     
-    defectsGradSimpson = cat(2,defectMidpointGrad,defectIntervalGrad);
-    
-    % all defects
+    % Packup all defects
     defectsGrad = zeros(numel(defects),pack.nDecVar);
     
     % Trapezoidal integration defects
-    defectsGrad(indTrap(:),:) = grad_flattenPathCst(defectsGradSimpson);
+    defectsGrad(indInt(:),:) = grad_flattenPathCst(defectsGradSimpson);
 
     % State Shooting Defects
     defectsGrad(indShootEnd(:),:) = grad_flattenPathCst(defectsGradShoot);
@@ -449,6 +464,7 @@ if nargout == 2 || nargout >1
 end
 
 end
+
 
 function C = grad_flattenPathCst(CC)
 %

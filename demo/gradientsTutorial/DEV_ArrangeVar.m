@@ -50,8 +50,8 @@ problem.options(1).nlpOpt = optimset(...
     'MaxFunEvals',600);
 
 % method = 'dircolShooting_trap';
+% method = 'dircolShooting_trap_ctrl';
 % method = 'dircolShooting_herm';
-method = 'dircolShooting_trap_ctrl';
 method = 'dircolShooting_herm_ctrl';
 
 switch method
@@ -69,6 +69,10 @@ switch method
         % plot defect gradient sparsity
         problem.options(1).trapezoid.PlotDefectGrad = 'on';
         
+        problem.options(2) = problem.options(1);
+        problem.options(2).defaultAccuracy = 'medium';
+        problem.options(2).trapezoid.AdaptiveDerivativeCheck = 'off';
+        
     case 'dircolShooting_trap_ctrl'  % with Control defect
 
         problem.options(1).method = 'trapezoid';
@@ -77,13 +81,13 @@ switch method
         problem.options(1).trapezoid.shooting = 'on';
         problem.options(1).trapezoid.crtldefect = 'on';
         
-        problem.options(1).trapezoid.nShootSegment = 5;
+        problem.options(1).trapezoid.nShootSegment = 4;
         
         problem.options(1).trapezoid.PlotDefectGrad = 'on';
         
         problem.options(2) = problem.options(1);
         problem.options(2).defaultAccuracy = 'medium';
-        problem.options(2).trapezoid.AdaptiveDerivativeCheck = 'on';
+        problem.options(2).trapezoid.AdaptiveDerivativeCheck = 'off';
         
     case 'dircolShooting_herm'
         
@@ -93,9 +97,13 @@ switch method
         problem.options(1).hermiteSimpson.shooting = 'on';
         problem.options(1).hermiteSimpson.crtldefect = 'off';
         
+        problem.options(1).hermiteSimpson.nShootSegment = 4;
+        
+        problem.options(1).hermiteSimpson.PlotDefectGrad = 'on';
+        
         problem.options(2) = problem.options(1);
         problem.options(2).defaultAccuracy = 'medium';
-        problem.options(2).hermiteSimpson.AdaptiveDerivativeCheck = 'on';
+        problem.options(2).hermiteSimpson.AdaptiveDerivativeCheck = 'off';
         
     case 'dircolShooting_herm_ctrl'
         
@@ -105,12 +113,14 @@ switch method
         problem.options(1).hermiteSimpson.shooting = 'on';
         problem.options(1).hermiteSimpson.crtldefect = 'on';
         
+        problem.options(1).hermiteSimpson.nShootSegment = 5;
+        
         problem.options(1).hermiteSimpson.PlotDefectGrad = 'on';
         
-%         problem.options(2) = problem.options(1);
-%         problem.options(2).defaultAccuracy = 'medium';
-%         problem.options(2).hermiteSimpson.AdaptiveDerivativeCheck = 'on';
-%         
+        problem.options(2) = problem.options(1);
+        problem.options(2).defaultAccuracy = 'medium';
+        problem.options(2).hermiteSimpson.AdaptiveDerivativeCheck = 'off';
+        
 end
 
 

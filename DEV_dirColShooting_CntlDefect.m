@@ -67,6 +67,13 @@ switch Opt.method
         % Main Trajectory indices
         idx_Traj = 1:nGrid+nShootSegment;
         idx_Traj(idx_ShootEnd) = [];
+        
+        % the last segment has more points than other segments
+        if (idx_Traj(end) - (idx_ShootEnd(end)+1) > nSplineSegment)
+            warning(['The number of splines in the last shooting ',...
+                'segment is greater than the other segments. May be good to reduce the number of shooting segments.'])
+            fprintf('\n')
+        end
     
     otherwise
         error('undefined dirCol Shooting Method')
@@ -83,13 +90,11 @@ end
 guess.tSpan = G.time([1,end]);
 
 guess.time = linspace(guess.tSpan(1), guess.tSpan(2), nGrid);
-% guess of state
-% assume at end of shooting segments x_minus = x_plus
+% guess of state: Set x_minus = x_plus for each shooting segment
 guess.state = zeros(size(G.state,1),nGrid+nShootSegment);
 guess.state(:,idx_Traj) = interp1(G.time', G.state', guess.time')';
 guess.state(:,idx_ShootEnd) = guess.state(:,idx_ShootEnd+1);
-% guess of state
-% assume at end of shooting segments u_minus = u_plus
+% guess of control: u_minus = u_plus
 guess.control = zeros(size(G.control,1),nGrid+nShootSegment);
 guess.control(:,idx_Traj) = interp1(G.time', G.control', guess.time')';
 guess.control(:,idx_ShootEnd) = guess.control(:,idx_ShootEnd+1);
@@ -224,6 +229,7 @@ tSpan = [t(1); t(end)];
 xCol = reshape(x, nState*(nTime+nShootSegment), 1);
 uCol = reshape(u, nControl*(nTime+nShootSegment), 1);
 
+% control and state indices in the decision variable vector
 indz = reshape(2+(1:numel(u)+numel(x)),nState+nControl,nTime+nShootSegment);
 
 % index of time, state, control variables in the decVar vector
@@ -231,7 +237,7 @@ tIdx = 1:2;
 xIdx = indz(1:nState,:);
 uIdx = indz(nState+(1:nControl),:);
 
-% create decision Var vector (z) from t, x, u
+% decision variables
 % variables are indexed so that the defects gradients appear as a banded
 % matrix
 z = zeros(2+numel(indz),1);
@@ -242,7 +248,7 @@ z(uIdx(:),1) = uCol;
 pack.nTime = nTime;
 pack.nState = nState;
 pack.nControl = nControl;
-pack.nDecVar = 2 + (nState+nControl)*(nTime+nShootSegment);
+pack.nDecVar = 2 + nState*(nTime+nShootSegment) + nControl*(nTime+nShootSegment);
 pack.tIdx = tIdx;
 pack.xIdx = xIdx;
 pack.uIdx = uIdx;
@@ -372,14 +378,12 @@ function [c, ceq] = myConstraint(z,pack,dynFun, pathCst, bndCst, defectCst)
 %   ceq = equality constraints to be passed to fmincon
 %
 
-idx_ShootEnd = pack.idx_ShootEnd;
-
 [t,x,u,t_all,x_all,u_all] = unPackDecVar(z,pack);
 
 %%%% Compute defects along the trajectory:
 dt = (t(end)-t(1))/(length(t)-1);
 f_all = dynFun(t_all,x_all,u_all);
-defects = defectCst(pack,dt,x_all,u_all,f_all,idx_ShootEnd);
+defects = defectCst(pack,dt,x_all,u_all,f_all);
 
 %%%% Call user-defined constraints and pack up:
 [c, ceq] = collectConstraints(t,x,u,defects, pathCst, bndCst);
@@ -500,7 +504,7 @@ nControl = pack.nControl;
 nDecVar = pack.nDecVar;
 
 gradInfo.nDecVar = nDecVar;
-
+%zIdx = 1:nDecVar;
 %[tIdx, xIdx, uIdx, tIdxAll, xIdxAll, uIdxAll] = unPackDecVar(zIdx,pack);
 tIdx = pack.tIdx;
 xIdx = pack.xIdx(:,pack.idx_Traj);
@@ -567,7 +571,7 @@ end
 %%%% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ %%%%
 
 
-function [c, ceq, cGrad, ceqGrad] = grad_collectConstraints(t,x,u,defects, defectsGrad, defectsGradShootCtrl, pathCst, bndCst, gradInfo)
+function [c, ceq, cGrad, ceqGrad] = grad_collectConstraints(t,x,u,defects, defectsGrad, pathCst, bndCst, gradInfo)
 % [c, ceq, cGrad, ceqGrad] = grad_collectConstraints(t,x,u,defects, defectsGrad, pathCst, bndCst, gradInfo)
 %
 % TrajOpt utility function.
@@ -591,7 +595,7 @@ function [c, ceq, cGrad, ceqGrad] = grad_collectConstraints(t,x,u,defects, defec
 
 ceq_dyn = reshape(defects,numel(defects),1);
 if size(defectsGrad,3) > 1
-    ceq_dynGrad = [grad_flattenPathCst(defectsGrad);grad_flattenPathCst(defectsGradShootCtrl)];
+    ceq_dynGrad = grad_flattenPathCst(defectsGrad);
 else
     ceq_dynGrad = defectsGrad;
 end
@@ -878,12 +882,12 @@ uGradAll = gradInfo.uGradAll;
 fGradAll = grad_reshapeContinuousAll(f_allGradRaw,gradInfo);
 
 %computeDefects(dt,x,f_all,idx_ShootEnd,dtGrad,xGrad,fGrad)
-[defects, defectsGrad,defectsGradShoot] = defectCst(pack,dt,x_all,u_all,f_all,...
+[defects, defectsGrad] = defectCst(pack,dt,x_all,u_all,f_all,...
     dtGrad, xGradAll, uGradAll, fGradAll);
 
 % Compute gradients of the user-defined constraints and then pack up:
 [c, ceq, cGrad, ceqGrad] = grad_collectConstraints(t,x,u,...
-    defects, defectsGrad, defectsGradShoot, pathCst, bndCst, gradInfo);
+    defects, defectsGrad, pathCst, bndCst, gradInfo);
 
 end
 

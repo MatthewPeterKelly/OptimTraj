@@ -186,7 +186,7 @@ end
 
 %%%% Compute defects for multi-shooting trapezoid with no defect in control
 %%%% only defect in state
-function [defects, defectsGrad] = computeDefectsShooting(dt,x,f,idx_ShootEnd,dtGrad,xGrad,fGrad)
+function [defects, defectsGrad] = computeDefectsShooting(pack,dt,x,f,dtGrad,xGrad,fGrad)
 %
 % This function computes the defects that are used to enforce the
 % continuous dynamics of the system along the trajectory.
@@ -207,9 +207,10 @@ function [defects, defectsGrad] = computeDefectsShooting(dt,x,f,idx_ShootEnd,dtG
 %
 
 nGridAll = size(x,2); % nGridAll = nShootSegment + nTime
+nState = pack.nState;
 
 idxLow = 1:(nGridAll-1);
-idxLow(idx_ShootEnd) = [];
+idxLow(pack.idx_ShootEnd) = [];
 idxUpp = idxLow+1;
 
 xLow = x(:,idxLow);
@@ -222,14 +223,14 @@ fUpp = f(:,idxUpp);
 defectsTrap = xUpp-xLow - 0.5*dt*(fLow+fUpp);
 
 % Shooting Defects
-xUppShoot = x(:,idx_ShootEnd+1);
-xLowShoot = x(:,idx_ShootEnd);
+xUppShoot = x(:,pack.idx_ShootEnd+1);
+xLowShoot = x(:,pack.idx_ShootEnd);
 defectsShoot = xUppShoot - xLowShoot;
 
-% All defects
-defects = [defectsTrap,defectsShoot];
+% Packup all defects
+defects = zeros(nState,nGridAll-1);
 defects(:,idxLow) = defectsTrap;
-defects(:,idx_ShootEnd) = defectsShoot;
+defects(:,pack.idx_ShootEnd) = defectsShoot;
 
 %%%% Gradient Calculations:
 if nargout == 2
@@ -249,12 +250,16 @@ if nargout == 2
         - 0.5*dt*(fLowGrad+fUppGrad);
     
     % Shooting Segment Gradients
-    defectsGradShoot = xGrad(:,idx_ShootEnd+1,:)-xGrad(:,idx_ShootEnd,:);
+    defectsGradShoot = xGrad(:,pack.idx_ShootEnd+1,:)-xGrad(:,pack.idx_ShootEnd,:);
     
-    % concatanate defect gradients
-    defectsGrad = 0*cat(2,defectsGradTrap,defectsGradShoot);
+    % Packup all defects
+    defectsGrad = zeros(pack.nState,nGridAll-1,pack.nDecVar);
+    
+    % Trapezoidal Integration Constraints
     defectsGrad(:,idxLow,:) = defectsGradTrap;
-    defectsGrad(:,idx_ShootEnd,:) = defectsGradShoot;
+    
+    % State shooting defects
+    defectsGrad(:,pack.idx_ShootEnd,:) = defectsGradShoot;
 end
 
 end
@@ -262,7 +267,7 @@ end
 
 %%%% Compute defects for multi-shooting trapezoid with defects in control
 %%%% and defect in state
-function [defects, defectsGrad, defectsGradShootCtrl] = computeDefectsShootingCtlDefect(pack,dt,x,u,f,dtGrad,xGrad,uGrad,fGrad)
+function [defects, defectsGrad] = computeDefectsShootingCtlDefect(pack,dt,x,u,f,dtGrad,xGrad,uGrad,fGrad)
 %
 % This function computes the defects that are used to enforce the
 % continuous dynamics of the system along the trajectory.
@@ -316,7 +321,7 @@ indtmp = ones(nState+nControl,nGridAll);
 indtmp(nState+(1:nControl),pack.idx_Traj) = 0;
 indtmp = reshape(cumsum(indtmp(:)),nState+nControl,nGridAll);
 
-% All defect constraints
+% % Packup all defect constraints
 nDefect = numel(defectsTrap)+numel(defectsShoot)+numel(defectsShootCtrl);
 defects = zeros(nDefect,1);
 
@@ -353,10 +358,10 @@ if nargout ==2 || nargout >1
     % Shooting state defects
     defectsGradShoot = xGrad(:,pack.idx_ShootEnd+1,:)-xGrad(:,pack.idx_ShootEnd,:);
     
-    % Shooting Control defects
+    % Shooting control defects
     defectsGradShootCtrl = uGrad(:,pack.idx_ShootEnd+1,:)-uGrad(:,pack.idx_ShootEnd,:);
     
-    % all defects
+    % Packup all defects
     defectsGrad = zeros(numel(defects),pack.nDecVar);
     
     % Trapezoidal integration defects
