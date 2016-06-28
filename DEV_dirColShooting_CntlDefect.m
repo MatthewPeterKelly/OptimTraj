@@ -110,8 +110,15 @@ pack.idx_ShootEnd = idx_ShootEnd;
 pack.nShootSegment = nShootSegment;
 
 
-if flagGradCst || flagGradObj
+if flagGradCst || flagGradObj || strcmp(Opt.(Opt.method).PlotDefectGrad,'on')
     gradInfo = grad_computeInfo(pack);
+end
+
+% Plot Constraint 
+if strcmp(Opt.(Opt.method).PlotDefectGrad,'on')
+    [~,~,~,dceq] = myCstGrad(zGuess, pack, F.dynamics, [], [], F.defectCst, gradInfo);
+    figure(100),clf
+    spy(dceq')
 end
 
 
@@ -140,14 +147,6 @@ if flagGradCst
 else
     P.nonlcon = @(z)( ...
         myConstraint(z, pack, F.dynamics, F.pathCst, F.bndCst, F.defectCst) ); %Numerical gradients
-end
-
-
-% Plot Defect Constraint sparsity
-if strcmp(Opt.(Opt.method).PlotDefectGrad,'on')
-    [~,~,~,dceq] = myCstGrad(zGuess, pack, F.dynamics, [], [], F.defectCst, gradInfo);
-    figure(100),clf
-    spy(dceq')
 end
 
 
@@ -422,8 +421,8 @@ deriv = gradest(@(z) myObjGrad(z, pack, pathObj, bndObj, weights, gradInfo),z_te
 % print largest difference in numerical and analytic gradients
 fprintf('\n%s\n','Objective function derivatives:')
 fprintf('%s\n','Maximum relative difference between user-supplied')
-fprintf('%s %1.5e \n','and finite-difference derivatives = ',max(abs(dcost-deriv')))
-if any(abs(dcost-deriv') > GradientCheckTol)
+fprintf('%s %1.5e \n','and finite-difference derivatives = ',max(abs(dcost(:)-deriv(:))))
+if any(abs(dcost(:)-deriv(:)) > GradientCheckTol)
     error('Objective gradient did not pass')
 end
 
