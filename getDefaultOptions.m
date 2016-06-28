@@ -261,6 +261,7 @@ switch accuracy
         error('Invalid value for options.defaultAccuracy')
 end
 
+OPT_rungeKutta.PlotDefectGrad = 'off';
 OPT_rungeKutta.AdaptiveDerivativeCheck = 'off';
 
 end

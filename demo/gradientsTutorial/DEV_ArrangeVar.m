@@ -67,8 +67,11 @@ switch method
         % plot defect gradient sparsity
         problem.options(1).rungeKutta.PlotDefectGrad = 'on';
         
+        problem.options(1).rungeKutta.nSegment = 3;
+        
         problem.options(2) = problem.options(1);
         problem.options(2).defaultAccuracy = 'medium';
+        problem.options(2).rungeKutta.nSegment = 7;
         problem.options(2).rungeKutta.AdaptiveDerivativeCheck = 'off';
         
     case 'trapezoid'
