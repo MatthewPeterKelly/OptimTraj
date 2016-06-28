@@ -151,6 +151,7 @@ function [defects, defectsGrad] = computeDefects(dt,x,f,dtGrad,xGrad,fGrad)
 %
 
 nTime = size(x,2);
+nState = size(x,1);
 
 iLow = 1:2:(nTime-1);
 iMid = iLow + 1;
@@ -170,14 +171,10 @@ defectMidpoint = xMid - (xUpp+xLow)/2 - dt*(fLow-fUpp)/4;
 % Interval constraint (Simpson)
 defectInterval = xUpp - xLow - dt*(fUpp + 4*fMid + fLow)/3;
 
-% Pack up all defects:
-defects = [defectMidpoint, defectInterval];
-
-% rearrange defects for bandedness.
-defects_tmp = 0*defects;
-defects_tmp(:,iLow) = defectInterval;
-defects_tmp(:,iMid) = defectMidpoint;
-defects = defects_tmp;
+% Pack up all defects: Arrnage for bandedness
+defects = zeros(nState,nTime-1);
+defects(:,iLow) = defectInterval;
+defects(:,iMid) = defectMidpoint;
 
 %%%% Gradient Calculations:
 if nargout == 2
@@ -205,13 +202,11 @@ if nargout == 2
         - dt*(fUppGrad + 4*fMidGrad + fLowGrad)/3;
     
     %Pack up the gradients of the defects:
-    defectsGrad = cat(2,defectMidpointGrad,defectIntervalGrad);
-    
-    % rearrange defects for bandedness.
-    defectsGrad_tmp = 0*defectsGrad;
-    defectsGrad_tmp(:,iLow,:) = defectIntervalGrad;
-    defectsGrad_tmp(:,iMid,:) = defectMidpointGrad;
-    defectsGrad = defectsGrad_tmp;
+    % organize defect constraints for bandned structure
+    defectsGrad = zeros(nState,nTime-1,size(defectMidpointGrad,3));
+    defectsGrad(:,iLow,:) = defectIntervalGrad;
+    defectsGrad(:,iMid,:) = defectMidpointGrad;
+
 end
 
 end

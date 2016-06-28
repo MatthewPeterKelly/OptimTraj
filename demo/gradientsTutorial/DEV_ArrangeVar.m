@@ -49,13 +49,52 @@ problem.options(1).nlpOpt = optimset(...
     'DerivativeCheck','on',...
     'MaxFunEvals',600);
 
+method = 'rungeKutta';
+% method = 'trapezoid';
+% method = 'hermiteSimpson';
 % method = 'dircolShooting_trap';
 % method = 'dircolShooting_trap_ctrl';
 % method = 'dircolShooting_herm';
-method = 'dircolShooting_herm_ctrl';
+% method = 'dircolShooting_herm_ctrl';
 
 switch method
 
+    case 'rungeKutta'
+
+        problem.options(1).method = 'rungeKutta';
+        problem.options(1).defaultAccuracy = 'low';
+        
+        % plot defect gradient sparsity
+        problem.options(1).rungeKutta.PlotDefectGrad = 'on';
+        
+        problem.options(2) = problem.options(1);
+        problem.options(2).defaultAccuracy = 'medium';
+        problem.options(2).rungeKutta.AdaptiveDerivativeCheck = 'off';
+        
+    case 'trapezoid'
+
+        problem.options(1).method = 'trapezoid';
+        problem.options(1).defaultAccuracy = 'low';
+        
+        % plot defect gradient sparsity
+        problem.options(1).trapezoid.PlotDefectGrad = 'on';
+        
+        problem.options(2) = problem.options(1);
+        problem.options(2).defaultAccuracy = 'medium';
+        problem.options(2).trapezoid.AdaptiveDerivativeCheck = 'off';
+        
+  case 'hermiteSimpson'
+
+        problem.options(1).method = 'hermiteSimpson';
+        problem.options(1).defaultAccuracy = 'low';
+        
+        % plot defect gradient sparsity
+        problem.options(1).hermiteSimpson.PlotDefectGrad = 'on';
+        
+        problem.options(2) = problem.options(1);
+        problem.options(2).defaultAccuracy = 'medium';
+        problem.options(2).hermiteSimpson.AdaptiveDerivativeCheck = 'off';
+  
     case 'dircolShooting_trap'
 
         problem.options(1).method = 'trapezoid';
