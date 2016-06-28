@@ -109,7 +109,7 @@ problem.guess.control = zeros(5,2)+1;  %Start with passive trajectory
 % method = 'trapezoid';
 % method = 'dircolShooting_trap';
 % method = 'dircolShooting_trap_ctrl';
-method = 'dircolShooting_herm';
+% method = 'dircolShooting_herm';
 method = 'dircolShooting_herm_ctrl';
 
 switch method
