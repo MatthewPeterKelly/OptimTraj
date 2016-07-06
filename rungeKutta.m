@@ -205,7 +205,7 @@ indz = 1:numel(control)+numel(state)+numel(tSpan);
 indt = 1:2;
 
 % index of first element of each state (Some Sort of Bug here!!)
-indtemp = 2 + (1 : (nState-1 + (2*nSubStep)*nControl ) : numel(control)+numel(state));
+indtemp = 2 + (1 : (nState + (2*nSubStep)*nControl ) : numel(control)+numel(state));
 
 % indices of all elements of each state
 indx = repmat(indtemp,nState,1) + cumsum(ones(nState,nGridState),1) - 1;
