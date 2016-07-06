@@ -200,7 +200,7 @@ indz = 1:numel(control)+numel(state)+numel(tSpan);
 indt = 1:2;
 
 % the z index of the first element of each state over time
-indtemp = 2 + (1 : (nState-1 + (2*nSubStep+1)*nControl ) : numel(control)+numel(state));
+indtemp = 2 + (1 : (nState + (2*nSubStep)*nControl ) : numel(control)+numel(state));
 
 % remaining state elements at each time
 indx = repmat(indtemp,nState,1) + cumsum(ones(nState,nGridState),1) - 1;

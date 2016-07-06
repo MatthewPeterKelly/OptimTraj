@@ -105,12 +105,12 @@ problem.guess.control = zeros(5,2)+1;  %Start with passive trajectory
 %   ways to solve the problem.
 
 % method = 'Baseline Solution';
-% method = 'rungeKutta_test';
+method = 'rungeKutta_test';
 % method = 'trapezoid';
 % method = 'dircolShooting_trap';
 % method = 'dircolShooting_trap_ctrl';
 % method = 'dircolShooting_herm';
-method = 'dircolShooting_herm_ctrl';
+% method = 'dircolShooting_herm_ctrl';
 
 switch method
     
@@ -137,6 +137,8 @@ switch method
         problem.options(1).nlpOpt.GradConstr = 'on';
         problem.options(1).nlpOpt.GradObj = 'on';
         problem.options(1).nlpOpt.DerivativeCheck = 'on';
+        
+        problem.options(1).rungeKutta.PlotDefectGrad = 'on';
         
         problem.options(2).method = 'rungeKutta'; 
         problem.options(2).defaultAccuracy = 'low';
