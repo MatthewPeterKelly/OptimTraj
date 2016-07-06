@@ -78,6 +78,18 @@ if flagGradCst || flagGradObj
     disp('  -> Using analytic gradients');
 end
 
+% Plot Defect Constraint Sparsity Pattern
+if strcmp(Opt.rungeKutta.PlotDefectGrad,'on')
+    if flagGradCst
+        [~,~,~,dceq] = myCstGrad(zGuess, pack, F.dynamics, F.pathObj, [], [], gradInfo);
+        figure(100),clf
+        spy(dceq')
+    else
+        % Dont plot sparsity if constraint gradients are not available
+        fprintf('Warning: Constraint Gradients not available. Not plotting sparsity pattern of defects\n');
+    end
+end
+
 if flagGradObj
     P.objective = @(z)( ...
         myObjGrad(z, pack, F.dynamics, F.pathObj, F.bndObj, gradInfo) );   %Analytic gradients
@@ -94,12 +106,6 @@ else
         myConstraint(z, pack, F.dynamics, F.pathObj, F.pathCst, F.bndCst) ); %Numerical gradients
 end
 
-% Plot Defect Constraint Sparsity
-if strcmp(Opt.rungeKutta.PlotDefectGrad,'on')
-    [~,~,~,dceq] = myCstGrad(zGuess, pack, F.dynamics, F.pathObj, [], [], gradInfo);
-    figure(100),clf
-    spy(dceq')
-end
 
 % Check analytic gradients with DERIVEST package
 if strcmp(Opt.rungeKutta.AdaptiveDerivativeCheck,'on')
@@ -187,50 +193,41 @@ function [decVars,pack] = packDecVar(tSpan,state,control)
 [nState, nGridState] = size(state);
 [nControl, nGridControl] = size(control);
 
+nSegment = nGridState - 1;
+nSubStep = (nGridControl - 1)/(2*nSegment);
+
 xCol = reshape(state, nState*nGridState, 1);
 uCol = reshape(control, nControl*nGridControl, 1);
 
-decVars = [tSpan(:);xCol;uCol];
+indz = 1:numel(control)+numel(state)+numel(tSpan);
 
+% index of time in decVar
+indt = 1:2;
+
+% index of first element of each state (Some Sort of Bug here!!)
+indtemp = 2 + (1 : (nState-1 + (2*nSubStep)*nControl ) : numel(control)+numel(state));
+
+% indices of all elements of each state
+indx = repmat(indtemp,nState,1) + cumsum(ones(nState,nGridState),1) - 1;
+
+% index of control in decVar
+indu = indz;
+indu([indt(:);indx(:)])=[];
+indu = reshape(indu,nControl,nGridControl);
+
+% pack up decVars
+decVars = zeros(numel(indz),1);
+decVars(indt(:),1) = tSpan;
+decVars(indx(:),1) = xCol;
+decVars(indu(:),1) = uCol;
+
+% pack structure
 pack.nState = nState;
 pack.nGridState = nGridState;
 pack.nControl = nControl;
 pack.nGridControl = nGridControl;
 pack.nSegment = nGridState - 1;
 pack.nSubStep = (nGridControl-1)/(2*pack.nSegment);
-
-nSegment = nGridState - 1;
-nSubStep = (nGridControl - 1)/(2*nSegment);
-
-
-indz = 1:numel(control)+numel(state)+numel(tSpan);
-
-indt = 1:2;
-
-% the z index of the first element of each state over time
-indtemp = 2 + (1 : (nState-1 + (2*nSubStep+1)*nControl ) : numel(control)+numel(state));
-
-% remaining state elements at each time
-indx = repmat(indtemp,nState,1) + cumsum(ones(nState,nGridState),1) - 1;
-
-indu = indz;
-indu([indt(:);indx(:)])=[];
-indu = reshape(indu,nControl,nGridControl);
-
-% index of time, state, control variables in the decVar vector
-% indt = 1:2;
-% indx = indz(1:nState,:);
-% indu = indz(nState+(1:nControl),:);
-
-% old version
-% indx = 2+(1:nState*nTime);
-% indu = 2+nState*nTime+(1:nControl*nTime);
-
-decVars = zeros(numel(indz),1);
-decVars(indt(:),1) = tSpan;
-decVars(indx(:),1) = xCol;
-decVars(indu(:),1) = uCol;
-
 pack.indt = indt;
 pack.indx = indx;
 pack.indu = indu;
@@ -573,8 +570,8 @@ nDecVar = 2 + nState*nGridState + nControl*nGridControl;
 zIdx = 1:nDecVar;
 gradInfo.nDecVar = nDecVar;
 [tIdx, xIdx, uIdx] = unPackDecVar(zIdx,pack);
+
 gradInfo.tIdx = tIdx([1,end]);
-%gradInfo.xuIdx = [xIdx;uIdx];
 gradInfo.xIdx = xIdx;
 gradInfo.uIdx = uIdx;
 
@@ -1024,7 +1021,7 @@ function [t,x,u,defects,pathCost,dxdalpha,dJdalpha] = simSysGrad(decVars, pack, 
 %
 global RUNGE_KUTTA_t RUNGE_KUTTA_x RUNGE_KUTTA_u
 global RUNGE_KUTTA_defects RUNGE_KUTTA_pathCost
-global RUNGE_KUTTA_decVars RUNGE_KUTTA_dzdalpha
+global RUNGE_KUTTA_decVars RUNGE_KUTTA_dxdalpha RUNGE_KUTTA_dJdalpha
 %
 usePreviousValues = false;
 if ~isempty(RUNGE_KUTTA_decVars)
@@ -1041,7 +1038,8 @@ if usePreviousValues
     u = RUNGE_KUTTA_u;
     defects = RUNGE_KUTTA_defects;
     pathCost = RUNGE_KUTTA_pathCost;
-    dxdalpha = RUNGE_KUTTA_dzdalpha;
+    dxdalpha = RUNGE_KUTTA_dxdalpha;
+    dJdalpha = RUNGE_KUTTA_dJdalpha;
 else
     %
     %
@@ -1190,6 +1188,8 @@ else
     RUNGE_KUTTA_u = u;
     RUNGE_KUTTA_defects = defects;
     RUNGE_KUTTA_pathCost = pathCost;
+    RUNGE_KUTTA_dxdalpha = dxdalpha;
+    RUNGE_KUTTA_dJdalpha = dJdalpha;
     
 end
 

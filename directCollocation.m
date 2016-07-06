@@ -38,8 +38,22 @@ guess.state = interp1(G.time', G.state', guess.time')';
 guess.control = interp1(G.time', G.control', guess.time')';
 
 [zGuess, pack] = packDecVar(guess.time, guess.state, guess.control);
+
 if flagGradCst || flagGradObj
     gradInfo = grad_computeInfo(pack);
+end
+
+% Plot Defect Constraint Sparsity Pattern
+if strcmp(Opt.(Opt.method).PlotDefectGrad,'on')
+    % Sparity pattern with constraint gradients
+    if flagGradCst
+        [~,~,~,dceq] = myCstGrad(zGuess, pack, F.dynamics, [], [], F.defectCst, gradInfo);
+        figure(100),clf
+        spy(dceq')
+    else
+        % Dont plot sparsity if constraint gradients are not available
+        fprintf('Warning: Constraint Gradients not available. Not plotting sparsity pattern of defects\n');
+    end
 end
 
 % Unpack all bounds:
@@ -67,14 +81,6 @@ if flagGradCst
 else
     P.nonlcon = @(z)( ...
         myConstraint(z, pack, F.dynamics, F.pathCst, F.bndCst, F.defectCst) ); %Numerical gradients
-end
-
-
-% Plot Defect Constraint Sparsity
-if strcmp(Opt.(Opt.method).PlotDefectGrad,'on')
-    [~,~,~,dceq] = myCstGrad(zGuess, pack, F.dynamics, [], [], F.defectCst, gradInfo);
-    figure(100),clf
-    spy(dceq')
 end
 
 
@@ -145,25 +151,24 @@ uCol = reshape(u, nControl*nTime, 1);
 indz = reshape(2+(1:numel(u)+numel(x)),nState+nControl,nTime);
 
 % index of time, state, control variables in the decVar vector
-indt = 1:2;
-indx = indz(1:nState,:);
-indu = indz(nState+(1:nControl),:);
+tIdx = 1:2;
+xIdx = indz(1:nState,:);
+uIdx = indz(nState+(1:nControl),:);
 
-% old version
-% indx = 2+(1:nState*nTime);
-% indu = 2+nState*nTime+(1:nControl*nTime);
-
+% decision variables
+% variables are indexed so that the defects gradients appear as a banded
+% matrix
 z = zeros(2+numel(indz),1);
-z(indt(:),1) = tSpan;
-z(indx(:),1) = xCol;
-z(indu(:),1) = uCol;
+z(tIdx(:),1) = tSpan;
+z(xIdx(:),1) = xCol;
+z(uIdx(:),1) = uCol;
 
 pack.nTime = nTime;
 pack.nState = nState;
 pack.nControl = nControl;
-pack.indt = indt;
-pack.indx = indx;
-pack.indu = indu;
+pack.tIdx = tIdx;
+pack.xIdx = xIdx;
+pack.uIdx = uIdx;
 
 end
 
@@ -191,15 +196,11 @@ function [t,x,u] = unPackDecVar(z,pack)
 nTime = pack.nTime;
 nState = pack.nState;
 nControl = pack.nControl;
-nx = nState*nTime;
-nu = nControl*nTime;
 
 t = linspace(z(1),z(2),nTime);
 
-% x = reshape(z((2+1):(2+nx)),nState,nTime);
-% u = reshape(z((2+nx+1):(2+nx+nu)),nControl,nTime);
-x = z(pack.indx);
-u = z(pack.indu);
+x = z(pack.xIdx);
+u = z(pack.uIdx);
 
 % make sure x and u are returned as vectors, [nState,nTime] and
 % [nControl,nTime]
