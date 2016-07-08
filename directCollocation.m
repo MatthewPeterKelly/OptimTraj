@@ -51,8 +51,9 @@ if strcmp(Opt.(Opt.method).PlotDefectGrad,'on')
         figure(100),clf
         spy(dceq')
     else
-        % Dont plot sparsity if constraint gradients are not available
-        fprintf('Warning: Constraint Gradients not available. Not plotting sparsity pattern of defects\n');
+        fprintf('WARNING: Analytic constraint gradients not available... \n')
+        fprintf('         Defect gradient sparsity pattern will not be plotted.\n');
+        fprintf('\n');
     end
 end
 
