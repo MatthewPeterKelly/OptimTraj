@@ -160,16 +160,25 @@ function OPT_trapezoid = defaults_trapezoid(accuracy)
 
 switch accuracy
     case 'low'
-        OPT_trapezoid.nGrid = 15;
+        OPT_trapezoid.nGrid = 12;
+        OPT_trapezoid.nShootSegment = 5; % number of shooting segments
     case 'medium'
         OPT_trapezoid.nGrid = 30;
+        OPT_trapezoid.nShootSegment = 9;
     case 'high'
         OPT_trapezoid.nGrid = 60;
+        OPT_trapezoid.nShootSegment = 20;
     otherwise
         error('Invalid value for options.defaultAccuracy')
 end
 
+
+OPT_trapezoid.AdaptiveDerivativeCheck = 'off';
 OPT_trapezoid.PlotDefectGrad = 'off';
+
+% By default do not use shooting segments in trapezoid method
+OPT_trapezoid.shooting = 'off';
+OPT_trapezoid.crtldefect = 'off';
 
 end
 
@@ -180,15 +189,24 @@ function OPT_hermiteSimpson = defaults_hermiteSimpson(accuracy)
 switch accuracy
     case 'low'
         OPT_hermiteSimpson.nSegment = 10;
+        OPT_hermiteSimpson.nShootSegment = 3; % number of shooting segments
     case 'medium'
         OPT_hermiteSimpson.nSegment = 20;
+        OPT_hermiteSimpson.nShootSegment = 5;
     case 'high'
         OPT_hermiteSimpson.nSegment = 40;
+        OPT_hermiteSimpson.nShootSegment = 12;
     otherwise
         error('Invalid value for options.defaultAccuracy')
 end
 
+
+OPT_hermiteSimpson.AdaptiveDerivativeCheck = 'off';
 OPT_hermiteSimpson.PlotDefectGrad = 'off';
+
+% By default do not use shooting segments in hermite simpson
+OPT_hermiteSimpson.shooting = 'off';
+OPT_hermiteSimpson.crtldefect = 'off';
 
 end
 

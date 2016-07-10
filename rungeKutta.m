@@ -73,7 +73,7 @@ flagGradCst = strcmp(Opt.nlpOpt.GradConstr,'on');
 
 % gradient info for use in calculating analytic gradients of objective and
 % constraints
-if flagGradCst || flagGradObj
+if flagGradCst || flagGradObj || strcmp(Opt.rungeKutta.PlotDefectGrad,'on')
     gradInfo = grad_computeInfo(pack);
     disp('  -> Using analytic gradients');
     fprintf('\n');
@@ -208,10 +208,10 @@ indz = 1:numel(control)+numel(state)+numel(tSpan);
 % index of time in decVar
 indt = 1:2;
 
-% index of first element of each state (Some Sort of Bug here!!)
+% the z index of the first element of each state over time
 indtemp = 2 + (1 : (nState + (2*nSubStep)*nControl ) : numel(control)+numel(state));
 
-% indices of all elements of each state
+% remaining state elements at each time
 indx = repmat(indtemp,nState,1) + cumsum(ones(nState,nGridState),1) - 1;
 
 % index of control in decVar

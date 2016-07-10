@@ -62,11 +62,36 @@ end
 problem.func.weights = ones(nGrid,1);
 problem.func.weights([1,end]) = 0.5;
 
-% Trapazoid integration calculation of defects:
-problem.func.defectCst = @computeDefects;
 
-%%%% The key line - solve the problem by direct collocation:
-soln = directCollocation(problem);
+% Standard Trapezoid Direct Collocation
+if strcmp(problem.options.trapezoid.shooting,'off')
+    
+    % Trapazoid integration calculation of defects:
+    problem.func.defectCst = @computeDefects;
+
+    %%%% The key line - solve the problem by direct collocation:
+    soln = directCollocation(problem);
+
+% Trapezoid Method with Shooting
+else
+    if strcmp(problem.options.trapezoid.crtldefect,'on')
+        % Trapazoid integration calculation of defects:
+        problem.func.defectCst = @computeDefectsShootingCtlDefect;
+
+        %%%% The key line - solve the problem by direct collocation:
+        soln = DEV_dirColShooting_CntlDefect(problem);
+      
+    else % no defect in control at shooting end points
+  
+        % Trapazoid integration calculation of defects:
+        problem.func.defectCst = @computeDefectsShooting;
+
+        %%%% The key line - solve the problem by direct collocation:
+        soln = DEV_dirColShooting(problem);
+    
+    end
+end
+
 
 % Use piecewise linear interpolation for the control
 tSoln = soln.grid.time;
@@ -155,6 +180,213 @@ if nargout == 2
     defectsGrad = xUppGrad - xLowGrad + dtGradTerm + ...
         - 0.5*dt*(fLowGrad+fUppGrad);
     
+end
+
+end
+
+%%%% Compute defects for multi-shooting trapezoid with no defect in control
+%%%% only defect in state
+function [defects, defectsGrad] = computeDefectsShooting(pack,dt,x,f,dtGrad,xGrad,fGrad)
+%
+% This function computes the defects that are used to enforce the
+% continuous dynamics of the system along the trajectory.
+%
+% INPUTS:
+%   dt = time step (scalar)
+%   x = [nState, nTime + nShootSegment] = state at each grid-point along the trajectory
+%   f = [nState, nTime + nShootSegment] = dynamics of the state along the trajectory
+%   idx_ShootEnd = indices of x that correspond to end points of the Shooting Segments
+%   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+%   dtGrad = [2,1] = gradient of time step with respect to [t0; tF]
+%   xGrad = [nState,nTime+nShootSegment,nDecVar] = gradient of trajectory wrt dec vars
+%   fGrad = [nState,nTime+nShootSegment,nDecVar] = gradient of dynamics wrt dec vars
+%
+% OUTPUTS:
+%   defects = [nState, nShootSegment+nTime-1] = error in dynamics along the trajectory
+%   defectsGrad = [nState, nShootSegment+nTime-1, nDecVars] = gradient of defects
+%
+
+nGridAll = size(x,2); % nGridAll = nShootSegment + nTime
+nState = pack.nState;
+
+idxLow = 1:(nGridAll-1);
+idxLow(pack.idx_ShootEnd) = [];
+idxUpp = idxLow+1;
+
+xLow = x(:,idxLow);
+xUpp = x(:,idxUpp);
+
+fLow = f(:,idxLow);
+fUpp = f(:,idxUpp);
+
+% This is the key line:  (Trapazoid Rule)
+defectsTrap = xUpp-xLow - 0.5*dt*(fLow+fUpp);
+
+% Shooting Defects
+xUppShoot = x(:,pack.idx_ShootEnd+1);
+xLowShoot = x(:,pack.idx_ShootEnd);
+defectsShoot = xUppShoot - xLowShoot;
+
+% Packup all defects
+defects = zeros(nState,nGridAll-1);
+defects(:,idxLow) = defectsTrap;
+defects(:,pack.idx_ShootEnd) = defectsShoot;
+
+%%%% Gradient Calculations:
+if nargout == 2
+
+    % need to replace this with xGradAll
+    xLowGrad = xGrad(:,idxLow,:);
+    xUppGrad = xGrad(:,idxUpp,:);
+    
+    fLowGrad = fGrad(:,idxLow,:);
+    fUppGrad = fGrad(:,idxUpp,:);
+    
+    % Gradient of the defects:  (chain rule!)
+    dtGradTerm = zeros(size(xUppGrad));
+    dtGradTerm(:,:,1) = -0.5*dtGrad(1)*(fLow+fUpp);
+    dtGradTerm(:,:,2) = -0.5*dtGrad(2)*(fLow+fUpp);
+    defectsGradTrap = xUppGrad - xLowGrad + dtGradTerm + ...
+        - 0.5*dt*(fLowGrad+fUppGrad);
+    
+    % Shooting Segment Gradients
+    defectsGradShoot = xGrad(:,pack.idx_ShootEnd+1,:)-xGrad(:,pack.idx_ShootEnd,:);
+    
+    % Packup all defects
+    defectsGrad = zeros(pack.nState,nGridAll-1,pack.nDecVar);
+    
+    % Trapezoidal Integration Constraints
+    defectsGrad(:,idxLow,:) = defectsGradTrap;
+    
+    % State shooting defects
+    defectsGrad(:,pack.idx_ShootEnd,:) = defectsGradShoot;
+end
+
+end
+
+
+%%%% Compute defects for multi-shooting trapezoid with defects in control
+%%%% and defect in state
+function [defects, defectsGrad] = computeDefectsShootingCtlDefect(pack,dt,x,u,f,dtGrad,xGrad,uGrad,fGrad)
+%
+% This function computes the defects that are used to enforce the
+% continuous dynamics of the system along the trajectory.
+%
+% INPUTS:
+%   dt = time step (scalar)
+%   x = [nState, nTime + nShootSegment] = state at each grid-point along the trajectory
+%   f = [nState, nTime + nShootSegment] = dynamics of the state along the trajectory
+%   idx_ShootEnd = indices of x that correspond to end points of the Shooting Segments
+%   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+%   dtGrad = [2,1] = gradient of time step with respect to [t0; tF]
+%   xGrad = [nState,nTime+nShootSegment,nDecVar] = gradient of trajectory wrt dec vars
+%   fGrad = [nState,nTime+nShootSegment,nDecVar] = gradient of dynamics wrt dec vars
+%
+% OUTPUTS:
+%   defects = [nState, nShootSegment+nTime-1] = error in dynamics along the trajectory
+%   defectsGrad = [nState, nShootSegment+nTime-1, nDecVars] = gradient of defects
+%
+
+nGridAll = size(x,2); % nGridAll = nShootSegment + nTime
+
+nState = size(x,1);
+nControl = size(u,1);
+
+idxLow = 1:(nGridAll-1);
+idxLow(pack.idx_ShootEnd) = [];
+idxUpp = idxLow+1;
+
+xLow = x(:,idxLow);
+xUpp = x(:,idxUpp);
+
+fLow = f(:,idxLow);
+fUpp = f(:,idxUpp);
+
+% This is the key line:  (Trapazoid Rule)
+defectsTrap = xUpp-xLow - 0.5*dt*(fLow+fUpp);
+
+% Shooting Defects
+xUppShoot = x(:,pack.idx_ShootEnd+1);
+xLowShoot = x(:,pack.idx_ShootEnd);
+defectsShoot = xUppShoot - xLowShoot;
+
+% Shooting Defects Control 
+uUppShoot = u(:,pack.idx_ShootEnd+1);
+uLowShoot = u(:,pack.idx_ShootEnd);
+defectsShootCtrl = uUppShoot - uLowShoot;
+
+% Indicies of defect constraints. Organize defect constraints so that
+% gradients have a banded structure.
+indtmp = ones(nState+nControl,nGridAll);
+indtmp(nState+(1:nControl),pack.idx_Traj) = 0;
+indtmp = reshape(cumsum(indtmp(:)),nState+nControl,nGridAll);
+
+% % Packup all defect constraints
+nDefect = numel(defectsTrap)+numel(defectsShoot)+numel(defectsShootCtrl);
+defects = zeros(nDefect,1);
+
+% Trapezoidal integration defects
+indTrap = indtmp(1:nState,pack.idx_Traj(1:end-1));
+defects(indTrap(:),1) = defectsTrap(:);
+
+% State Shooting Defects
+indShootEnd = indtmp(1:nState,pack.idx_ShootEnd);
+defects(indShootEnd(:),1) = defectsShoot(:);
+
+% Control Shooting Defects
+indShootEndControl = indtmp(nState+(1:nControl),pack.idx_ShootEnd);
+defects(indShootEndControl(:),1) = defectsShootCtrl(:);
+
+
+%%%% Gradient Calculations:
+if nargout ==2 || nargout >1
+
+    % need to replace this with xGradAll
+    xLowGrad = xGrad(:,idxLow,:);
+    xUppGrad = xGrad(:,idxUpp,:);
+    
+    fLowGrad = fGrad(:,idxLow,:);
+    fUppGrad = fGrad(:,idxUpp,:);
+    
+    % Gradient of the defects:  (chain rule!)
+    dtGradTerm = zeros(size(xUppGrad));
+    dtGradTerm(:,:,1) = -0.5*dtGrad(1)*(fLow+fUpp);
+    dtGradTerm(:,:,2) = -0.5*dtGrad(2)*(fLow+fUpp);
+    defectsGradTrap = xUppGrad - xLowGrad + dtGradTerm + ...
+        - 0.5*dt*(fLowGrad+fUppGrad);
+    
+    % Shooting state defects
+    defectsGradShoot = xGrad(:,pack.idx_ShootEnd+1,:)-xGrad(:,pack.idx_ShootEnd,:);
+    
+    % Shooting control defects
+    defectsGradShootCtrl = uGrad(:,pack.idx_ShootEnd+1,:)-uGrad(:,pack.idx_ShootEnd,:);
+    
+    % Packup all defects
+    defectsGrad = zeros(numel(defects),pack.nDecVar);
+    
+    % Trapezoidal integration defects
+    defectsGrad(indTrap(:),:) = grad_flattenPathCst(defectsGradTrap);
+
+    % State Shooting Defects
+    defectsGrad(indShootEnd(:),:) = grad_flattenPathCst(defectsGradShoot);
+
+    % Control Shooting Defects
+    defectsGrad(indShootEndControl(:),:) = grad_flattenPathCst(defectsGradShootCtrl);
+
+end
+
+end
+
+function C = grad_flattenPathCst(CC)
+%
+% This function takes a path constraint and reshapes the first two
+% dimensions so that it can be passed to fmincon
+%
+if isempty(CC)
+    C = [];
+else
+    [n1,n2,n3] = size(CC);
+    C = reshape(CC,n1*n2,n3);
 end
 
 end
