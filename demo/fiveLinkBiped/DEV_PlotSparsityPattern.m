@@ -124,7 +124,7 @@ switch method
         problem.options(2).defaultAccuracy = 'low';
         problem.options(2).nlpOpt.GradConstr = 'on';
         problem.options(2).nlpOpt.GradObj = 'on';
-        problem.options(2).nlpOpt.DerivativeCheck = 'on';
+        problem.options(2).nlpOpt.DerivativeCheck = 'off';
         
         % The following option takes a long time, but verifies accuracy of
         % gradients more robustly than fmincon's internal checks.
@@ -142,7 +142,8 @@ switch method
         
         problem.options(2) = problem.options(1);
         problem.options(2).defaultAccuracy = 'medium';
-        %problem.options(2).trapezoid.AdaptiveDerivativeCheck = 'off';
+        problem.options(2).nlpOpt.DerivativeCheck = 'off';
+        
         
     case 'hermiteSimpson'
         problem.options(1).method = 'hermiteSimpson'; % Select the transcription method
@@ -155,8 +156,8 @@ switch method
         
         problem.options(2).method = 'hermiteSimpson'; % Select the transcription method
         problem.options(2).hermiteSimpson.nSegment = 15;  %method-specific options
-        problem.options(2).nlpOpt.GradConstr = 'on';
-        problem.options(2).nlpOpt.GradObj = 'on';
+
+        problem.options(2).nlpOpt.DerivativeCheck = 'off';
         
 end
 

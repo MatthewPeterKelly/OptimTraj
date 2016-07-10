@@ -50,7 +50,7 @@ problem.options(1).nlpOpt = optimset(...
     'MaxFunEvals',6000);
 
 method = 'rungeKutta';
-method = 'trapezoid';
+% method = 'trapezoid';
 % method = 'hermiteSimpson';
 
 switch method
