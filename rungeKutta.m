@@ -76,13 +76,22 @@ flagGradCst = strcmp(Opt.nlpOpt.GradConstr,'on');
 if flagGradCst || flagGradObj || strcmp(Opt.rungeKutta.PlotDefectGrad,'on')
     gradInfo = grad_computeInfo(pack);
     disp('  -> Using analytic gradients');
+    fprintf('\n');
 end
 
-% Plot Defect Constraint Sparsity
+% Plot Defect Constraint Sparsity Pattern
 if strcmp(Opt.rungeKutta.PlotDefectGrad,'on')
-    [~,~,~,dceq] = myCstGrad(zGuess, pack, F.dynamics, F.pathObj, [], [], gradInfo);
-    figure(100),clf
-    spy(dceq')
+    if flagGradCst
+        [~,~,~,dceq] = myCstGrad(zGuess, pack, F.dynamics, F.pathObj, [], [], gradInfo);
+        figure(100),clf
+        spy(dceq')
+        title('Defect Gradient Sparsity Pattern')
+    else
+        % Dont plot sparsity if constraint gradients are not available
+        fprintf('WARNING: Analytic constraint gradients not available... \n')
+        fprintf('         Defect gradient sparsity pattern will not be plotted.\n');
+        fprintf('\n');
+    end
 end
 
 if flagGradObj
@@ -1016,7 +1025,7 @@ function [t,x,u,defects,pathCost,dxdalpha,dJdalpha] = simSysGrad(decVars, pack, 
 %
 global RUNGE_KUTTA_t RUNGE_KUTTA_x RUNGE_KUTTA_u
 global RUNGE_KUTTA_defects RUNGE_KUTTA_pathCost
-global RUNGE_KUTTA_decVars RUNGE_KUTTA_dzdalpha
+global RUNGE_KUTTA_decVars RUNGE_KUTTA_dxdalpha RUNGE_KUTTA_dJdalpha
 %
 usePreviousValues = false;
 if ~isempty(RUNGE_KUTTA_decVars)
@@ -1033,7 +1042,8 @@ if usePreviousValues
     u = RUNGE_KUTTA_u;
     defects = RUNGE_KUTTA_defects;
     pathCost = RUNGE_KUTTA_pathCost;
-    dxdalpha = RUNGE_KUTTA_dzdalpha;
+    dxdalpha = RUNGE_KUTTA_dxdalpha;
+    dJdalpha = RUNGE_KUTTA_dJdalpha;
 else
     %
     %
@@ -1182,6 +1192,8 @@ else
     RUNGE_KUTTA_u = u;
     RUNGE_KUTTA_defects = defects;
     RUNGE_KUTTA_pathCost = pathCost;
+    RUNGE_KUTTA_dxdalpha = dxdalpha;
+    RUNGE_KUTTA_dJdalpha = dJdalpha;
     
 end
 

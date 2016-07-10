@@ -49,7 +49,7 @@ switch Opt.method
         
         % the last segment has more points than other segments
         if (idx_Traj(end) - (idx_ShootEnd(end)+1) > nSplineSegment)
-            warning(['The number of splines in the last shooting ',...
+            fprintf(['WARNING: The number of splines in the last shooting ',...
                 'segment is greater than the other segments. May be good to reduce the number of shooting segments.'])
             fprintf('\n')
         end
@@ -70,7 +70,7 @@ switch Opt.method
         
         % the last segment has more points than other segments
         if (idx_Traj(end) - (idx_ShootEnd(end)+1) > nSplineSegment)
-            warning(['The number of splines in the last shooting ',...
+            fprintf(['WARNING: The number of splines in the last shooting ',...
                 'segment is greater than the other segments. May be good to reduce the number of shooting segments.'])
             fprintf('\n')
         end
@@ -110,15 +110,23 @@ pack.idx_ShootEnd = idx_ShootEnd;
 pack.nShootSegment = nShootSegment;
 
 
-if flagGradCst || flagGradObj || strcmp(Opt.(Opt.method).PlotDefectGrad,'on')
+if flagGradCst || flagGradObj
     gradInfo = grad_computeInfo(pack);
 end
 
-% Plot Constraint 
+% Plot Defect Constraint Sparsity Pattern
 if strcmp(Opt.(Opt.method).PlotDefectGrad,'on')
-    [~,~,~,dceq] = myCstGrad(zGuess, pack, F.dynamics, [], [], F.defectCst, gradInfo);
-    figure(100),clf
-    spy(dceq')
+    % Sparity pattern with constraint gradients
+    if flagGradCst
+        [~,~,~,dceq] = myCstGrad(zGuess, pack, F.dynamics, [], [], F.defectCst, gradInfo);
+        figure(100),clf
+        spy(dceq')
+        title('Defect Gradient Sparsity Pattern')
+    else
+        fprintf('WARNING: Analytic constraint gradients not available... \n')
+        fprintf('         Defect gradient sparsity pattern will not be plotted.\n');
+        fprintf('\n');
+    end
 end
 
 

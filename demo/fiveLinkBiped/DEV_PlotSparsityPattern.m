@@ -101,11 +101,19 @@ problem.guess.control = zeros(5,2)+1;  %Start with passive trajectory
 %   explicitly written out many options below, but the solver will fill in
 %   almost all defaults for you if they are ommitted.
 
-%NOTE:  There are many methods written out below, just to show different
-%   ways to solve the problem.
+%NOTE:  Methods below are chosen for testing the dirCol Shooting methods
+%and the defect sparsity plotting.
 
-% method = 'Baseline Solution';
-method = 'rungeKutta_test';
+% Options for fmincon
+problem.options(1).nlpOpt = optimset(...
+    'Display','iter',...
+    'GradObj','on',...
+    'GradConstr','on',...
+    'DerivativeCheck','off',...
+    'MaxFunEvals',6000);
+
+method = 'Baseline Solution';
+% method = 'rungeKutta_test';
 % method = 'trapezoid';
 % method = 'dircolShooting_trap';
 % method = 'dircolShooting_trap_ctrl';
@@ -118,9 +126,6 @@ switch method
         
         problem.options(1).method = 'hermiteSimpson'; % Select the transcription method
         problem.options(1).hermiteSimpson.nSegment = 6;  %method-specific options
-        problem.options(1).nlpOpt.GradConstr = 'on';
-        problem.options(1).nlpOpt.GradObj = 'on';
-        problem.options(1).nlpOpt.DerivativeCheck = 'on';
         
         problem.options(1).hermiteSimpson.PlotDefectGrad = 'on';
         
@@ -128,23 +133,17 @@ switch method
         problem.options(2).hermiteSimpson.nSegment = 15;  %method-specific options
         problem.options(2).nlpOpt.GradConstr = 'on';
         problem.options(2).nlpOpt.GradObj = 'on';
-
     
     case 'rungeKutta_test'
         
         problem.options(1).method = 'rungeKutta'; 
         problem.options(1).defaultAccuracy = 'low';
-        problem.options(1).nlpOpt.GradConstr = 'on';
-        problem.options(1).nlpOpt.GradObj = 'on';
-        problem.options(1).nlpOpt.DerivativeCheck = 'on';
         
         problem.options(1).rungeKutta.PlotDefectGrad = 'on';
         
         problem.options(2).method = 'rungeKutta'; 
-        problem.options(2).defaultAccuracy = 'low';
-        problem.options(2).nlpOpt.GradConstr = 'on';
-        problem.options(2).nlpOpt.GradObj = 'on';
-        problem.options(2).nlpOpt.DerivativeCheck = 'on';
+        problem.options(2).defaultAccuracy = 'medium';
+        problem.options(2).nlpOpt.DerivativeCheck = 'off';
         
         % The following option takes a long time, but verifies accuracy of
         % gradients more robustly than fmincon's internal checks.
@@ -154,9 +153,6 @@ switch method
 
         problem.options(1).method = 'trapezoid';
         problem.options(1).defaultAccuracy = 'low';
-        problem.options(1).nlpOpt.GradConstr = 'on';
-        problem.options(1).nlpOpt.GradObj = 'on';
-        problem.options(1).nlpOpt.DerivativeCheck = 'on';
         
         problem.options(1).trapezoid.PlotDefectGrad = 'on';
 
@@ -165,14 +161,13 @@ switch method
         
         problem.options(2) = problem.options(1);
         problem.options(2).defaultAccuracy = 'medium';
+        problem.options(2).nlpOpt.DerivativeCheck = 'off';
+        
         problem.options(2).trapezoid.AdaptiveDerivativeCheck = 'off';
         
     case 'dircolShooting_trap'
 
         problem.options(1).method = 'trapezoid';
-        problem.options(1).nlpOpt.GradConstr = 'on';
-        problem.options(1).nlpOpt.GradObj = 'on';
-        problem.options(1).nlpOpt.DerivativeCheck = 'on';
         problem.options(1).defaultAccuracy = 'low';
         
         problem.options(1).trapezoid.shooting = 'on';
@@ -185,6 +180,7 @@ switch method
         
         problem.options(2) = problem.options(1);
         problem.options(2).defaultAccuracy = 'medium';
+        problem.options(2).nlpOpt.DerivativeCheck = 'off';
         
         % The following option takes a long time, but verifies accuracy of
         % gradients more robustly than fmincon's internal checks.
@@ -193,9 +189,6 @@ switch method
     case 'dircolShooting_trap_ctrl'  % with Control defect
 
         problem.options(1).method = 'trapezoid';
-        problem.options(1).nlpOpt.GradConstr = 'on';
-        problem.options(1).nlpOpt.GradObj = 'on';
-        problem.options(1).nlpOpt.DerivativeCheck = 'on';
         problem.options(1).defaultAccuracy = 'low';
         
         problem.options(1).trapezoid.shooting = 'on';
@@ -207,6 +200,7 @@ switch method
         
         problem.options(2) = problem.options(1);
         problem.options(2).defaultAccuracy = 'medium';
+        problem.options(2).nlpOpt.DerivativeCheck = 'off';
 
         % The following option takes a long time, but verifies accuracy of
         % gradients more robustly than fmincon's internal checks.
@@ -215,9 +209,6 @@ switch method
     case 'dircolShooting_herm'
         
         problem.options(1).method = 'hermiteSimpson';
-        problem.options(1).nlpOpt.GradConstr = 'on';
-        problem.options(1).nlpOpt.GradObj = 'on';
-        problem.options(1).nlpOpt.DerivativeCheck = 'on';
         problem.options(1).defaultAccuracy = 'low';
         
         problem.options(1).hermiteSimpson.shooting = 'on';
@@ -229,6 +220,7 @@ switch method
         
         problem.options(2) = problem.options(1);
         problem.options(2).defaultAccuracy = 'medium';
+        problem.options(2).nlpOpt.DerivativeCheck = 'off';
         
         % The following option takes a long time, but verifies accuracy of
         % gradients more robustly than fmincon's internal checks.
@@ -237,9 +229,6 @@ switch method
     case 'dircolShooting_herm_ctrl'
         
         problem.options(1).method = 'hermiteSimpson';
-        problem.options(1).nlpOpt.GradConstr = 'on';
-        problem.options(1).nlpOpt.GradObj = 'on';
-        problem.options(1).nlpOpt.DerivativeCheck = 'on';
         problem.options(1).defaultAccuracy = 'low';
         
         problem.options(1).hermiteSimpson.shooting = 'on';
@@ -251,6 +240,7 @@ switch method
         
         problem.options(2) = problem.options(1);
         problem.options(2).defaultAccuracy = 'medium';
+        problem.options(2).nlpOpt.DerivativeCheck = 'off';
         
         % The following option takes a long time, but verifies accuracy of
         % gradients more robustly than fmincon's internal checks.

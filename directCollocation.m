@@ -39,15 +39,23 @@ guess.control = interp1(G.time', G.control', guess.time')';
 
 [zGuess, pack] = packDecVar(guess.time, guess.state, guess.control);
 
-if flagGradCst || flagGradObj || strcmp(Opt.(Opt.method).PlotDefectGrad,'on')
+if flagGradCst || flagGradObj
     gradInfo = grad_computeInfo(pack);
 end
 
-% Plot Constraint 
+% Plot Defect Constraint Sparsity Pattern
 if strcmp(Opt.(Opt.method).PlotDefectGrad,'on')
-    [~,~,~,dceq] = myCstGrad(zGuess, pack, F.dynamics, [], [], F.defectCst, gradInfo);
-    figure(100),clf
-    spy(dceq')
+    % Sparity pattern with constraint gradients
+    if flagGradCst
+        [~,~,~,dceq] = myCstGrad(zGuess, pack, F.dynamics, [], [], F.defectCst, gradInfo);
+        figure(100),clf
+        spy(dceq')
+        title('Defect Gradient Sparsity Pattern')
+    else
+        fprintf('WARNING: Analytic constraint gradients not available... \n')
+        fprintf('         Defect gradient sparsity pattern will not be plotted.\n');
+        fprintf('\n');
+    end
 end
 
 % Unpack all bounds:
