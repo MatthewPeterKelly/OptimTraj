@@ -50,6 +50,7 @@ if strcmp(Opt.(Opt.method).PlotDefectGrad,'on')
         [~,~,~,dceq] = myCstGrad(zGuess, pack, F.dynamics, [], [], F.defectCst, gradInfo);
         figure(100),clf
         spy(dceq')
+        title('Defect Gradient Sparsity Pattern')
     else
         fprintf('WARNING: Analytic constraint gradients not available... \n')
         fprintf('         Defect gradient sparsity pattern will not be plotted.\n');

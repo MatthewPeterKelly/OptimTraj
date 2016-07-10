@@ -76,6 +76,7 @@ flagGradCst = strcmp(Opt.nlpOpt.GradConstr,'on');
 if flagGradCst || flagGradObj
     gradInfo = grad_computeInfo(pack);
     disp('  -> Using analytic gradients');
+    fprintf('\n');
 end
 
 % Plot Defect Constraint Sparsity Pattern
@@ -84,6 +85,7 @@ if strcmp(Opt.rungeKutta.PlotDefectGrad,'on')
         [~,~,~,dceq] = myCstGrad(zGuess, pack, F.dynamics, F.pathObj, [], [], gradInfo);
         figure(100),clf
         spy(dceq')
+        title('Defect Gradient Sparsity Pattern')
     else
         % Dont plot sparsity if constraint gradients are not available
         fprintf('WARNING: Analytic constraint gradients not available... \n')
