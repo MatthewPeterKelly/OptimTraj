@@ -73,9 +73,25 @@ flagGradCst = strcmp(Opt.nlpOpt.GradConstr,'on');
 
 % gradient info for use in calculating analytic gradients of objective and
 % constraints
-if flagGradCst || flagGradObj
+if flagGradCst || flagGradObj || strcmp(Opt.rungeKutta.PlotDefectGrad,'on')
     gradInfo = grad_computeInfo(pack);
     disp('  -> Using analytic gradients');
+    fprintf('\n');
+end
+
+% Plot Defect Constraint Sparsity Pattern
+if strcmp(Opt.rungeKutta.PlotDefectGrad,'on')
+    if flagGradCst
+        [~,~,~,dceq] = myCstGrad(zGuess, pack, F.dynamics, F.pathObj, [], [], gradInfo);
+        figure(100),clf
+        spy(dceq')
+        title('Defect Gradient Sparsity Pattern')
+    else
+        % Dont plot sparsity if constraint gradients are not available
+        fprintf('WARNING: Analytic constraint gradients not available... \n')
+        fprintf('         Defect gradient sparsity pattern will not be plotted.\n');
+        fprintf('\n');
+    end
 end
 
 if flagGradObj
@@ -93,6 +109,7 @@ else
     P.nonlcon = @(z)( ...
         myConstraint(z, pack, F.dynamics, F.pathObj, F.pathCst, F.bndCst) ); %Numerical gradients
 end
+
 
 % Check analytic gradients with DERIVEST package
 if strcmp(Opt.rungeKutta.AdaptiveDerivativeCheck,'on')
@@ -180,17 +197,44 @@ function [decVars,pack] = packDecVar(tSpan,state,control)
 [nState, nGridState] = size(state);
 [nControl, nGridControl] = size(control);
 
+nSegment = nGridState - 1;
+nSubStep = (nGridControl - 1)/(2*nSegment);
+
 xCol = reshape(state, nState*nGridState, 1);
 uCol = reshape(control, nControl*nGridControl, 1);
 
-decVars = [tSpan(:);xCol;uCol];
+indz = 1:numel(control)+numel(state)+numel(tSpan);
 
+% index of time in decVar
+indt = 1:2;
+
+% the z index of the first element of each state over time
+indtemp = 2 + (1 : (nState + (2*nSubStep)*nControl ) : numel(control)+numel(state));
+
+% remaining state elements at each time
+indx = repmat(indtemp,nState,1) + cumsum(ones(nState,nGridState),1) - 1;
+
+% index of control in decVar
+indu = indz;
+indu([indt(:);indx(:)])=[];
+indu = reshape(indu,nControl,nGridControl);
+
+% pack up decVars
+decVars = zeros(numel(indz),1);
+decVars(indt(:),1) = tSpan;
+decVars(indx(:),1) = xCol;
+decVars(indu(:),1) = uCol;
+
+% pack structure
 pack.nState = nState;
 pack.nGridState = nGridState;
 pack.nControl = nControl;
 pack.nGridControl = nGridControl;
 pack.nSegment = nGridState - 1;
 pack.nSubStep = (nGridControl-1)/(2*pack.nSegment);
+pack.indt = indt;
+pack.indx = indx;
+pack.indu = indu;
 
 end
 
@@ -221,9 +265,16 @@ nu = pack.nControl*pack.nGridControl;
 
 tSpan = [decVars(1),decVars(2)];
 
-state = reshape(decVars((2+1):(2+nx)), pack.nState, pack.nGridState);
-control = reshape(decVars((2+nx+1):(2+nx+nu)), pack.nControl, pack.nGridControl);
+% state = reshape(decVars((2+1):(2+nx)), pack.nState, pack.nGridState);
+% control = reshape(decVars((2+nx+1):(2+nx+nu)), pack.nControl, pack.nGridControl);
 
+state = decVars(pack.indx);
+control = decVars(pack.indu);
+
+% make sure x and u are returned as vectors, [nState,nTime] and
+% [nControl,nTime]
+state = reshape(state,pack.nState,pack.nGridState);
+control = reshape(control,pack.nControl,pack.nGridControl);
 end
 
 %%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%
@@ -523,8 +574,8 @@ nDecVar = 2 + nState*nGridState + nControl*nGridControl;
 zIdx = 1:nDecVar;
 gradInfo.nDecVar = nDecVar;
 [tIdx, xIdx, uIdx] = unPackDecVar(zIdx,pack);
+
 gradInfo.tIdx = tIdx([1,end]);
-%gradInfo.xuIdx = [xIdx;uIdx];
 gradInfo.xIdx = xIdx;
 gradInfo.uIdx = uIdx;
 
@@ -537,25 +588,6 @@ gradInfo.indu = uIdx(:,indu);
 % indices of decVars associated with uMid
 indumid = 2:2:(1+2*nSegment*nSubStep);
 gradInfo.indumid = uIdx(:,indumid);
-
-%%%% Compute gradients of time:
-%%%% alpha = (0..N-1)/(N-1)
-%%%% t = alpha*tUpp + (1-alpha)*tLow
-% alpha = (0:(nTime-1))/(nTime-1);
-% gradInfo.alpha = [1-alpha; alpha];
-%
-% if (gradInfo.tIdx(1)~=1 || gradInfo.tIdx(end)~=2)
-%     error('The first two decision variables must be the initial and final time')
-% end
-% gradInfo.dtGrad = [-1; 1]/(nTime-1);
-
-%%%% Compute gradients of state (What is this for)?
-% gradInfo.xGrad = zeros(nState,nTime,nDecVar);
-% for iTime=1:nTime
-%     for iState=1:nState
-%         gradInfo.xGrad(iState,iTime,xIdx(iState,iTime)) = 1;
-%     end
-% end
 
 %%%% For unpacking the boundary constraints and objective:
 gradInfo.bndIdxMap = [tIdx(1); xIdx(:,1); tIdx(end); xIdx(:,end)];
@@ -828,10 +860,10 @@ ceq_dyn = reshape(defects,numel(defects),1);
 dceq_dyn = zeros(nDecVar,length(ceq_dyn));
 Inx = eye(nState);
 for j = 1:nSegment
-    rows = (j-1)*nState+(1:nState);
-    cols = rows;
+    rows = gradInfo.xIdx(:,j+1);
+    cols = (j-1)*nState+(1:nState);
     dceq_dyn(:,cols) = dxdalpha{j}(:,:,end)';  % gradient w.r.t. to x_i(+)
-    dceq_dyn(2+nState+rows,cols) = -Inx; % gradient w.r.t. to x_i
+    dceq_dyn(rows,cols) = -Inx; % gradient w.r.t. to x_i
 end
 
 
@@ -923,14 +955,14 @@ else
     dt0_dalpha(1) = 1; % t0 is always the first decVar
     %
     dx0_dalpha = zeros(nState,nDecVar);
-    cols = 2+(1:nState);
+    cols = gradInfo.xIdx(:,1);
     dx0_dalpha(1:nState,cols) = eye(nState);
     %
     dtF_dalpha = zeros(1,nDecVar);
     dtF_dalpha(2) = 1; % tF is always the second decVar
     %
     dxF_dalpha = zeros(nState,nDecVar);
-    cols = (1:nState) + 2 + nSegment*nState;
+    cols = gradInfo.xIdx(:,end);
     dxF_dalpha(1:nState,cols) = eye(nState);
     
     
@@ -993,7 +1025,7 @@ function [t,x,u,defects,pathCost,dxdalpha,dJdalpha] = simSysGrad(decVars, pack, 
 %
 global RUNGE_KUTTA_t RUNGE_KUTTA_x RUNGE_KUTTA_u
 global RUNGE_KUTTA_defects RUNGE_KUTTA_pathCost
-global RUNGE_KUTTA_decVars RUNGE_KUTTA_dzdalpha
+global RUNGE_KUTTA_decVars RUNGE_KUTTA_dxdalpha RUNGE_KUTTA_dJdalpha
 %
 usePreviousValues = false;
 if ~isempty(RUNGE_KUTTA_decVars)
@@ -1010,7 +1042,8 @@ if usePreviousValues
     u = RUNGE_KUTTA_u;
     defects = RUNGE_KUTTA_defects;
     pathCost = RUNGE_KUTTA_pathCost;
-    dxdalpha = RUNGE_KUTTA_dzdalpha;
+    dxdalpha = RUNGE_KUTTA_dxdalpha;
+    dJdalpha = RUNGE_KUTTA_dJdalpha;
 else
     %
     %
@@ -1053,7 +1086,7 @@ else
     dxdalpha = cell(1,nSegment);
     for i = 1:nSegment
         dxdalpha{i} = zeros(nState,nalpha,nSubStep+1);
-        cols = 2+(i-1)*nState+(1:nState);
+        cols = gradInfo.xIdx(:,i);
         dxdalpha{i}(:,cols,1) = eye(nState);
     end
     dTdalpha = zeros(1,nalpha); dTdalpha(1:2) = [-1,1];
@@ -1159,6 +1192,8 @@ else
     RUNGE_KUTTA_u = u;
     RUNGE_KUTTA_defects = defects;
     RUNGE_KUTTA_pathCost = pathCost;
+    RUNGE_KUTTA_dxdalpha = dxdalpha;
+    RUNGE_KUTTA_dJdalpha = dJdalpha;
     
 end
 
