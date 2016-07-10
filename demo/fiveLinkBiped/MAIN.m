@@ -103,13 +103,12 @@ problem.guess.control = zeros(5,2);  %Start with passive trajectory
 %   almost all defaults for you if they are ommitted.
 
 % method = 'trapezoid';
-% method = 'trapGrad';
+% method = 'trapGrad';   % This one is also good
 % method = 'hermiteSimpson';
-% method = 'hermiteSimpsonGrad';
-% method = 'chebyshev';
-% method = 'multiCheb';
+% method = 'hermiteSimpsonGrad';   % Suggested method
+method = 'chebyshev';   
 % method = 'rungeKutta';  %slow!
-method = 'rungeKuttaGrad';
+% method = 'rungeKuttaGrad';
 % method = 'gpops';
 
 %%%% Method-independent options:
@@ -121,7 +120,6 @@ problem.options(2).nlpOpt = optimset(...
     'Display','iter',...   % {'iter','final','off'}
     'TolFun',1e-6,...
     'MaxFunEvals',5e4);   %options for fmincon
-
 
 switch method
     
@@ -257,6 +255,13 @@ plot(t,u);
 legend('u1','u2','u3','u4','u5');
 xlabel('time')
 ylabel('joint torques')
+
+if isfield(soln(1).info,'sparsityPattern')
+   figure(3); clf;
+   spy(soln(1).info.sparsityPattern.equalityConstraint);
+   axis equal
+   title('Sparsity pattern in equality constraints')
+end
 
 
 

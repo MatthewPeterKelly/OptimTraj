@@ -161,26 +161,20 @@ function OPT_trapezoid = defaults_trapezoid(accuracy)
 switch accuracy
     case 'low'
         OPT_trapezoid.nGrid = 12;
-        OPT_trapezoid.nShootSegment = 5; % number of shooting segments
     case 'medium'
         OPT_trapezoid.nGrid = 30;
-        OPT_trapezoid.nShootSegment = 9;
     case 'high'
         OPT_trapezoid.nGrid = 60;
-        OPT_trapezoid.nShootSegment = 20;
     otherwise
         error('Invalid value for options.defaultAccuracy')
 end
 
-
-OPT_trapezoid.AdaptiveDerivativeCheck = 'off';
-OPT_trapezoid.PlotDefectGrad = 'off';
-
-% By default do not use shooting segments in trapezoid method
-OPT_trapezoid.shooting = 'off';
-OPT_trapezoid.crtldefect = 'off';
+OPT_trapezoid.adaptiveDerivativeCheck = 'off';
 
 end
+
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
 
 
@@ -189,26 +183,20 @@ function OPT_hermiteSimpson = defaults_hermiteSimpson(accuracy)
 switch accuracy
     case 'low'
         OPT_hermiteSimpson.nSegment = 10;
-        OPT_hermiteSimpson.nShootSegment = 3; % number of shooting segments
     case 'medium'
         OPT_hermiteSimpson.nSegment = 20;
-        OPT_hermiteSimpson.nShootSegment = 5;
     case 'high'
         OPT_hermiteSimpson.nSegment = 40;
-        OPT_hermiteSimpson.nShootSegment = 12;
     otherwise
         error('Invalid value for options.defaultAccuracy')
 end
 
-
-OPT_hermiteSimpson.AdaptiveDerivativeCheck = 'off';
-OPT_hermiteSimpson.PlotDefectGrad = 'off';
-
-% By default do not use shooting segments in hermite simpson
-OPT_hermiteSimpson.shooting = 'off';
-OPT_hermiteSimpson.crtldefect = 'off';
+OPT_hermiteSimpson.adaptiveDerivativeCheck = 'off';
 
 end
+
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
 
 
@@ -226,6 +214,9 @@ switch accuracy
 end
 
 end
+
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
 
 function OPT_multiCheb = defaults_multiCheb(accuracy)
@@ -247,6 +238,10 @@ end
 end
 
 
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+
+
+
 function OPT_rungeKutta = defaults_rungeKutta(accuracy)
 
 switch accuracy
@@ -263,12 +258,12 @@ switch accuracy
         error('Invalid value for options.defaultAccuracy')
 end
 
-OPT_rungeKutta.PlotDefectGrad = 'off';
-OPT_rungeKutta.AdaptiveDerivativeCheck = 'off';
+OPT_rungeKutta.adaptiveDerivativeCheck = 'off';
 
 end
 
 
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
 
 function OPT_gpops = defaults_gpops(accuracy)
@@ -295,8 +290,7 @@ switch accuracy
         OPT_gpops.mesh.maxiterations = 0;
     case 'medium'
         OPT_gpops.mesh.tolerance = 1e-3;
-        OPT_gpops.mesh.maxiterations = 1;
-        
+        OPT_gpops.mesh.maxiterations = 1;        
     case 'high'
         OPT_gpops.mesh.tolerance = 1e-4;
         OPT_gpops.mesh.maxiterations = 3;

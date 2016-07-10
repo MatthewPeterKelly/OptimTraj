@@ -14,7 +14,7 @@ function soln = rungeKutta(problem)
 %   problem.options.rungeKutta = struct with method parameters:
 %       .nSegment = number of trajectory segments
 %       .nSubStep = number of sub-steps to use in each segment
-%       .AdaptiveDerivativeCheck = 'off' by default. Set to 'on' to enable
+%       .adaptiveDerivativeCheck = 'off' by default. Set to 'on' to enable
 %           numerical checks on the analytic gradients, computed using the
 %           derivest package, rather than fmincon's internal checks.
 %           Derivest is slower, but more accurate than fmincon. Derivest
@@ -26,6 +26,9 @@ function soln = rungeKutta(problem)
 %
 %   Code for computing analyic gradients of the Runge Kutta method was
 %   contributed by Will Wehner.
+%
+%   If analytic gradients are used, then the sparsity pattern is returned
+%   in the struct: soln.info.sparsityPattern. View it using spy().
 %
 %
 
@@ -70,33 +73,14 @@ zUpp = packDecVar(tUpp,xUpp,uUpp);
 %%%% Set up problem for fmincon:
 flagGradObj = strcmp(Opt.nlpOpt.GradObj,'on');
 flagGradCst = strcmp(Opt.nlpOpt.GradConstr,'on');
-
-% gradient info for use in calculating analytic gradients of objective and
-% constraints
-if flagGradCst || flagGradObj || strcmp(Opt.rungeKutta.PlotDefectGrad,'on')
+if flagGradObj || flagGradCst
     gradInfo = grad_computeInfo(pack);
-    disp('  -> Using analytic gradients');
-    fprintf('\n');
 end
-
-% Plot Defect Constraint Sparsity Pattern
-if strcmp(Opt.rungeKutta.PlotDefectGrad,'on')
-    if flagGradCst
-        [~,~,~,dceq] = myCstGrad(zGuess, pack, F.dynamics, F.pathObj, [], [], gradInfo);
-        figure(100),clf
-        spy(dceq')
-        title('Defect Gradient Sparsity Pattern')
-    else
-        % Dont plot sparsity if constraint gradients are not available
-        fprintf('WARNING: Analytic constraint gradients not available... \n')
-        fprintf('         Defect gradient sparsity pattern will not be plotted.\n');
-        fprintf('\n');
-    end
-end
-
 if flagGradObj
     P.objective = @(z)( ...
         myObjGrad(z, pack, F.dynamics, F.pathObj, F.bndObj, gradInfo) );   %Analytic gradients
+    [~, objGradInit] = P.objective(zGuess);
+    sparsityPattern.objective = (objGradInit~=0)';
 else
     P.objective = @(z)( ...
         myObjective(z, pack, F.dynamics, F.pathObj, F.bndObj) );   %Numerical gradients
@@ -105,6 +89,9 @@ end
 if flagGradCst
     P.nonlcon = @(z)( ...
         myCstGrad(z, pack, F.dynamics, F.pathObj, F.pathCst, F.bndCst, gradInfo) ); %Analytic gradients
+    [~,~,cstIneqInit,cstEqInit] = P.nonlcon(zGuess);
+    sparsityPattern.equalityConstraint = (cstEqInit~=0)';
+    sparsityPattern.inequalityConstraint = (cstIneqInit~=0)';
 else
     P.nonlcon = @(z)( ...
         myConstraint(z, pack, F.dynamics, F.pathObj, F.pathCst, F.bndCst) ); %Numerical gradients
@@ -112,12 +99,12 @@ end
 
 
 % Check analytic gradients with DERIVEST package
-if strcmp(Opt.rungeKutta.AdaptiveDerivativeCheck,'on')
+if strcmp(Opt.rungeKutta.adaptiveDerivativeCheck,'on')
     if exist('jacobianest','file')
         runGradientCheck(zGuess, pack,F.dynamics, F.pathObj, F.bndObj, F.pathCst, F.bndCst, gradInfo);
         Opt.nlpOpt.DerivativeCheck = [];  %Disable built-in derivative check
     else
-        Opt.rungeKutta.AdaptiveDerivativeCheck = 'cannot find jacobianest.m';
+        Opt.rungeKutta.adaptiveDerivativeCheck = 'cannot find jacobianest.m';
         disp('Warning: the derivest package is not on search path.');
         disp(' --> Using fmincon''s built-in derivative checks.');
     end
@@ -158,6 +145,9 @@ soln.info = output;
 soln.info.nlpTime = nlpTime;
 soln.info.exitFlag = exitFlag;
 soln.info.objVal = objVal;
+if flagGradCst || flagGradObj
+    soln.info.sparsityPattern = sparsityPattern;
+end
 
 soln.problem = problem;  % Return the fully detailed problem struct
 
@@ -259,9 +249,6 @@ function [tSpan, state, control] = unPackDecVar(decVars,pack)
 %   state = [nState, nGridState] = state vector at each grid point
 %   control = [nControl, nGridControl] = control vector at each grid point
 %
-
-nx = pack.nState*pack.nGridState;
-nu = pack.nControl*pack.nGridControl;
 
 tSpan = [decVars(1),decVars(2)];
 

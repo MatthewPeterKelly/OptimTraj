@@ -7,6 +7,12 @@ function soln = directCollocation(problem)
 % "hermiteSimpson". It actually calls FMINCON to solve the trajectory
 % optimization problem. 
 %
+% Analytic gradients are supported. 
+%
+% NOTES: 
+%
+%   If analytic gradients are used, then the sparsity pattern is returned
+%   in the struct: soln.info.sparsityPattern. View it using spy().
 %
 
 %To make code more readable
@@ -43,21 +49,6 @@ if flagGradCst || flagGradObj
     gradInfo = grad_computeInfo(pack);
 end
 
-% Plot Defect Constraint Sparsity Pattern
-if strcmp(Opt.(Opt.method).PlotDefectGrad,'on')
-    % Sparity pattern with constraint gradients
-    if flagGradCst
-        [~,~,~,dceq] = myCstGrad(zGuess, pack, F.dynamics, [], [], F.defectCst, gradInfo);
-        figure(100),clf
-        spy(dceq')
-        title('Defect Gradient Sparsity Pattern')
-    else
-        fprintf('WARNING: Analytic constraint gradients not available... \n')
-        fprintf('         Defect gradient sparsity pattern will not be plotted.\n');
-        fprintf('\n');
-    end
-end
-
 % Unpack all bounds:
 tLow = linspace(B.initialTime.low, B.finalTime.low, nGrid);
 xLow = [B.initialState.low, B.state.low*ones(1,nGrid-2), B.finalState.low];
@@ -73,6 +64,8 @@ zUpp = packDecVar(tUpp,xUpp,uUpp);
 if flagGradObj
     P.objective = @(z)( ...
         myObjGrad(z, pack, F.pathObj, F.bndObj, F.weights, gradInfo) );   %Analytic gradients
+    [~, objGradInit] = P.objective(zGuess);
+    sparsityPattern.objective = (objGradInit~=0)';
 else
     P.objective = @(z)( ...
         myObjective(z, pack, F.pathObj, F.bndObj, F.weights) );   %Numerical gradients
@@ -80,6 +73,9 @@ end
 if flagGradCst
     P.nonlcon = @(z)( ...
         myCstGrad(z, pack, F.dynamics, F.pathCst, F.bndCst, F.defectCst, gradInfo) ); %Analytic gradients
+    [~,~,cstIneqInit,cstEqInit] = P.nonlcon(zGuess);
+    sparsityPattern.equalityConstraint = (cstEqInit~=0)';
+    sparsityPattern.inequalityConstraint = (cstIneqInit~=0)';
 else
     P.nonlcon = @(z)( ...
         myConstraint(z, pack, F.dynamics, F.pathCst, F.bndCst, F.defectCst) ); %Numerical gradients
@@ -113,6 +109,9 @@ soln.info = output;
 soln.info.nlpTime = nlpTime;
 soln.info.exitFlag = exitFlag;
 soln.info.objVal = objVal;
+if flagGradCst || flagGradObj
+   soln.info.sparsityPattern = sparsityPattern; 
+end
 
 soln.problem = problem;  % Return the fully detailed problem struct
 

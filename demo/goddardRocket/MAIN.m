@@ -7,6 +7,12 @@
 % Dynamics include variable mass, inverse-square gravity, speed-dependent
 % drag coefficient, height dependent air density.
 %
+% NOTES:
+%   This problem sort of converges, but not very well. I think that there
+%   is a singular arc in it that is not being handled correctly. It is
+%   still interesting to see as an example of ways in which problems might
+%   misbehave.
+%
 
 clc; clear;
 addpath ../../

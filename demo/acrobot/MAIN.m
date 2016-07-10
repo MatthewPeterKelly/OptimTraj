@@ -75,12 +75,6 @@ method = 'trapezoid'; %  <-- this is robust, but less accurate
 % method = 'orthogonal';    %  <-- this usually finds bad local minimum
 % method = 'gpops';      %  <-- fast, but numerical problem is maxTorque is large
 
-% NOTES:
-%   - The 'direct' method takes much longer to run, but it finds a good
-%   solution. The 'orthogonal' method finds a solution much faster, but the
-%   objective function is not as good. Why?
-%
-
 switch method
     case 'direct'
         problem.options(1).method = 'trapezoid';

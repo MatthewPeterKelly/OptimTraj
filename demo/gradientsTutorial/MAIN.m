@@ -37,22 +37,138 @@ problem.guess.time = [0,1];
 problem.guess.state = [0, pi; pi, pi];
 problem.guess.control = [0, 0];
 
-% Options for fmincon
-problem.options.nlpOpt = optimset(...
-    'Display','iter',...
-    'GradObj','on',...
-    'GradConstr','on',...
-    'DerivativeCheck','on');   %Fmincon automatically checks derivatives
 
-problem.options.method = 'trapezoid';
-problem.options.defaultAccuracy = 'medium';
+%%%% Switch between a variety of methods
+
+% method = 'trapezoid';
+% method = 'trapGrad';   
+% method = 'hermiteSimpson';
+% method = 'hermiteSimpsonGrad';   
+% method = 'chebyshev';   
+% method = 'rungeKutta';  
+% method = 'rungeKuttaGrad';
+method = 'gpops';
+
+
+
+%%%% Method-independent options:
+problem.options(1).nlpOpt = optimset(...
+    'Display','iter',...   % {'iter','final','off'}
+    'TolFun',1e-3,...
+    'MaxFunEvals',1e4);   %options for fmincon
+problem.options(2).nlpOpt = optimset(...
+    'Display','iter',...   % {'iter','final','off'}
+    'TolFun',1e-6,...
+    'MaxFunEvals',5e4);   %options for fmincon
+
+
+
+switch method
+    
+    case 'trapezoid'
+        problem.options(1).method = 'trapezoid'; % Select the transcription method
+        problem.options(1).trapezoid.nGrid = 10;  %method-specific options
+        
+        problem.options(2).method = 'trapezoid'; % Select the transcription method
+        problem.options(2).trapezoid.nGrid = 25;  %method-specific options
+        
+    case 'trapGrad'  %trapezoid with analytic gradients
+        
+        problem.options(1).method = 'trapezoid'; % Select the transcription method
+        problem.options(1).trapezoid.nGrid = 10;  %method-specific options
+        problem.options(1).nlpOpt.GradConstr = 'on';
+        problem.options(1).nlpOpt.GradObj = 'on';
+        problem.options(1).nlpOpt.DerivativeCheck = 'off';
+        
+        problem.options(2).method = 'trapezoid'; % Select the transcription method
+        problem.options(2).trapezoid.nGrid = 45;  %method-specific options
+        problem.options(2).nlpOpt.GradConstr = 'on';
+        problem.options(2).nlpOpt.GradObj = 'on';
+        
+    case 'hermiteSimpson'
+        
+        % First iteration: get a more reasonable guess
+        problem.options(1).method = 'hermiteSimpson'; % Select the transcription method
+        problem.options(1).hermiteSimpson.nSegment = 6;  %method-specific options
+        
+        % Second iteration: refine guess to get precise soln
+        problem.options(2).method = 'hermiteSimpson'; % Select the transcription method
+        problem.options(2).hermiteSimpson.nSegment = 15;  %method-specific options
+        
+    case 'hermiteSimpsonGrad'  %hermite simpson with analytic gradients
+        
+        problem.options(1).method = 'hermiteSimpson'; % Select the transcription method
+        problem.options(1).hermiteSimpson.nSegment = 6;  %method-specific options
+        problem.options(1).nlpOpt.GradConstr = 'on';
+        problem.options(1).nlpOpt.GradObj = 'on';
+        problem.options(1).nlpOpt.DerivativeCheck = 'off';
+        
+        problem.options(2).method = 'hermiteSimpson'; % Select the transcription method
+        problem.options(2).hermiteSimpson.nSegment = 15;  %method-specific options
+        problem.options(2).nlpOpt.GradConstr = 'on';
+        problem.options(2).nlpOpt.GradObj = 'on';
+        
+        
+    case 'chebyshev'
+        
+        % First iteration: get a more reasonable guess
+        problem.options(1).method = 'chebyshev'; % Select the transcription method
+        problem.options(1).chebyshev.nColPts = 9;  %method-specific options
+        
+        % Second iteration: refine guess to get precise soln
+        problem.options(2).method = 'chebyshev'; % Select the transcription method
+        problem.options(2).chebyshev.nColPts = 15;  %method-specific options
+        
+    case 'multiCheb'
+        
+        % First iteration: get a more reasonable guess
+        problem.options(1).method = 'multiCheb'; % Select the transcription method
+        problem.options(1).multiCheb.nColPts = 6;  %method-specific options
+        problem.options(1).multiCheb.nSegment = 4;  %method-specific options
+        
+        % Second iteration: refine guess to get precise soln
+        problem.options(2).method = 'multiCheb'; % Select the transcription method
+        problem.options(2).multiCheb.nColPts = 9;  %method-specific options
+        problem.options(2).multiCheb.nSegment = 4;  %method-specific options
+        
+    case 'rungeKutta'
+        problem.options(1).method = 'rungeKutta'; % Select the transcription method
+        problem.options(1).defaultAccuracy = 'low';
+        problem.options(2).method = 'rungeKutta'; % Select the transcription method
+        problem.options(2).defaultAccuracy = 'medium';
+    
+    case 'rungeKuttaGrad'
+      
+        problem.options(1).method = 'rungeKutta'; % Select the transcription method
+        problem.options(1).defaultAccuracy = 'low';
+        problem.options(1).nlpOpt.GradConstr = 'on';
+        problem.options(1).nlpOpt.GradObj = 'on';
+        problem.options(1).nlpOpt.DerivativeCheck = 'off';
+        
+        problem.options(2).method = 'rungeKutta'; % Select the transcription method
+        problem.options(2).defaultAccuracy = 'medium';
+        problem.options(2).nlpOpt.GradConstr = 'on';
+        problem.options(2).nlpOpt.GradObj = 'on';
+        
+    case 'gpops'
+        problem.options = [];
+        problem.options.method = 'gpops';
+        problem.options.defaultAccuracy = 'high';
+        problem.options.gpops.nlp.solver = 'snopt';  %Set to 'ipopt' if you have GPOPS but not SNOPT
+        
+    otherwise
+        error('Invalid method!');
+end
+
+
+
 
 % Solve the problem
 soln = optimTraj(problem);
-t = soln.grid.time;
-q = soln.grid.state(1,:);
-dq = soln.grid.state(2,:);
-u = soln.grid.control;
+t = soln(end).grid.time;
+q = soln(end).grid.state(1,:);
+dq = soln(end).grid.state(2,:);
+u = soln(end).grid.control;
 
 % Plot the solution:
 figure(1); clf;
@@ -69,5 +185,14 @@ ylabel('dq')
 subplot(3,1,3)
 plot(t,u)
 ylabel('u')
+
+% Plot the sparsity pattern
+if isfield(soln(1).info,'sparsityPattern')
+   figure(3); clf;
+   spy(soln(1).info.sparsityPattern.equalityConstraint);
+   axis equal
+   title('Sparsity pattern in equality constraints')
+end
+
 
 
