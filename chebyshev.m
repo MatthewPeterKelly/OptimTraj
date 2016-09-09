@@ -197,6 +197,7 @@ nx = nState*nTime;
 nu = nControl*nTime;
 
 [t, w] = orthScale(orth,[z(1),z(2)]);
+t = t';
 x = reshape(z((2+1):(2+nx)),nState,nTime);
 u = reshape(z((2+nx+1):(2+nx+nu)),nControl,nTime);
 
