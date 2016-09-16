@@ -65,7 +65,7 @@ if flagGradObj
     P.objective = @(z)( ...
         myObjGrad(z, pack, F.pathObj, F.bndObj, F.weights, gradInfo) );   %Analytic gradients
     [~, objGradInit] = P.objective(zGuess);
-    sparsityPattern.objective = (objGradInit~=0)';
+    sparsityPattern.objective = (objGradInit~=0)';  % Only used for visualization!  
 else
     P.objective = @(z)( ...
         myObjective(z, pack, F.pathObj, F.bndObj, F.weights) );   %Numerical gradients
@@ -74,8 +74,8 @@ if flagGradCst
     P.nonlcon = @(z)( ...
         myCstGrad(z, pack, F.dynamics, F.pathCst, F.bndCst, F.defectCst, gradInfo) ); %Analytic gradients
     [~,~,cstIneqInit,cstEqInit] = P.nonlcon(zGuess);
-    sparsityPattern.equalityConstraint = (cstEqInit~=0)';
-    sparsityPattern.inequalityConstraint = (cstIneqInit~=0)';
+    sparsityPattern.equalityConstraint = (cstEqInit~=0)';  % Only used for visualization! 
+    sparsityPattern.inequalityConstraint = (cstIneqInit~=0)';  % Only used for visualization! 
 else
     P.nonlcon = @(z)( ...
         myConstraint(z, pack, F.dynamics, F.pathCst, F.bndCst, F.defectCst) ); %Numerical gradients
@@ -109,8 +109,18 @@ soln.info = output;
 soln.info.nlpTime = nlpTime;
 soln.info.exitFlag = exitFlag;
 soln.info.objVal = objVal;
-if flagGradCst || flagGradObj
-   soln.info.sparsityPattern = sparsityPattern; 
+
+if flagGradCst || flagGradObj  % Then return sparsity pattern for visualization
+    if flagGradObj
+        [~, objGradInit] = P.objective(zSoln);
+        sparsityPattern.objective = (objGradInit~=0)';
+    end
+    if flagGradCst
+        [~,~,cstIneqInit,cstEqInit] = P.nonlcon(zSoln);
+        sparsityPattern.equalityConstraint = (cstEqInit~=0)';
+        sparsityPattern.inequalityConstraint = (cstIneqInit~=0)';
+    end
+    soln.info.sparsityPattern = sparsityPattern;
 end
 
 soln.problem = problem;  % Return the fully detailed problem struct

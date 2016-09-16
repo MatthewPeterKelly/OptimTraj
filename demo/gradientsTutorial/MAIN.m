@@ -41,13 +41,13 @@ problem.guess.control = [0, 0];
 %%%% Switch between a variety of methods
 
 % method = 'trapezoid';
-% method = 'trapGrad';   
+method = 'trapGrad';   
 % method = 'hermiteSimpson';
 % method = 'hermiteSimpsonGrad';   
 % method = 'chebyshev';   
 % method = 'rungeKutta';  
 % method = 'rungeKuttaGrad';
-method = 'gpops';
+% method = 'gpops';
 
 
 
