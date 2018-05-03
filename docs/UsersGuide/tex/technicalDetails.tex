@@ -7,7 +7,7 @@
 Minimize the objective function:
 \begin{equation*}
 \underset{t_0, t_F, \bm{x}(t), \bm{u}(t)} \min \;
-J_B\big(t_0,t_F,\bm{x}(t_0),\bm{x}(t_F) \big) + 
+J_B\big(t_0,t_F,\bm{x}(t_0),\bm{x}(t_F) \big) +
 \int_{t_0}^{t_F} \! J_P \big( \tau, \bm{x}(\tau), \bm{u}(\tau) \big)  \; d\tau
 \label{eqn:optimTraj_objectiveFunction}
 \end{equation*}
@@ -67,5 +67,9 @@ The single best resource for learning about trajectory optimization is the textb
 Second, his group at MIT are producing a planning, control, and analysis toolbox called Drake, which includes trajectory optimization. It is open source, so it is another good place to read the source code and figure out how it works: \\
 \url{https://github.com/RobotLocomotion/drake}\\
 
-\par There is also a tutorial page on my website. It contains a high-level summary, useful links, visualization of single shooting, multiple shooting, and collocation, and a link to a simple multiple shooting tutorial in Matlab. \\
+\par I wrote a tutorial paper for learning trajectory optimization. It goes into depth covering all technical content for the two direct collocation methods in this library, as well as a variety of related topics:
+\url{https://epubs.siam.org/doi/pdf/10.1137/16M1062569}
+
+
+\par There is also a tutorial page on my website. It contains a high-level summary and links to a variety of other resources including a video, slides, documents, and code samples: \\
 \url{http://www.matthewpeterkelly.com/tutorials/trajectoryOptimization/index.html}
