@@ -50,6 +50,12 @@ All functions in the problem description can be non-linear, but they must be smo
 - `optimTraj` returns a struct that describes the solution. It contains a full description of the problem, the transcription method that was used, and the solution (both as a vector of points and a function handle for interpolation).
 - For more details, type `help optimTraj` at the command line, or check out some of the examples in the `demo/` directory.
 
+## Documentation:
+
+The best way to learn OptimTraj is by working through a few of the examples in the `demo/` directory. There is also a `.pdf` user guide that can be found in the `/docs` directory.
+
+For more background on trajectory optimization in general, I wrote a [tutorial paper](https://epubs.siam.org/doi/10.1137/16M1062569) that includes derivations and references for most methods implemented here, along with a variety of practical suggestions and debugging tips. Finally, I have a [tutorial webpage](http://www.matthewpeterkelly.com/tutorials/trajectoryOptimization/index.html) for trajectory optimization.
+
 ## Contribute:
 This code is still under development, and will be from now until at least May 2016. Please contact me if you have any comments or suggestions, or create a pull request if you would like to add content.
 

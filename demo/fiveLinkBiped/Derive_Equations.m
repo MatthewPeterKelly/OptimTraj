@@ -28,6 +28,10 @@ function Derive_Equations()
 %
 % - Joint positions are given with "P", center of mass positions are "G"
 %
+% For full derivation, see the appendix of my tutorial paper:
+% "An Introduction to Trajectory Optimization..."
+% https://epubs.siam.org/doi/abs/10.1137/16M1062569
+%
 
 clc; clear;
 disp('Creating variables and derivatives...')
