@@ -1,4 +1,4 @@
-function [out] = bodyframe_dynamics(u, p)
+function [out] = dynBodyFrame(u, p)
 %
 % Computes combined (from all motors and props) forces and moments, and resultant acceleration, on a vehicle.
 % Does not include effects from gravity.

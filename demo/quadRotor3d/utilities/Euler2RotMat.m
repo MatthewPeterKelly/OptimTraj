@@ -1,7 +1,15 @@
 function [R] = Euler2RotMat(theta_x, theta_y, theta_z)
+% [R] = Euler2RotMat(theta_x, theta_y, theta_z)
+%
+% Stand-in for eul2rotm (built-in function MATLAB Robotics System Toolbox)
 % Converts Euler angles [rad] to 3x3 Rotation Matrix
-
-% See: http://nghiaho.com/?page_id=846 
+%
+% This implementation based on:
+% S.M.LaValle, Planning Algorithms, Cambridge University Press, 2006, p.98 
+% (PDF available here: http://planning.cs.uiuc.edu/ch3.pdf)
+% as cited in: http://nghiaho.com/?page_id=846 
+%
+% Written by Conrad McGreal @ 2019
 
 X = [1 0 0
     0 cos(theta_x) -sin(theta_x)

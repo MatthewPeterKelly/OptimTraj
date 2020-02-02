@@ -1,4 +1,4 @@
-function dz = quadRotor3d_dynamics(z, u, p)
+function dz = dynQuadrotor3D(z, u, p)
 %
 % This function computes the dynamics of a 6 DOF quadcopter.
 %

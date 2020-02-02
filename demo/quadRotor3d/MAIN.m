@@ -1,11 +1,9 @@
 % MAIN - Minimum Time Boundary Value Problem
 %
-% Solve a minimum-time boundary value problem with simple dynamics (chain
-% integrator) and limits on the state and control. Scalar trajectory.
+% Solve a minimum-time boundary value problem for a 3D (6 DOF) quadcopter with limits on the state and control. 
 %
-% Here we will solve a scalar trajectory, where the position, velocity, 
-% and acceleration are states. The jerk (derivative of acceleration) will
-% be the only control.
+% Here we will solve a scalar trajectory, where the position and velocity states. 
+% The control is the normalized RPM for each motor.
 % 
 
 clc; clear;
@@ -23,11 +21,12 @@ p.I = [0.625 0 0; 0 0.625 0; 0 0 1.25] ; % inertia tensor
 p.cg = [0 0 0] ; % (m) location of center of gravity
 
 % Propulsion params
+quadrotorModel = definePropulsionModel(quadrotorParams);
 define_propulsion_model
 p.propulsion = propulsion ; clear variable propulsion ; 
 
 % Trajectory Parameters:
-uMax = 1 ; % maximum control input
+uMax = 1 ; % maximum control input; when u = 1; RPM = maxRPM.
 
 % Boundary value problem:
 initialState = zeros(12,1) ; % initialize 
