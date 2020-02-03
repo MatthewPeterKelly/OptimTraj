@@ -1,0 +1,4 @@
+
+
+
+[quadrotorModel] = definePropulsionModel(quadrotorParams)

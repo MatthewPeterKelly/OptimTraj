@@ -1,4 +1,4 @@
-function dz = dynQuadrotor3D(z, u, p)
+function dz = dynQuadRotor3d(z, u, p)
 %
 % This function computes the dynamics of a 6 DOF quadcopter.
 %
@@ -31,7 +31,7 @@ n = size(z,2) ;
 dX = z(7:12,:);  % rates
 
 % Compute bodyframe dynamics
-[ddX_body] = bodyframe_dynamics(u, p) ; 
+[ddX_body] = dynBodyFrame(u, p) ; 
 
 % Initialize output container
 dz = zeros(size(z)) ;
