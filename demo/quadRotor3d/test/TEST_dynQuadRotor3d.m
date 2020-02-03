@@ -1,4 +1,4 @@
-disp('Running: test_quadRotor3d_dynamics.m')
+disp('Running: TEST_dynQuadRotor3d.m')
 s = zeros(12,1) ; % [x, y, z, pitch, roll, yaw, dx, dy, dz, dpitch, droll, dyaw] 
 u = zeros(4,1) ; 
 
@@ -24,13 +24,13 @@ p.propulsion = propulsion ; clear variable propulsion ;
 
 %%
 disp('Test 1 - 0% throttle')
-[ds] = quadRotor3d_dynamics(s, u, p)
+[ds] = dynQuadRotor3d(s, u, p)
 
 %% 
 disp('Test 1 - 100% throttle')
 s = zeros(12,1) ;
 u = ones(4,1) ; 
-[ds] = quadRotor3d_dynamics(s, u, p)
+[ds] = dynQuadRotor3d(s, u, p)
 
 %%
 % positive pitch; should result in an acceleration 'south' (i.e. negative
@@ -40,7 +40,7 @@ deflect = 5 ;
 s = zeros(12,1) ;
 s(4) = deg2rad(deflect) 
 u = ones(4,1) 
-[ds] = quadRotor3d_dynamics(s, u, p)
+[ds] = dynQuadRotor3d(s, u, p)
 
 %% negative pitch; should result in an acceleration 'north'
 disp('Test 3 - 100% throttle, pitch = -5 deg')
@@ -48,7 +48,7 @@ deflect = -5 ;
 s = zeros(12,1) ;
 s(4) = deg2rad(deflect) 
 u = ones(4,1)  
-[ds] = quadRotor3d_dynamics(s, u, p)
+[ds] = dynQuadRotor3d(s, u, p)
 
 %% positive roll; should result in an acceleration 'east', i.e. ds(7) > 0
 disp('Test 4 - 100% throttle, roll = 5 deg')
@@ -56,7 +56,7 @@ deflect = 5 ;
 s = zeros(12,1) ;
 s(5) = deg2rad(deflect) 
 u = ones(4,1)  
-[ds] = quadRotor3d_dynamics(s, u, p)
+[ds] = dynQuadRotor3d(s, u, p)
 
 %% negative roll; should result in an acceleration 'west', i.e. negative element 7
 disp('Test 5 - 100% throttle, roll = 5 deg')
@@ -64,7 +64,7 @@ deflect = -5 ;
 s = zeros(12,1) ;
 s(5) = deg2rad(deflect) 
 u = ones(4,1)  
-[ds] = quadRotor3d_dynamics(s, u, p)
+[ds] = dynQuadRotor3d(s, u, p)
 
 %% positive yaw; should not affect acceleration direction
 disp('Test 6 - 100% throttle, roll = 5 deg')
@@ -72,7 +72,7 @@ deflect = 5 ;
 s = zeros(12,1) ;
 s(6) = deg2rad(deflect) ;
 u = ones(4,1)   ;
-[ds] = quadRotor3d_dynamics(s, u, p) ;
+[ds] = dynQuadRotor3d(s, u, p) ;
 
 %% negative yaw; should not affect acceleration direction
 disp('Test 7 - 100% throttle, roll = 5 deg')
@@ -80,9 +80,9 @@ deflect = -5 ;
 s = zeros(12,1) ;
 s(6) = deg2rad(deflect) ; 
 u = ones(4,1)  ;
-[ds] = quadRotor3d_dynamics(s, u, p) '
+[ds] = dynQuadRotor3d(s, u, p) '
 
 %% wide vector
 s = zeros(12,100) ;
 u = repmat(linspace(0,1,100),4,1) ; 
-[ds] = quadRotor3d_dynamics(s, u, p)
+[ds] = dynQuadRotor3d(s, u, p)
