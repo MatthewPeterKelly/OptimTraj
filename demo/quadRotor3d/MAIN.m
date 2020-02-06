@@ -2,7 +2,7 @@
 %
 % Solve a minimum-time boundary value problem for a 3D (6 DOF) quadcopter with limits on the state and control. 
 %
-% The control is the normalized RPM (i.e. throttle) for each motor.
+% The control is the throttle, u, which acts as normalized RPM, where 0 < u < 1 and 0 < RPM < maxRPM for each motor.
 % 
 
 clc; clear;

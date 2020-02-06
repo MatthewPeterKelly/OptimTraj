@@ -3,7 +3,7 @@ function dz = dynQuadRotor3d(z, u, p)
 % This function computes the dynamics of a 6 DOF quadcopter.
 %
 % INPUTS:
-%   z = [12, n] = [X; dX] = state matrix
+%   z = [12, n] = [X; dX] = [x, y, z, pitch, roll, yaw, dx, dy, dz, dpitch, droll, dyaw] = state matrix
 %   u = [4, n] = [u1; u2; u3; u4] = control matrix
 %   p = parameter struct: 
 %       .g = [scalar] (m/s/s) acceleration due to gravity
@@ -27,29 +27,30 @@ function dz = dynQuadRotor3d(z, u, p)
 %
 
 % Unpack the inputs
-n = size(z,2) ; 
+eul = z(4:6,:)' ; % unpack euler angles
 dX = z(7:12,:);  % rates
+ddX = zeros(size(dX)) ; % container
 
 % Compute bodyframe dynamics
 [ddX_body] = dynBodyFrame(u, p) ; 
 
-% Initialize output container
-dz = zeros(size(z)) ;
+% unpack bodyframe dynamics 
+linAccel_body = ddX_body(1:3,:)' ; % linear acceleration in body frame
+angAccel_body = ddX_body(4:6,:)' ; % angular acceleration
 
-for i=1:n % for each time vector
-    % unpack bodyframe dynamics 
-    linAccel_body = ddX_body(1:3,i) ; % linear acceleration in body frame
-    angAccel_body = ddX_body(4:6,i) ; % angular acceleration
+% Convert bodyframe acceleration, based on world pose, into world frame accelerations.
+BodyRotMat = Euler2RotMat(eul) ;  % create body rotation matrix
 
-    % Convert bodyframe acceleration, based on world pose, into world frame accelerations.
-    BodyRotMat = Euler2RotMat(z(4,i), z(5,i), z(6,i)) ;  % create body rotation matrix
-    linAccel_world = linAccel_body' * BodyRotMat' ; % transform body frame linear acceleration into world frame 
-    angAccel_world = angAccel_body' * BodyRotMat' ; % transform body frame angular acceleration into world frame 
+for i=1:size(BodyRotMat,3)
+linAccel_world = linAccel_body(i,:) * BodyRotMat(:,:,i)' ; % transform body frame linear acceleration into world frame 
+angAccel_world = angAccel_body(i,:) * BodyRotMat(:,:,i)' ; % transform body frame angular acceleration into world frame 
 
-    % Add acceleration due to gravity
-    linAccel_world(3) = linAccel_world(3) + p.g ; 
+% Add acceleration due to gravity
+linAccel_world(3) = linAccel_world(3) + p.g ; 
 
-    % Pack up the outputs
-    ddX = [linAccel_world'; angAccel_world'] ; 
-    dz(:,i) = [dX(:,n); ddX] ; 
-end
+% Insert this time step into vector
+ddX(:,i) = [linAccel_world'; angAccel_world'] ; 
+end 
+
+% Pack up the outputs
+dz = [dX; ddX] ; 
