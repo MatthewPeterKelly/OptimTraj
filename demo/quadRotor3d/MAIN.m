@@ -2,28 +2,32 @@
 %
 % Solve a minimum-time boundary value problem for a 3D (6 DOF) quadcopter with limits on the state and control. 
 %
-% Here we will solve a scalar trajectory, where the position and velocity states. 
-% The control is the normalized RPM for each motor.
+% The control is the normalized RPM (i.e. throttle) for each motor.
 % 
 
 clc; clear;
 addpath ../../
 
-%% Hardcoding dynamics parameters
 % Define environmental and plant model params
 % Enviromental params
 p.g = -9.81 ; % World Coords is XYZ = [East, North, Up], i.e. gravity is a negative number
-p.rho = 1.225 ; 
+p.rho = 1.225 ; % air density during flight (kg/m^3) 
 
 % Inertial params
 p.m = 5 ; 
 p.I = [0.625 0 0; 0 0.625 0; 0 0 1.25] ; % inertia tensor
 p.cg = [0 0 0] ; % (m) location of center of gravity
 
-% Propulsion params
-quadrotorModel = definePropulsionModel(quadrotorParams);
-define_propulsion_model
-p.propulsion = propulsion ; clear variable propulsion ; 
+% Propulsion system params
+% propulsion system parameters shared for all motors:
+qRP.d_prop = 0.305 ; % propeller diameter (m)
+qRP.maxThrust = 25 ; % thrust at 100% throttle (N)
+qRP.maxRPM = 10000 ; % RPM at 100% throttle (RPM)
+qRP.maxTorque = 1 ;  % torque at 100% throttle (Nm)
+qRP.thrustLocations = [0.5 0 0; 0 0.5 0; -0.5 0 0; 0 -0.5 0]; % motor locations (each row one motor in coords: [port, nose, top] 
+qRP.thrustAxes = repmat([0 0 1],4,1) ; % thrust axes of each motor in coords port, nose, top.
+qRP.isSpinDirectionCCW = [1; 0; 1; 0] ; % bool to reverse motor spin direction around 'thrustAxes'.
+[p.propulsion] = definePropulsionModel(qRP); 
 
 % Trajectory Parameters:
 uMax = 1 ; % maximum control input; when u = 1; RPM = maxRPM.
@@ -34,9 +38,9 @@ finalState = zeros(12,1) ;   % initialize
 finalState(1) = 10 ; % assign non-zero state values.
 
 % User-defined dynamics and objective functions
-problem.func.dynamics = @(t,x,u)( quadRotor3d_dynamics(x,u,p) );
+problem.func.dynamics = @(t,x,u)( dynQuadRotor3d(x,u,p) );
 problem.func.bndObj = @(t0,x0,tF,xF)( tF - t0 ); % minimum time  -- primary objective
-% problem.func.pathObj = @(t,x,u)( sum(0.001*u.^2) ); %minimum jerk  -- regularization
+problem.func.pathObj = @(t,x,u)( sum(0.001*u.^2) ); %minimum jerk  -- regularization
 
 % Problem boundsTime
 problem.bounds.initialTime.low = 0;
@@ -61,17 +65,11 @@ problem.guess.control = ones(4,2);
 
 % Select a solver:
 problem.options(1).method = 'trapezoid';
-problem.options(1).trapezoid.nGrid = 16;
-
-% problem.options(1).method = 'hermiteSimpson';
-% problem.options(1).hermiteSimpson.nSegment = 15;
-
-% problem.options(1).method = 'trapezoid';
-% problem.options(1).trapezoid.nGrid = 8;
-% problem.options(2).method = 'trapezoid';
-% problem.options(2).trapezoid.nGrid = 16;
-% problem.options(3).method = 'hermiteSimpson';
-% problem.options(3).hermiteSimpson.nSegment = 15;
+problem.options(1).trapezoid.nGrid = 8;
+problem.options(2).method = 'trapezoid';
+problem.options(2).trapezoid.nGrid = 16;
+problem.options(3).method = 'hermiteSimpson';
+problem.options(3).hermiteSimpson.nSegment = 15;
 
 % Solve the problem
 soln = optimTraj(problem);
@@ -82,7 +80,7 @@ ddq = soln(end).grid.state(3,:);
 u = soln(end).grid.control ;
 
 % Plot the solution:
-plot_quadRotor2d_solution_cjm_v2
+plot_quadRotor3d(soln)
 
 
 

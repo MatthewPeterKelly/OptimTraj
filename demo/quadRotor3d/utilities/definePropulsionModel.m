@@ -1,76 +1,56 @@
-function [quadrotorModel] = definePropulsionModel(quadrotorParams)
+function [quadRotorModel] = definePropulsionModel(quadRotorParams)
 % [quadrotorModel] = definePropulsionModel(quadrotorParams)
 %
-% Defines a propulsion parameter plant model for use with dynBodyFrame
+% Defines a propulsion parameter plant model for use with dynBodyFrame.
+% Supports any number of thrusters, n.
 %
-% Assumes same prop-motor combination at all locations, i.e. following
-% parameters are the same for each thruster:
-%   .C_t
-%   .C_q
-%   .maxRPM
-%   .maxTorque
-%   .d_prop
+% First row of 'thrustLocations','thrustAxes','isSpinDirectionCCW' are
+% associated with the first motor. 
+% Second row of 'thrustLocations','thrustAxes','isSpinDirectionCCW', are associate with the second
+% motor, and so forth. 
+% 
+% Following parameters are the same for each thruster
+%   (i.e.assumes same properties of prop-motor combination at all locations):
+%       maxThrust, maxRPM, maxTorque, d_prop
+%
+% Inputs: 
+%   quadRotorParams [struct] parameter struct with the following fields
+%       .thrustLocations = [n x 3] [m] location of motors 
+%       .thrustAxes = [n x 3] [unitvectors] direction of thrust axis
+%       .isSpinDirectionCCW = [n x 1] [bool] if set 
+%       .maxThrust [scalar] thrust at 100% throttle (N)
+%       .maxRPM [scalar] RPM at 100% throttle (RPM)
+%       .maxTorque [scalar] torque at 100% throttle (Nm)
+%       .d_prop [scalar] propeller diameter (m)
+%
+% Output:
+%   quadRotorModel = [struct] with n elements, one for each motor.
+%
+% Written by Conrad McGreal 2020
 
-propulsion = struct() ; % initialize struct
-id = 0 ; % use counter to make code reuse easier
+% give shorter name
+p = quadRotorParams ; 
 
-%% Propulsion system test data (at 100% throttle)
-% Change this for a different propulsion system
-d_prop = 0.305 ; % propeller diameter (m)
-maxThrust = 25 ; % thrust at 100% throttle (N)
-maxRPM = 10000 ; % RPM at 100% throttle (RPM)
-maxTorque = 1 ;  % torque at 100% throttle (Nm)
-rho = 1.225 ;    % air density during data collection (kg/m^3) 
-
-% Compute propulsion system coefficients
+%% Compute propulsion system coefficients
 % See: https://web.mit.edu/16.unified/www/FALL/thermodynamics/notes/node86.html
-C_t = maxThrust / (rho * (maxRPM/60)^2 * d_prop^4) ; 
-C_q = maxTorque / (rho * (maxRPM/60)^2 * d_prop^5) ;
+% air density during propulsion data collection (kg/m^3)
+% (used to determine propulsion system coefficients).
+rho = 1.225 ;     
+
+% compute coefficients.
+C_t = p.maxThrust / (rho * (p.maxRPM/60)^2 * p.d_prop^4) ; % thrust coefficient
+C_q = p.maxTorque / (rho * (p.maxRPM/60)^2 * p.d_prop^5) ; % torque coefficient
 
 %% Assign to struct
-% propeller 1
-id = id + 1 ; 
-propulsion(id).thrustAxis = [0 0 1] ;      % [port, nose, top] % nose faces north when body and world axis are aligned (world is "East North Up")
-propulsion(id).thrustLocation = [0.5 0 0] ; 
-propulsion(id).isSpinDirectionCCW = 1 ; 
-propulsion(id).C_t = C_t ; % initialize
-propulsion(id).C_q = C_q ; % initialize
-propulsion(id).maxRPM = maxRPM ; 
-propulsion(id).maxTorque = maxTorque ; 
-propulsion(id).d_prop = d_prop ; 
+quadRotorModel = struct() ; % initialize output struct
 
-% propeller 2
-id = id + 1 ; 
-propulsion(id).thrustAxis = [0 0 1] ; 
-propulsion(id).thrustLocation = [0 0.5 0] ; 
-propulsion(id).isSpinDirectionCCW = 0 ; 
-propulsion(id).C_t = C_t ; % initialize
-propulsion(id).C_q = C_q ; % initialize
-propulsion(id).maxRPM = maxRPM ; 
-propulsion(id).maxTorque = maxTorque ; 
-propulsion(id).d_prop = d_prop ; 
-
-% propeller 3
-id = id + 1 ; 
-propulsion(id).thrustAxis = [0 0 1] ; 
-propulsion(id).thrustLocation = [-0.5 0 0] ; 
-propulsion(id).isSpinDirectionCCW = 1 ; 
-propulsion(id).C_t = C_t ; % initialize
-propulsion(id).C_q = C_q ; % initialize
-propulsion(id).maxRPM = maxRPM ; 
-propulsion(id).maxTorque = maxTorque ; 
-propulsion(id).d_prop = d_prop ; 
-
-% propeller 4
-id = id + 1 ; 
-propulsion(id).thrustAxis = [0 0 1] ; 
-propulsion(id).thrustLocation = [0 -0.5 0] ; 
-propulsion(id).isSpinDirectionCCW = 0 ; 
-propulsion(id).C_t = C_t ; % initialize
-propulsion(id).C_q = C_q ; % initialize
-propulsion(id).maxRPM = maxRPM ; 
-propulsion(id).maxTorque = maxTorque ; 
-propulsion(id).d_prop = d_prop ; 
-
-%% cleanup
-clear variable C_q C_t d_prop id maxRPM maxThrust maxTorque
+for i=1:size(p.thrustLocations,1) 
+quadRotorModel(i).thrustAxis = p.thrustAxes(i,:) ;      % [port, nose, top] % nose faces north when body and world axis are aligned (world is "East North Up")
+quadRotorModel(i).thrustLocation = p.thrustLocations(i,:) ; 
+quadRotorModel(i).isSpinDirectionCCW = p.isSpinDirectionCCW(i,:) ; 
+quadRotorModel(i).maxRPM = p.maxRPM ; 
+quadRotorModel(i).maxTorque = p.maxTorque ; 
+quadRotorModel(i).d_prop = p.d_prop ; 
+quadRotorModel(i).C_t = C_t ; 
+quadRotorModel(i).C_q = C_q ; 
+end

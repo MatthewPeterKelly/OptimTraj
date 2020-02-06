@@ -6,6 +6,8 @@ function [out] = dynBodyFrame(u, p)
 % INPUTS: 
 %   u = [N,n] (0-1) = "throttle" vector where N is number of motors.  
 %                       All elements should be: 0 < u(i) < 1 
+%                       N = number of motors
+%                       n = number of time steps
 %   rho = [scalar] (kg-m^3) air density
 %   p = parameter struct: 
 %       .g = [scalar] (m/s/s) acceleration due to gravity
@@ -32,48 +34,55 @@ function [out] = dynBodyFrame(u, p)
 % Written by Conrad McGreal 2020/01/24  
 
 %% prep
-n_time = size(u,2) ; 
 n_motors = numel(p.propulsion) ; 
+n_time = size(u,2) ; 
 
-% containers to aggregate wrenches from all motors at each timestep
-forces = zeros(n_motors,3) ; 
-torMoments = zeros(n_motors,3) ; 
-thrustMoments = zeros(n_motors,3) ; 
-moments = zeros(n_motors,3) ; 
-out = zeros(6,n_time) ; % output container
+force_totals = zeros(3,n_time,n_motors) ; 
+moment_totals = zeros(3,n_time,n_motors) ; 
 
 %% body frame: forces and moments due to propulsion.
-for j=1:n_time % timesteps
-    for i=1:n_motors % actuators
-        this_motor = p.propulsion(i) ; 
-        this_RPM = u(i,j) * this_motor.maxRPM ; 
+for i=1:n_motors % actuators
+    this_motor = p.propulsion(i) ; 
+    this_RPM = u(i,:) * this_motor.maxRPM ; 
 
-        % Compute wrenches on prop (prop frame)
-        [thrust, torque] = computePropOpPoint(this_RPM, p.rho, this_motor.d_prop, ...
-            this_motor.C_t, this_motor.C_q) ; 
+    % Compute wrenches on prop (prop frame)
+    [thrust, torque] = computePropOpPoint(this_RPM, p.rho, this_motor.d_prop, ...
+        this_motor.C_t, this_motor.C_q) ; 
 
-        % Compute prop wrenches in body frame
-        forces(i,:) = thrust * this_motor.thrustAxis ; 
-        
-        % Compute moments due to thrust 
-        thrustArm = this_motor.thrustLocation - p.cg ;  % moment arm of motor to CG
-        thrustMoments(i,:) = cross(thrustArm,forces(i,:))  ; % moment, due to thrust, on vehicle
+    % Compute prop wrenches in body frame
+    forces = this_motor.thrustAxis' * thrust  ; 
 
-        % Compute moments due to countertorque. 
-        if this_motor.isSpinDirectionCCW == 1 
-           torMoments(i,:) = torque * -this_motor.thrustAxis ; 
-        else
-           torMoments(i,:) = torque * this_motor.thrustAxis ; 
-        end
-        
-        % Add moments due to countertorque and moments due to thrust
-        moments(i,:) = torMoments(i,:) + thrustMoments(i,:) ; 
+    % Compute moments due to thrust 
+    thrustArm = this_motor.thrustLocation - p.cg ;  % moment arm of motor to CG
+    thrustArms = repmat(thrustArm,size(forces,2),1) ; 
+    thrustMoments = cross(thrustArms,forces')  ; % moment, due to thrust, on vehicle
+
+    % Reverse torque direction if required.
+    if this_motor.isSpinDirectionCCW == 1 
+       torqueAxis = -this_motor.thrustAxis ; 
+    else
+       torqueAxis = this_motor.thrustAxis ; 
     end
-    
-    %% Calculate accelerations (in body frame) based on forces and moments
-linAccel = sum(forces)/p.m ; % total linear acceleration from all motors
-angAccel = sum(moments) / p.I ;    % total angular acceleration from all motors
 
-    % Prepare output
-    out(:,j) = [linAccel' ; angAccel'] ; 
-end 
+    % Compute moments due to countertorque. 
+    torMoments = torque' * torqueAxis ; 
+
+    % Add moments due to countertorque and moments due to thrust
+    moments = torMoments + thrustMoments ; 
+    
+    % save
+    force_totals(:,:,i) = forces ; 
+    moment_totals(:,:,i) = moments' ; 
+end
+
+%% Calculate accelerations (in body frame) based on forces and moments
+% linear accelerations
+resultantForce = sum(force_totals,3) ; % add together, for each time step, total forces from all motors.
+linAccel = resultantForce./p.m ; % acceleration in each linear direction for every timestep
+
+% angular accelerations
+resultantMoment = sum(moment_totals,3) ; % add together, for each time step, total moment from all motors.
+angAccel = resultantMoment'/p.I ;    % total angular acceleration from all motors
+
+% Prepare output
+out = [linAccel ; angAccel'] ; 
