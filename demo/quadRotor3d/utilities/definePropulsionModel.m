@@ -1,5 +1,5 @@
-function [quadRotorModel] = definePropulsionModel(quadRotorParams)
-% [quadrotorModel] = definePropulsionModel(quadrotorParams)
+function [propulsionModel] = definePropulsionModel(quadRotorParams)
+% [propulsionModel] = definePropulsionModel(quadrotorParams)
 %
 % Defines a propulsion parameter plant model for use with dynBodyFrame.
 % Supports any number of thrusters, n.
@@ -42,15 +42,15 @@ C_t = p.maxThrust / (rho * (p.maxRPM/60)^2 * p.d_prop^4) ; % thrust coefficient
 C_q = p.maxTorque / (rho * (p.maxRPM/60)^2 * p.d_prop^5) ; % torque coefficient
 
 %% Assign to struct
-quadRotorModel = struct() ; % initialize output struct
+propulsionModel = struct() ; % initialize output struct
 
 for i=1:size(p.thrustLocations,1) 
-quadRotorModel(i).thrustAxis = p.thrustAxes(i,:) ;      % [port, nose, top] % nose faces north when body and world axis are aligned (world is "East North Up")
-quadRotorModel(i).thrustLocation = p.thrustLocations(i,:) ; 
-quadRotorModel(i).isSpinDirectionCCW = p.isSpinDirectionCCW(i,:) ; 
-quadRotorModel(i).maxRPM = p.maxRPM ; 
-quadRotorModel(i).maxTorque = p.maxTorque ; 
-quadRotorModel(i).d_prop = p.d_prop ; 
-quadRotorModel(i).C_t = C_t ; 
-quadRotorModel(i).C_q = C_q ; 
+propulsionModel(i).thrustAxis = p.thrustAxes(i,:) ;      % [port, nose, top] % nose faces north when body and world axis are aligned (world is "East North Up")
+propulsionModel(i).thrustLocation = p.thrustLocations(i,:) ; 
+propulsionModel(i).isSpinDirectionCCW = p.isSpinDirectionCCW(i,:) ; 
+propulsionModel(i).maxRPM = p.maxRPM ; 
+propulsionModel(i).maxTorque = p.maxTorque ; 
+propulsionModel(i).d_prop = p.d_prop ; 
+propulsionModel(i).C_t = C_t ; 
+propulsionModel(i).C_q = C_q ; 
 end

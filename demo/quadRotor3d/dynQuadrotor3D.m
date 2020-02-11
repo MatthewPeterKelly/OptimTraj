@@ -42,14 +42,14 @@ angAccel_body = ddX_body(4:6,:)' ; % angular acceleration
 BodyRotMat = Euler2RotMat(eul) ;  % create body rotation matrix
 
 for i=1:size(BodyRotMat,3)
-linAccel_world = linAccel_body(i,:) * BodyRotMat(:,:,i)' ; % transform body frame linear acceleration into world frame 
-angAccel_world = angAccel_body(i,:) * BodyRotMat(:,:,i)' ; % transform body frame angular acceleration into world frame 
+    linAccel_world = linAccel_body(i,:) * BodyRotMat(:,:,i)' ; % transform body frame linear acceleration into world frame 
+    angAccel_world = angAccel_body(i,:) * BodyRotMat(:,:,i)' ; % transform body frame angular acceleration into world frame 
 
-% Add acceleration due to gravity
-linAccel_world(3) = linAccel_world(3) + p.g ; 
+    % Add acceleration due to gravity
+    linAccel_world(3) = linAccel_world(3) + p.g ; 
 
-% Insert this time step into vector
-ddX(:,i) = [linAccel_world'; angAccel_world'] ; 
+    % Insert this time step into vector
+    ddX(:,i) = [linAccel_world'; angAccel_world'] ; 
 end 
 
 % Pack up the outputs
