@@ -17,7 +17,7 @@ for i=1:numel(propulsionModel)
     d_prop = propulsionModel(i).d_prop ; 
     loc = propulsionModel(i).thrustLocation ; 
     ax = propulsionModel(i).thrustAxis ; 
-    plotProp(d_prop, loc, ax)
+    plotPropLoc(d_prop, loc, ax)
     
     % labeling this motor
     x = loc(1) ; 
