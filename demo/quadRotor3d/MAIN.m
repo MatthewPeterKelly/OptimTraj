@@ -6,7 +6,7 @@
 % 
 
 clc; clear;
-addpath ../../
+addpath ../../ ./utilities ./test
 
 % Define environmental and plant model params
 % Enviromental params
