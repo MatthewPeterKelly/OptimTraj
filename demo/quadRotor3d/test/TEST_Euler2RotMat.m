@@ -4,6 +4,6 @@ disp('running TEST_Euler2RotMat.m')
 eul = zeros(1,3) ; 
 [R] = Euler2RotMat(eul)
 
-%% single vectors
+%% wide array
 eul = zeros(10,3) ; 
 [R] = Euler2RotMat(eul) ; 

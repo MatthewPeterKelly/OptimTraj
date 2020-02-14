@@ -18,10 +18,10 @@ function [propulsionModel] = definePropulsionModel(quadRotorParams)
 %       .thrustLocations = [n x 3] [m] location of motors 
 %       .thrustAxes = [n x 3] [unitvectors] direction of thrust axis
 %       .isSpinDirectionCCW = [n x 1] [bool] if set 
-%       .maxThrust [scalar] thrust at 100% throttle (N)
-%       .maxRPM [scalar] RPM at 100% throttle (RPM)
-%       .maxTorque [scalar] torque at 100% throttle (Nm)
-%       .d_prop [scalar] propeller diameter (m)
+%       .maxThrust [n x 1] thrust at 100% throttle (N)
+%       .maxRPM [n x 1] RPM at 100% throttle (RPM)
+%       .maxTorque [n x 1] torque at 100% throttle (Nm)
+%       .d_prop [n x 1] propeller diameter (m)
 %
 % Output:
 %   quadRotorModel = [struct] with n elements, one for each motor.
@@ -37,20 +37,22 @@ p = quadRotorParams ;
 % (used to determine propulsion system coefficients).
 rho = 1.225 ;     
 
-% compute coefficients.
-C_t = p.maxThrust / (rho * (p.maxRPM/60)^2 * p.d_prop^4) ; % thrust coefficient
-C_q = p.maxTorque / (rho * (p.maxRPM/60)^2 * p.d_prop^5) ; % torque coefficient
-
 %% Assign to struct
 propulsionModel = struct() ; % initialize output struct
 
 for i=1:size(p.thrustLocations,1) 
-propulsionModel(i).thrustAxis = p.thrustAxes(i,:) ;      % [port, nose, top] % nose faces north when body and world axis are aligned (world is "East North Up")
-propulsionModel(i).thrustLocation = p.thrustLocations(i,:) ; 
-propulsionModel(i).isSpinDirectionCCW = p.isSpinDirectionCCW(i,:) ; 
-propulsionModel(i).maxRPM = p.maxRPM ; 
-propulsionModel(i).maxTorque = p.maxTorque ; 
-propulsionModel(i).d_prop = p.d_prop ; 
-propulsionModel(i).C_t = C_t ; 
-propulsionModel(i).C_q = C_q ; 
+    propulsionModel(i).thrustAxis = p.thrustAxes(i,:) ;      % [port, nose, top] % nose faces north when body and world axis are aligned (world is "East North Up")
+    propulsionModel(i).thrustLocation = p.thrustLocations(i,:) ; 
+    propulsionModel(i).isSpinDirectionCCW = p.isSpinDirectionCCW(i,:) ; 
+    propulsionModel(i).maxRPM = p.maxRPM(i) ; 
+    propulsionModel(i).maxTorque = p.maxTorque(i) ; 
+    propulsionModel(i).d_prop = p.d_prop(i) ; 
+
+    % compute coefficients.
+    C_t = p.maxThrust(i) / (rho * (p.maxRPM(i)/60)^2 * p.d_prop(i)^4) ; % thrust coefficient
+    propulsionModel(i).C_t = C_t ; 
+
+    C_q = p.maxTorque(i) / (rho * (p.maxRPM(i)/60)^2 * p.d_prop(i)^5) ; % torque coefficient
+    propulsionModel(i).C_q = C_q ; 
+
 end

@@ -1,9 +1,10 @@
-function [out] = dynBodyFrame(u, p)
+function [out] = dynBodyFrame(omega, u, p)
 %
 % Computes combined (from all motors and props) forces and moments, and resultant acceleration, on a vehicle.
 % Does not include effects from gravity.
 %
 % INPUTS: 
+%   omega = [3,n] = [rad/s] angular velocity. 
 %   u = [N,n] (0-1) = "throttle" vector where N is number of motors.  
 %                       All elements should be: 0 < u(i) < 1 
 %                       N = number of motors
@@ -82,7 +83,8 @@ linAccel = resultantForce./p.m ; % acceleration in each linear direction for eve
 
 % angular accelerations
 resultantMoment = sum(moment_totals,3) ; % add together, for each time step, total moment from all motors.
-angAccel = resultantMoment'/p.I ;    % total angular acceleration from all motors
+bias = cross(omega,p.I*omega); % Eulerian bias acceleration term
+angAccel = p.I\(resultantMoment-bias) ; % solve Euler's equation for ang eccleration
 
 % Prepare output
-out = [linAccel ; angAccel'] ; 
+out = [linAccel ; angAccel] ; 

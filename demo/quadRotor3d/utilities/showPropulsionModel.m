@@ -13,6 +13,7 @@ function showPropulsionModel(propulsionModel)
 % Written by Conrad McGreal
 
 %% plot propellers
+figure
 for i=1:numel(propulsionModel)
     d_prop = propulsionModel(i).d_prop ; 
     loc = propulsionModel(i).thrustLocation ; 
@@ -42,8 +43,11 @@ xlabel('x position [m]'); ylabel('y position [m]'); zlabel('z position [m]');
 axis equal
 
 %% Thrust, Torque, & RPM vs throttle
-motorid = 1 ; % select motor to plot for; at the moment only plots figure for one motor
+figure
 rho = 1.225 ; % set default air density 
+
+for i = 1:numel(propulsionModel)
+motorid = i ; % select motor to plot for; at the moment only plots figure for one motor
 RPM = 0:100:propulsionModel(motorid).maxRPM ; 
 throttle = linspace(0,1,numel(RPM)) ; 
 d_prop = propulsionModel(motorid).d_prop ;
@@ -52,16 +56,16 @@ C_q = propulsionModel(motorid).C_q ;
 [thrust, torque] = computePropOpPoint(RPM, rho, d_prop, C_t, C_q) ; 
 
 % plot it
-figure
 subplot(3,1,1)
-plot(throttle,RPM); grid on; 
+plot(throttle,RPM); grid on; hold on; 
 title_str = strcat(['Motor ',num2str(motorid),' ; ','rho = ',num2str(rho),' kg/m^3']) ; 
 title(title_str) 
 
 xlabel('throttle []'); ylabel('RPM');
 subplot(3,1,2)
-plot(RPM,thrust); grid on; 
+plot(RPM,thrust); grid on; hold on; 
 xlabel('RPM'); ylabel('thrust [N]');
 subplot(3,1,3)
-plot(RPM,torque); grid on; 
+plot(RPM,torque); grid on; hold on; 
 xlabel('RPM'); ylabel('torque [Nm]');
+end 
