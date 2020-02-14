@@ -18,7 +18,7 @@ for i=1:numel(propulsionModel)
     d_prop = propulsionModel(i).d_prop ; 
     loc = propulsionModel(i).thrustLocation ; 
     ax = propulsionModel(i).thrustAxis ; 
-    plotPropLoc(d_prop, loc, ax)
+    plotPropLoc(d_prop, loc, ax) ; 
     
     % labeling this motor
     x = loc(1) ; 
@@ -62,7 +62,7 @@ title_str = strcat(['Motor ',num2str(motorid),' ; ','rho = ',num2str(rho),' kg/m
 title(title_str) 
 
 xlabel('throttle []'); ylabel('RPM');
-subplot(3,1,2)
+subplot(3,1,2) 
 plot(RPM,thrust); grid on; hold on; 
 xlabel('RPM'); ylabel('thrust [N]');
 subplot(3,1,3)

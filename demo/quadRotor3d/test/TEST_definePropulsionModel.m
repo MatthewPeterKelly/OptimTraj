@@ -1,4 +1,5 @@
 % defines an aircraft propulsion model
+disp('Running: TEST_definePropulsionModel.m') 
 
 % Define example parameters
 qRP.d_prop = 0.305*ones(4,1) ; % propeller diameter (m)
@@ -10,7 +11,10 @@ qRP.thrustAxes = repmat([0 0 1],4,1) ; % thrust axes of each motor in coords por
 qRP.isSpinDirectionCCW = [1; 0; 1; 0] ; % bool to reverse motor spin direction around 'thrustAxes'.
 
 % Call function that creates the propulsion plant model
-[quadrotorPropulsionModel] = definePropulsionModel(qRP)
+[quadrotorPropulsionModel] = definePropulsionModel(qRP) ;
 
 % Plot newly created model
-showPropulsionModel(quadrotorPropulsionModel)
+showPropulsionModel(quadrotorPropulsionModel) ; 
+
+%%
+disp('TEST_definePropulsionModel.m ran without error') 
