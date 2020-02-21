@@ -69,8 +69,10 @@ problem.options(1).method = 'trapezoid';
 problem.options(1).trapezoid.nGrid = 8;
 problem.options(2).method = 'trapezoid';
 problem.options(2).trapezoid.nGrid = 16;
-problem.options(3).method = 'hermiteSimpson';
-problem.options(3).hermiteSimpson.nSegment = 15;
+
+% Example syntax to run 'hermiteSimpson' solver.  Can take a while to run:  
+% problem.options(3).method = 'hermiteSimpson';
+% problem.options(3).hermiteSimpson.nSegment = 15;
 
 % Solve the problem
 soln = optimTraj(problem);
