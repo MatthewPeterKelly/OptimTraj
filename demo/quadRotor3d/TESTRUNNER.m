@@ -5,6 +5,7 @@ addpath ./test ./utilities
 
 tests = dir('./test/*TEST*.m') ;
 
+disp('running TESTRUNNER') 
 for i = 1:numel(tests)
     run(tests(i).name)
     clearvars -except tests
