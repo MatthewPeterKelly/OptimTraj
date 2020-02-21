@@ -1,4 +1,4 @@
-function [propulsionModel] = definePropulsionModel(quadRotorParams)
+function [propulsionModel] = definePropulsionModel(quadRotorParams,plotflag)
 % [propulsionModel] = definePropulsionModel(quadrotorParams)
 %
 % Defines a propulsion parameter plant model for use with dynBodyFrame.
@@ -55,4 +55,12 @@ for i=1:size(p.thrustLocations,1)
     C_q = p.maxTorque(i) / (rho * (p.maxRPM(i)/60)^2 * p.d_prop(i)^5) ; % torque coefficient
     propulsionModel(i).C_q = C_q ; 
 
+end
+
+% plot propulsion model, if desired
+if ~exist('plotflag','var')
+else
+    if plotflag
+        showPropulsionModel(propulsionModel) ; 
+    end
 end

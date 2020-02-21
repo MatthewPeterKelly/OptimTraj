@@ -27,7 +27,8 @@ qRP.maxTorque = ones(4,1) ;  % torque at 100% throttle (Nm)
 qRP.thrustLocations = [0.5 0 0; 0 0.5 0; -0.5 0 0; 0 -0.5 0]; % motor locations (each row one motor in coords: [port, nose, top] 
 qRP.thrustAxes = repmat([0 0 1],4,1) ; % thrust axes of each motor in coords port, nose, top.
 qRP.isSpinDirectionCCW = [1; 0; 1; 0] ; % bool to reverse motor spin direction around 'thrustAxes'.
-[p.propulsion] = definePropulsionModel(qRP); 
+plotflag = 1 ; 
+[p.propulsion] = definePropulsionModel(qRP,plotflag); 
 
 % Trajectory Parameters:
 uMax = 1 ; % maximum control input; when u = 1; RPM = maxRPM.
@@ -80,7 +81,7 @@ ddq = soln(end).grid.state(3,:);
 u = soln(end).grid.control ;
 
 % Plot the solution:
-plot_quadRotor3d(soln)
+plotQuadRotor3d(soln)
 
 
 

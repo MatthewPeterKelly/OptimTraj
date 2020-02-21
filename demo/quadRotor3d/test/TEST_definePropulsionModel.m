@@ -10,11 +10,12 @@ qRP.thrustLocations = [0.5 0 0; 0 0.5 0; -0.5 0 0; 0 -0.5 0]; % motor locations 
 qRP.thrustAxes = repmat([0 0 1],4,1) ; % thrust axes of each motor in coords port, nose, top.
 qRP.isSpinDirectionCCW = [1; 0; 1; 0] ; % bool to reverse motor spin direction around 'thrustAxes'.
 
-% Call function that creates the propulsion plant model
-[quadrotorPropulsionModel] = definePropulsionModel(qRP) ;
+% Call function that creates the propulsion plant model (without plotting)
+[quadrotorPropulsionModel_1] = definePropulsionModel(qRP) ;
 
-% Plot newly created model
-showPropulsionModel(quadrotorPropulsionModel) ; 
+% Call function that creates the propulsion plant model (with plotting)
+plotflag = 1; 
+[quadrotorPropulsionModel_2] = definePropulsionModel(qRP,plotflag) ;
 
 %%
 disp('TEST_definePropulsionModel.m ran without error') 

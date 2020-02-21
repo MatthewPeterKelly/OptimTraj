@@ -1,7 +1,7 @@
 % runs all tests in 'test' folder
 
 clc; clear;
-addpath ./test
+addpath ./test ./utilities
 
 tests = dir('./test/*TEST*.m') ;
 
