@@ -57,14 +57,17 @@ The best way to learn OptimTraj is by working through a few of the examples in t
 For more background on trajectory optimization in general, I wrote a [tutorial paper](https://epubs.siam.org/doi/10.1137/16M1062569) that includes derivations and references for most methods implemented here, along with a variety of practical suggestions and debugging tips. Finally, I have a [tutorial webpage](http://www.matthewpeterkelly.com/tutorials/trajectoryOptimization/index.html) for trajectory optimization.
 
 ## Contribute:
-This code is still under development, and will be from now until at least May 2016. Please contact me if you have any comments or suggestions, or create a pull request if you would like to add content.
+Contributions are welcome! Feel free to reach out if you're planning a bigger submission, or just go ahead and make a pull request for smaller contributions. 
 
 If you are interested in contributing, here are a few possible things to do:
 - Create additional demo problems
 - Identify holes in the documentation
 - Report bugs
 - Implement new methods or features
+- Look through the open issues
 
 ## Contributions:
 
-- [__Will Wehner__](https://github.com/wwehner) wrote the code that enables analytic gradients in the multiple shooting method (4th-order Runge-Kutta).
+- [__Will Wehner__](https://github.com/wwehner) implemented analytic gradients in the 4th-order Runge-Kutta method.
+
+- [__Conrad McGreal__](https://github.com/cjmcgreal) contributed the minimum-time 3D quadrotor example.
