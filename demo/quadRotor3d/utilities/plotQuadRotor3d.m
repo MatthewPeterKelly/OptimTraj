@@ -26,7 +26,7 @@ ylabels_controls = {'throttle 1 []','throttle 2 [N]','throttle 3 []','throttle 4
 plotPoints = 150 ; 
 t = linspace(soln(i).grid.time(1), soln(i).grid.time(end), plotPoints);
 x = soln(i).interp.state(t);
-x(3:6,:) = rad2deg(x(3:6,:)) ; % convert to deg
+x(4:6,:) = rad2deg(x(4:6,:)) ; % convert to deg
 x(10:12,:) = rad2deg(x(10:12,:)) ; % convert to deg
 u = soln(i).interp.control(t);
 
