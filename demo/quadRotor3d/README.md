@@ -1,6 +1,7 @@
 # README.md -- 3D Quadcopter
 
-Plant Model:
+Plant Model:   
+    An example plant model definition is provided in loadPlant_QuadRotor3d.m 
     Aircraft with arbitrary number of 'thrusters' (one thruster = one motor + one propeller)
     Thrust and torque is calculated based on propeller RPM. 
     See function headers dynQuadRotor3D.m & dynBodyFrame.m for full details.
@@ -11,6 +12,7 @@ Dynamics:
 
 Objective:
     1. Minimum time solution for boundary value problem with control and kinematic limits.
+         See entry-point script: MAIN_minTimeTraj.m
+    2. Minimum throttle-squared solution for boundary value problem with control and kinematic limits.
+         See entry-point script: MAIN_minThrottleTraj.m
     TODO: add other objective functions
-
-Entry-point script: MAIN.m
