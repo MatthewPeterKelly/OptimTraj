@@ -15,4 +15,4 @@ Objective:
          See entry-point script: MAIN_minTimeTraj.m
     2. Minimum throttle-squared solution for boundary value problem with control and kinematic limits.
          See entry-point script: MAIN_minThrottleTraj.m
-    TODO: add other objective functions
+
