@@ -11,7 +11,7 @@
 
 clc; clear;
 
-addpath ../../
+addpath ../../ ./utilities ./test
 
 % Define environmental and plant model params
 [p] = loadPlant_QuadRotor3d(); 
