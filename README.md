@@ -56,6 +56,31 @@ The best way to learn OptimTraj is by working through a few of the examples in t
 
 For more background on trajectory optimization in general, I wrote a [tutorial paper](https://epubs.siam.org/doi/10.1137/16M1062569) that includes derivations and references for most methods implemented here, along with a variety of practical suggestions and debugging tips. Finally, I have a [tutorial webpage](http://www.matthewpeterkelly.com/tutorials/trajectoryOptimization/index.html) for trajectory optimization.
 
+## Citing OptimTraj
+
+The best way to cite OptimTraj is via the user guide:
+```
+OptimTraj User's Guide, Version 1.5
+Matthew P. Kelly
+May 27, 2016
+https://github.com/MatthewPeterKelly/OptimTraj
+```
+
+Alternatively, you can cite the [tutorial paper](https://epubs.siam.org/doi/10.1137/16M1062569) that accompanies OptimTraj:
+```
+@article{kelly2017introduction,
+  title={An Introduction to Trajectory Optimization: How to do your own Direct Collocation},
+  author={Kelly, Matthew},
+  journal={SIAM Review},
+  volume={59},
+  number={4},
+  pages={849--904},
+  year={2017},
+  publisher={SIAM}
+}
+```
+
+
 ## Contribute:
 Contributions are welcome! Feel free to reach out if you're planning a bigger submission, or just go ahead and make a pull request for smaller contributions. 
 
