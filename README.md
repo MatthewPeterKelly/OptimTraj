@@ -65,8 +65,20 @@ The best way to cite OptimTraj is using the DOI assigned the the library source 
 
 [![DOI](https://zenodo.org/badge/40544279.svg)](https://zenodo.org/badge/latestdoi/40544279)
 
-Alternatively, you can cite the [tutorial paper](https://epubs.siam.org/doi/10.1137/16M1062569) that accompanies OptimTraj:
+```bibtex
+@software{Kelly_OptimTraj_Trajectory_Optimization_2022,
+  author = {Kelly, Matthew Peter},
+  doi = {10.5281/zenodo.7430524},
+  month = {12},
+  title = {{OptimTraj: Trajectory Optimization for Matlab}},
+  url = {https://github.com/MatthewPeterKelly/OptimTraj},
+  version = {1.7},
+  year = {2022}
+}
 ```
+
+Alternatively, you can cite the [tutorial paper](https://epubs.siam.org/doi/10.1137/16M1062569) that accompanies OptimTraj:
+```bibtex
 @article{kelly2017introduction,
   title={An Introduction to Trajectory Optimization: How to do your own Direct Collocation},
   author={Kelly, Matthew},
