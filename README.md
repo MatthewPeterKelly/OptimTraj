@@ -1,4 +1,7 @@
 # OptimTraj - Trajectory Optimization for Matlab
+
+[![DOI](https://zenodo.org/badge/40544279.svg)](https://zenodo.org/badge/latestdoi/40544279)
+
 OptimTraj is a matlab library designed for solving continuous-time single-phase trajectory optimization problems. I developed it while working on my PhD at Cornell, studying non-linear controller design for walking robots.
 
 ## What sort of problems does OptimTraj solve?
@@ -58,13 +61,9 @@ For more background on trajectory optimization in general, I wrote a [tutorial p
 
 ## Citing OptimTraj
 
-The best way to cite OptimTraj is via the user guide:
-```
-OptimTraj User's Guide, Version 1.5
-Matthew P. Kelly
-May 27, 2016
-https://github.com/MatthewPeterKelly/OptimTraj
-```
+The best way to cite OptimTraj is using the DOI assigned the the library source code:
+
+[![DOI](https://zenodo.org/badge/40544279.svg)](https://zenodo.org/badge/latestdoi/40544279)
 
 Alternatively, you can cite the [tutorial paper](https://epubs.siam.org/doi/10.1137/16M1062569) that accompanies OptimTraj:
 ```
@@ -80,9 +79,8 @@ Alternatively, you can cite the [tutorial paper](https://epubs.siam.org/doi/10.1
 }
 ```
 
-
 ## Contribute:
-Contributions are welcome! Feel free to reach out if you're planning a bigger submission, or just go ahead and make a pull request for smaller contributions. 
+Contributions are welcome! Feel free to reach out if you're planning a bigger submission, or just go ahead and make a pull request for smaller contributions.
 
 If you are interested in contributing, here are a few possible things to do:
 - Create additional demo problems
