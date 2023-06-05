@@ -255,7 +255,7 @@ xlabel('time')
 ylabel('joint torques')
 
 figure(3); clf;
-Color = getDefaultPlotColors();
+Color = get(gca,'colororder');
 for i=1:5
     iLeft = 2*i-1;
     iRight = iLeft + 1;
