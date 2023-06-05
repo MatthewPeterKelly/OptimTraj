@@ -54,10 +54,10 @@ dqLow = -10*ones(5,1);
 dqUpp = 10*ones(5,1);
 problem.bounds.state.low = [qLow; dqLow];
 problem.bounds.state.upp = [qUpp; dqUpp];
-problem.bounds.initialstate.low = [qLow; dqLow];
-problem.bounds.initialstate.upp = [qUpp; dqUpp];
-problem.bounds.finalstate.low = [qLow; dqLow];
-problem.bounds.finalstate.upp = [qUpp; dqUpp];
+problem.bounds.initialState.low = [qLow; dqLow];
+problem.bounds.initialState.upp = [qUpp; dqUpp];
+problem.bounds.finalState.low = [qLow; dqLow];
+problem.bounds.finalState.upp = [qUpp; dqUpp];
 
 uMax = 100;  %Nm
 problem.bounds.control.low = -uMax*ones(5,1);
